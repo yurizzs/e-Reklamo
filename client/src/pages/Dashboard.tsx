@@ -202,7 +202,7 @@ const Dashboard = () => {
                 </TableRow>
               ) : users.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-24 text-center">
+                  <TableCell align="center" colSpan={6} className="py-24 text-center">
                     <div className="flex flex-col items-center gap-4 opacity-30">
                       <Icon iconName="FaDatabase" size={40} />
                       <p className="font-mono text-xs uppercase tracking-widest">No user data detected</p>
