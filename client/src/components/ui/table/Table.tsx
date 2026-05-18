@@ -1,6 +1,5 @@
 import React, { type FC, type ReactNode, type MouseEventHandler } from "react";
 import { Icon } from "../../ui";
-import { Select } from "..//forms/Select";
 
 /* =========================
    TABLE

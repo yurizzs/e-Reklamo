@@ -18,7 +18,7 @@ import RestoreUserModal from './components/RestoreUserModal';
 import UserService from '../../services/UserService';
 import type { User } from '../../interfaces/user';
 import { notify } from '../../util/notify';
-import { useDebounce, useDateFormatter } from '../../hooks/index';
+import { useDebounce } from '../../hooks/index';
 import { PATHS } from '../../routes/path';
 
 /* =========================
@@ -143,7 +143,6 @@ const Users = () => {
     Date Formmater 
   ========================= */
 
-  const dateFormat = useDateFormatter();
 
   /* =========================
      MODAL STATE
@@ -252,9 +251,9 @@ const Users = () => {
         <div className="flex flex-col lg:flex-row gap-6 items-end">
           <div className="flex-1 w-full">
             <InputField
-              label='Registry Search'
+              label='Users Search'
               name='search'
-              placeholder='Search by identity, comms, or auth...'
+              placeholder='Search by name, username, or email...'
               fullWidth
               iconName='FaMagnifyingGlass'
               className="bg-black/20 border-white/5 focus:border-emerald-500/50"
@@ -329,7 +328,7 @@ const Users = () => {
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-24">
                   <div className="flex items-center justify-center w-full">
-                    <LoadingSpinner size="lg" text={isSearching ? "Scanning Registry..." : "Syncing Node Data..."} />
+                    <LoadingSpinner size="lg" text={isSearching ? "Scanning Users..." : "Syncing User Data..."} />
                   </div>
                 </TableCell>
               </TableRow>
@@ -342,7 +341,7 @@ const Users = () => {
                     </div>
                     <div className="space-y-2">
                       <h2 className="text-xl font-bold text-white uppercase tracking-tighter">Zero Users Found</h2>
-                      <p className="text-sm text-slate-500 max-w-xs mx-auto">The registry query returned null. Verify filters or add a new system user.</p>
+                      <p className="text-sm text-slate-500 max-w-xs mx-auto">The user query returned null. Verify filters or add a new system user.</p>
                     </div>
                     <Button 
                       variant='primary' 

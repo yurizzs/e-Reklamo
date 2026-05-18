@@ -14,6 +14,19 @@ class UserController extends Controller
 {
     use ApiResponse;
 
+    public function stats()
+    {
+        return $this->success(
+            "User statistics retrieved successfully",
+            [
+                'total' => User::count(),
+                'admins' => User::where('role', 'admin')->count(),
+                'operators' => User::where('role', 'operator')->count(),
+            ],
+            200
+        );
+    }
+
     /**
      * Display a listing of the resource.
      */

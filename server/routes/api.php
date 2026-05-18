@@ -14,6 +14,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Admin Only
     Route::middleware('role:admin')->group(function () {
+        Route::get('users/stats', [UserController::class, 'stats']);
         Route::apiResource('users', UserController::class);
         Route::post('users/{id}/restore', [UserController::class, 'restore']);
     });

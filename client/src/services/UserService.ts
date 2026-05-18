@@ -18,6 +18,12 @@ const UserService = {
             AxiosInstance.get(`${BASE_PREFIX}`, { params }), 
             "Failed to fetch users"
         ),
+
+    getStats: () =>
+        handleRequest(
+            AxiosInstance.get(`${BASE_PREFIX}/stats`),
+            "Failed to fetch user statistics"
+        ),
     
     // for GET user http://localhost:8000/api/{id}  (show)
     getOne: (slug: string) => 
