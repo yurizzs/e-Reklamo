@@ -5,6 +5,7 @@ type SpinnerSize = "sm" | "md" | "lg" | "xlg" | "custom";
 interface LoadingSpinnerProps {
   size?: SpinnerSize;
   customSize?: string;
+  color?: string;
   text?: string;
   className?: string;
   fullScreen?: boolean;
