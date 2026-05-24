@@ -11,5 +11,6 @@ export const PATHS = {
     DASHBOARD: `${APP_ROOT}/dashboard`,
     USERS: `${APP_ROOT}/users`,
     USER_DETAIL: `${APP_ROOT}/users/:slug`,
+    LOGS: `${APP_ROOT}/logs`,
   },
 };

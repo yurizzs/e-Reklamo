@@ -16,11 +16,22 @@ const Login: React.FC = () => {
   const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
   const [errors, setErrors] = useState<{
     username?: string;
     password?: string;
   }>({});
   const [isLoading, setIsLoading] = useState(false);
+
+  React.useEffect(() => {
+    if (lockoutSeconds <= 0) return;
+
+    const t = window.setInterval(() => {
+      setLockoutSeconds((s) => (s <= 1 ? 0 : s - 1));
+    }, 1000);
+
+    return () => window.clearInterval(t);
+  }, [lockoutSeconds]);
 
   const validate = () => {
     const newErrors: { username?: string; password?: string } = {};
@@ -42,6 +53,10 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (lockoutSeconds > 0) {
+      notify.error(`Too many login attempts. Try again in ${lockoutSeconds}s.`);
+      return;
+    }
     if (!validate()) return;
 
     setIsLoading(true);
@@ -52,6 +67,7 @@ const Login: React.FC = () => {
     } catch (err) {
       const axiosErr = err as AxiosError<{
         message?: string;
+        data?: { retry_after?: number };
         errors?: Record<string, string[]>;
       }>;
       const status = axiosErr.response?.status;
@@ -65,6 +81,16 @@ const Login: React.FC = () => {
         });
       } else if (status === 401) {
         notify.error(data?.message || "Invalid credentials. Please try again.");
+      } else if (status === 429) {
+        const retryAfterFromData = data?.data?.retry_after ?? 0;
+        const retryAfterFromMessage = Number(
+          (data?.message || "").match(/(\d+)\s*seconds?/i)?.[1] ?? 0,
+        );
+        const retryAfter = Math.max(retryAfterFromData, retryAfterFromMessage);
+        if (retryAfter > 0) setLockoutSeconds(retryAfter);
+        notify.error(
+          data?.message || "Too many login attempts. Please wait and try again.",
+        );
       } else {
         notify.error("Something went wrong. Please try again.");
       }
@@ -174,7 +200,7 @@ const Login: React.FC = () => {
             {/* Submit */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || lockoutSeconds > 0}
               className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-60 disabled:cursor-not-allowed text-[#022c1a] font-bold text-sm rounded-lg py-2.5 flex items-center justify-center gap-2 transition-colors mt-1"
             >
               {isLoading ? (
@@ -191,7 +217,7 @@ const Login: React.FC = () => {
                   Processing...
                 </>
               ) : (
-                "Sign In"
+                lockoutSeconds > 0 ? `Try again in ${lockoutSeconds}s` : "Sign In"
               )}
             </button>
           </form>

@@ -433,17 +433,18 @@ const Users = () => {
         {/* Pagination Section */}
         {!isLoading && users.length > 0 && (
           <div className="bg-black/40 border-t border-white/5 p-6">
-            <TablePagination
-              currentPage={pagination.current_page}
-              totalPages={totalPages}
-              totalResults={pagination.total}
-              pageSize={pageSize}
-              onPageChange={setPage}
-              onPageSizeChange={(size) => {
-                setPageSize(size);
-                setPage(1);
-              }}
-            />
+             <TablePagination
+               currentPage={pagination.current_page}
+               totalPages={totalPages}
+               totalResults={pagination.total}
+               pageSize={pageSize}
+               onPageChange={setPage}
+               onPageSizeChange={(size) => {
+                 setPageSize(size);
+                 setPage(1);
+               }}
+               resourceLabel="Users"
+             />
           </div>
         )}
       </div>

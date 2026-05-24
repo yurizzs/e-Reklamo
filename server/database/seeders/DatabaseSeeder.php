@@ -18,5 +18,19 @@ class DatabaseSeeder extends Seeder
         // User::factory(10)->create();
 
         User::factory(10)->create();
+
+        // Ensure a stable admin account exists for local access
+        \App\Models\User::updateOrCreate(
+            ['username' => 'admin'],
+            [
+                'slug' => \Illuminate\Support\Str::slug('Administrator'),
+                'name' => 'Administrator',
+                'email' => 'admin@example.com',
+                'username' => 'admin',
+                'phone' => null,
+                'role' => \App\Enums\UserRole::ADMIN,
+                'password' => \Illuminate\Support\Facades\Hash::make('password'),
+            ]
+        );
     }
 }

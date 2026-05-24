@@ -1,5 +1,6 @@
 export * from './InputField';
 export * from './PasswordInputField';
+export * from './PasswordStrengthMeter';
 export * from './SelectionControls';
 export * from './Select';
 export * from './MultiSelect';

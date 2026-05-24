@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\API\v1\AuthenticationController;
+use App\Http\Controllers\API\v1\ActivityLogController;
 use App\Http\Controllers\API\v1\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -17,5 +18,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('users/stats', [UserController::class, 'stats']);
         Route::apiResource('users', UserController::class);
         Route::post('users/{id}/restore', [UserController::class, 'restore']);
+
+        // Activity Logs (Accounting)
+        Route::get('activity-logs', [ActivityLogController::class, 'index']);
     });
 });

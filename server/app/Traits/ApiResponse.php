@@ -15,12 +15,12 @@ trait ApiResponse
         ], $code);
     }
 
-    protected function error(string $message = "Error", int $code = 400): JsonResponse
+    protected function error(string $message = "Error", int $code = 400, $data = null): JsonResponse
     {
         return response()->json([
             'status' => 'Error',
             'message' => $message,
-            'data' => null
+            'data' => $data
         ], $code);
     }
 }

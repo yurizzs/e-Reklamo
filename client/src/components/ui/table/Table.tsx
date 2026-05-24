@@ -142,6 +142,7 @@ interface TablePaginationProps {
   onPageSizeChange: (size: number) => void;
   totalResults: number;
   pageSize: number;
+  resourceLabel?: string;
 }
 
 export const TablePagination: FC<TablePaginationProps> = ({
@@ -151,6 +152,7 @@ export const TablePagination: FC<TablePaginationProps> = ({
   onPageSizeChange,
   totalResults,
   pageSize,
+  resourceLabel = "Results",
 }) => {
   const start = totalResults === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const end = Math.min(currentPage * pageSize, totalResults);
@@ -193,7 +195,10 @@ export const TablePagination: FC<TablePaginationProps> = ({
         <div className="h-4 w-px bg-white/5" />
 
         <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-500">
-          Viewing <span className="text-emerald-500">{start}</span> - <span className="text-emerald-500">{end}</span> of <span className="text-emerald-500">{totalResults}</span> Users
+          Viewing <span className="text-emerald-500">{start}</span> -{" "}
+          <span className="text-emerald-500">{end}</span> of{" "}
+          <span className="text-emerald-500">{totalResults}</span>{" "}
+          {resourceLabel}
         </span>
       </div>
 

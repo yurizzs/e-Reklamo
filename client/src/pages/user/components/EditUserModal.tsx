@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Modal from "../../../components/ui/Modal";
 import { notify } from "../../../util/notify";
-import { InputField, FileUploadField, PasswordInputField, Radio } from "../../../components/ui/forms";
+import { InputField, FileUploadField, PasswordInputField, PasswordStrengthMeter, Radio } from "../../../components/ui/forms";
 import type { User, Role } from "../../../interfaces/user";
 import UserService from "../../../services/UserService";
 
@@ -241,6 +241,8 @@ const EditUserModal = ({ isOpen, onClose, onSuccess, user, size = "sm" }: Props)
                     onChange={(e) => handleChange("password", e.target.value)}
                     error={errors.password}
                 />
+
+                <PasswordStrengthMeter password={form.password} />
 
                 <PasswordInputField
                     name="password_confirmation"
