@@ -11,18 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('users', function (Blueprint $table) {
+        Schema::create('employees', function (Blueprint $table) {
             $table->id();
             $table->string('slug')->unique();
-            $table->string('avatar')->nullable();
             $table->string('first_name');
             $table->string('middle_name')->nullable();
             $table->string('last_name');
-            $table->string('suffix_1name')->nullable();
+            $table->string('suffix_name')->nullable();
+            $table->string('position');
+            $table->enum('role', ['admin', 'officer'])->default('officer');
+            $table->string('avatar')->nullable();
+            $table->string('phone')->unique()->nullable();
             $table->string('email')->unique()->nullable();
             $table->string('username')->unique();
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('phone')->unique()->nullable();
             $table->string('password');
             $table->enum('theme', ['light', 'dark', 'system'])->default('system');
             $table->rememberToken();
@@ -51,8 +53,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('users');
-        Schema::dropIfExists('password_reset_tokens');
-        Schema::dropIfExists('sessions');
+        Schema::dropIfExists('employees');
+
+        hasMany(Complaint::class,'assigned_employee_id');
+
+        hasMany(OperatorSchedule::class);
     }
 };

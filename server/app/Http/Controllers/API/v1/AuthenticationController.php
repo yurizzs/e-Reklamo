@@ -7,11 +7,28 @@ use Illuminate\Support\Str;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use App\Models\ActivityLog;
 class AuthenticationController extends Controller
 {
     use ApiResponse;
+
+    private function recordActivity(?int $userId, string $activity): void
+    {
+        try {
+            ActivityLog::create([
+                'user_id' => $userId,
+                'activity' => $activity,
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Unable to record activity log.', [
+                'user_id' => $userId,
+                'activity' => $activity,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
 
     public function login(Request $request): JsonResponse
     {
@@ -109,10 +126,7 @@ class AuthenticationController extends Controller
 
         if ($user?->currentAccessToken() &&
             method_exists($user->currentAccessToken(), 'delete')) {
-            ActivityLog::create([
-                'user_id' => $user->id,
-                'activity' => 'logout (token)',
-            ]);
+            $this->recordActivity($user->id, 'logout (token)');
             $user->currentAccessToken()->delete();
             return $this->success('Logged out successfully.', null, 200);
         }
@@ -120,10 +134,7 @@ class AuthenticationController extends Controller
         // WEB SPA: invalidate the session (unchanged)
         // ──────────────────────────────────────────
         if ($user) {
-            ActivityLog::create([
-                'user_id' => $user->id,
-                'activity' => 'logout (session)',
-            ]);
+            $this->recordActivity($user->id, 'logout (session)');
         }
         Auth::guard('web')->logout();
         $request->session()->invalidate();

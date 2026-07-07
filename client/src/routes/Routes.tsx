@@ -9,7 +9,6 @@ const Login = React.lazy(() => import("../pages/auth/Login"));
 const Dashboard = React.lazy(() => import("../pages/Dashboard"));
 const Users = React.lazy(() => import("../pages/user/User"));
 const ViewUserDetail = React.lazy(() => import("../pages/user/components/ViewUserModal"));
-const ActivityLogs = React.lazy(() => import("../pages/logs/ActivityLogs"));
 
 export const Routes = createBrowserRouter([
   {
@@ -59,10 +58,6 @@ export const Routes = createBrowserRouter([
                   {
                     path: PATHS.APP.USER_DETAIL,
                     element: <ViewUserDetail />,
-                  },
-                  {
-                    path: PATHS.APP.LOGS,
-                    element: <ActivityLogs />,
                   },
                 ],
               },
