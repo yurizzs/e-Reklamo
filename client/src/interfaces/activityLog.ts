@@ -2,7 +2,7 @@ import type { Role } from "./user";
 
 export interface ActivityLogUser {
   id: number;
-  name: string;
+  name?: string;
   username: string;
   role: Role;
 }

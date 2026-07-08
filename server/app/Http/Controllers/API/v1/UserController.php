@@ -48,20 +48,21 @@ class UserController extends Controller
         if ($request->has('search') && !empty($request->search)) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
+                $q->where('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
                     ->orWhere('username', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
         // Sorting
-        $sortBy = $request->input('sort_by', 'name');
+        $sortBy = $request->input('sort_by', 'first_name');
         $sortOrder = $request->input('sort_order', 'asc');
 
         // Validate sort field to prevent SQL injection
-        $allowedSortFields = ['name', 'role', 'created_at'];
+        $allowedSortFields = ['first_name', 'last_name', 'role', 'created_at'];
         if (!in_array($sortBy, $allowedSortFields)) {
-            $sortBy = 'name';
+            $sortBy = 'first_name';
         }
 
         // Validate sort order

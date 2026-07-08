@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('last_name');
             $table->string('suffix_1name')->nullable();
             $table->string('plate_number');
-            $table->foreignId('vehicle_id')->constrained('vehicles')->onDelete('cascade');
+            $table->foreignId('vehicle_id')->constrained('vehicle_types')->onDelete('cascade');
             $table->string('address')->nullable();
             $table->timestamps();
         });

@@ -24,7 +24,8 @@ class DatabaseSeeder extends Seeder
             ['username' => 'admin'],
             [
                 'slug' => \Illuminate\Support\Str::slug('Administrator'),
-                'name' => 'Administrator',
+                'first_name' => 'Administrator',
+                'last_name' => 'Admin',
                 'email' => 'admin@example.com',
                 'username' => 'admin',
                 'phone' => null,

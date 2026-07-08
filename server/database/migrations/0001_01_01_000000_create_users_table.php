@@ -24,6 +24,7 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('phone')->unique()->nullable();
             $table->string('password');
+            $table->enum('role', ['admin', 'operator'])->default('operator');
             $table->enum('theme', ['light', 'dark', 'system'])->default('system');
             $table->rememberToken();
             $table->softDeletes();

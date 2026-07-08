@@ -48,7 +48,7 @@ const Users = () => {
   });
 
   const [sort, setSort] = useState<SortState>({
-    key: "name",
+    key: "first_name",
     direction: "asc",
   });
 

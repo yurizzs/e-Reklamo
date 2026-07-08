@@ -13,7 +13,10 @@ type Props = {
 
 interface UserFormData {
     avatar: File | null;
-    name: string;
+    first_name: string;
+    middle_name: string;
+    last_name: string;
+    suffix_1name: string;
     email: string;
     username: string;
     phone: string;
@@ -32,7 +35,10 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }: Props) => {
 
     const initialFormState: UserFormData = {
         avatar: null,
-        name: "",
+        first_name: "",
+        middle_name: "",
+        last_name: "",
+        suffix_1name: "",
         email: "",
         username: "",
         phone: "",
@@ -78,7 +84,10 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }: Props) => {
         try {
             // Create FormData for multipart/form-data submission
             const formData = new FormData();
-            formData.append("name", form.name);
+            formData.append("first_name", form.first_name);
+            formData.append("last_name", form.last_name);
+            formData.append("middle_name", form.middle_name);
+            formData.append("suffix_1name", form.suffix_1name);
             formData.append("email", form.email);
             formData.append("username", form.username);
             formData.append("phone", form.phone);
@@ -151,18 +160,54 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }: Props) => {
                     fullWidth
                 />
 
-                <InputField
-                    name="name"
-                    label="Name"
-                    type="text"
-                    placeholder="Enter full name"
-                    required
-                    fullWidth
-                    value={form.name}
-                    onChange={(e) => handleChange("name", e.target.value)}
-                    iconName="FaUser"
-                    error={errors.name}
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <InputField
+                        name="first_name"
+                        label="First Name"
+                        type="text"
+                        placeholder="First name"
+                        required
+                        fullWidth
+                        value={form.first_name}
+                        onChange={(e) => handleChange("first_name", e.target.value)}
+                        iconName="FaUser"
+                        error={errors.first_name}
+                    />
+                    <InputField
+                        name="last_name"
+                        label="Last Name"
+                        type="text"
+                        placeholder="Last name"
+                        required
+                        fullWidth
+                        value={form.last_name}
+                        onChange={(e) => handleChange("last_name", e.target.value)}
+                        iconName="FaUser"
+                        error={errors.last_name}
+                    />
+                    <InputField
+                        name="middle_name"
+                        label="Middle Name"
+                        type="text"
+                        placeholder="Middle name"
+                        fullWidth
+                        value={form.middle_name}
+                        onChange={(e) => handleChange("middle_name", e.target.value)}
+                        iconName="FaUser"
+                        error={errors.middle_name}
+                    />
+                    <InputField
+                        name="suffix_1name"
+                        label="Suffix"
+                        type="text"
+                        placeholder="e.g. Jr., III"
+                        fullWidth
+                        value={form.suffix_1name}
+                        onChange={(e) => handleChange("suffix_1name", e.target.value)}
+                        iconName="FaUser"
+                        error={errors.suffix_1name}
+                    />
+                </div>
 
                 <InputField
                     name="email"
@@ -229,8 +274,20 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }: Props) => {
                         Role (Default to Operator)
                     </label>
                     <div className="inline-flex gap-3">
-                        <Radio name="role" label="Operator" value={form.role}/>
-                        <Radio name="role" label="Admin" value={form.role}/>
+                        <Radio 
+                            name="role" 
+                            label="Operator" 
+                            value="operator" 
+                            checked={form.role === 'operator'}
+                            onChange={() => handleChange("role", "operator")}
+                        />
+                        <Radio 
+                            name="role" 
+                            label="Admin" 
+                            value="admin" 
+                            checked={form.role === 'admin'}
+                            onChange={() => handleChange("role", "admin")}
+                        />
                     </div>
                 </div>
 

@@ -27,11 +27,14 @@ class UserFactory extends Factory
     {
         $roles = [UserRole::OPERATOR, UserRole::ADMIN];
 
-        $name = fake()->unique()->name();
+        $firstName = fake()->firstName();
+        $lastName = fake()->lastName();
+        $fullName = "$firstName $lastName";
 
         return [
-            'slug' => Str::slug($name),
-            'name' => $name,
+            'slug' => Str::slug($fullName),
+            'first_name' => $firstName,
+            'last_name' => $lastName,
             'email' => fake()->unique()->safeEmail(),
             'username' => fake()->unique()->userName(),
             'email_verified_at' => now(),

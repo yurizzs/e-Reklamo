@@ -5,7 +5,11 @@ export interface User {
   id: number;
   slug: string;
   avatar: string;
-  name: string;
+  first_name: string;
+  middle_name: string | null;
+  last_name: string;
+  suffix_1name: string | null;
+  name?: string;
   email: string;
   username: string;
   phone: string;

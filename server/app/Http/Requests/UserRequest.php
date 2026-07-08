@@ -30,7 +30,10 @@ class UserRequest extends FormRequest
         $user = User::find($this->route('user'));
 
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'middle_name' => ['nullable', 'string', 'max:255'],
+            'suffix_1name' => ['nullable', 'string', 'max:255'],
 
             'username' => ['required', 'string', 'max:255', Rule::unique('users', 'username')->ignore($user?->id)],
 

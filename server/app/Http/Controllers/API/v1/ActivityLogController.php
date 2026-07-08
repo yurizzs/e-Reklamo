@@ -14,14 +14,15 @@ class ActivityLogController extends Controller
 
     public function index(Request $request)
     {
-        $query = ActivityLog::query()->with(['user:id,name,username,role']);
+        $query = ActivityLog::query()->with(['user:id,first_name,last_name,username,role']);
 
         if ($request->has('search') && !empty($request->search)) {
             $search = (string) $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('activity', 'like', "%{$search}%")
                     ->orWhereHas('user', function ($u) use ($search) {
-                        $u->where('name', 'like', "%{$search}%")
+                        $u->where('first_name', 'like', "%{$search}%")
+                            ->orWhere('last_name', 'like', "%{$search}%")
                             ->orWhere('username', 'like', "%{$search}%");
                     });
             });
