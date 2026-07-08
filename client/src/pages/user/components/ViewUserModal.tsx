@@ -9,6 +9,7 @@ import { useDateFormatter } from '../../../hooks/index';
 import { PATHS } from '../../../routes/path';
 import EditUserModal from './EditUserModal';
 import DeleteUserModal from './DeleteUserModal';
+import RestoreUserModal from './RestoreUserModal';
 
 /* =========================
    DETAIL ROW
@@ -54,8 +55,11 @@ const UserDetail = () => {
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
 
     const dateFormat = useDateFormatter();
+    const displayName = user?.name || `${user?.first_name ?? ''} ${user?.last_name ?? ''}`.trim();
+    const isDeleted = Boolean(user?.deleted_at);
 
     /* =========================
        FETCH USER
@@ -96,20 +100,32 @@ const UserDetail = () => {
 
                 {!isLoading && user && (
                     <div className="flex items-center gap-2">
-                        <Button
-                            variant="primary"
-                            iconName="FaPencil"
-                            onClick={() => setIsEditModalOpen(true)}
-                        >
-                            Edit User
-                        </Button>
-                        <Button
-                            variant="danger"
-                            iconName="FaTrash"
-                            onClick={() => setIsDeleteModalOpen(true)}
-                        >
-                            Delete
-                        </Button>
+                        {isDeleted ? (
+                            <Button
+                                variant="primary"
+                                iconName="FaArrowRotateLeft"
+                                onClick={() => setIsRestoreModalOpen(true)}
+                            >
+                                Restore User
+                            </Button>
+                        ) : (
+                            <>
+                                <Button
+                                    variant="primary"
+                                    iconName="FaPencil"
+                                    onClick={() => setIsEditModalOpen(true)}
+                                >
+                                    Edit User
+                                </Button>
+                                <Button
+                                    variant="danger"
+                                    iconName="FaTrash"
+                                    onClick={() => setIsDeleteModalOpen(true)}
+                                >
+                                    Delete
+                                </Button>
+                            </>
+                        )}
                     </div>
                 )}
             </div>
@@ -149,18 +165,25 @@ const UserDetail = () => {
                             {user.avatar ? (
                                 <img
                                     src={`${import.meta.env.VITE_STORAGE_URL}/${user.avatar}`}
-                                    alt={user.name}
+                                    alt={displayName}
                                     className="w-28 h-28 rounded-full object-cover ring-2 ring-primary/30"
                                 />
                             ) : (
                                 <div className="w-28 h-28 rounded-full bg-primary/15 flex items-center justify-center text-4xl font-bold text-primary">
-                                    {user.name.charAt(0).toUpperCase()}
+                                    {displayName.charAt(0).toUpperCase()}
                                 </div>
                             )}
 
                             {/* Name & Role */}
                             <div className="space-y-1.5">
-                                <h2 className="text-lg font-bold text-text">{user.name}</h2>
+                                <div className="flex flex-col items-center gap-2">
+                                    <h2 className="text-lg font-bold text-text">{displayName}</h2>
+                                    {isDeleted && (
+                                        <span className="px-2 py-1 rounded-md bg-red-500/10 text-red-400 font-mono text-[9px] uppercase border border-red-500/20">
+                                            Deleted
+                                        </span>
+                                    )}
+                                </div>
                                 <RoleBadge role={user.role} />
                             </div>
 
@@ -188,7 +211,7 @@ const UserDetail = () => {
                                 User Information
                             </h3>
 
-                            <DetailRow label="Full Name" value={user.name} />
+                            <DetailRow label="Full Name" value={displayName} />
                             <DetailRow label="Email Address" value={user.email} />
                             <DetailRow label="Email Address" value={user.username} />
                             <DetailRow label="Phone Number" value={user.phone} />
@@ -227,6 +250,16 @@ const UserDetail = () => {
                 onClose={() => setIsDeleteModalOpen(false)}
                 user={user}
                 onSuccess={() => navigate(PATHS.APP.USERS)}
+            />
+
+            <RestoreUserModal
+                isOpen={isRestoreModalOpen}
+                onClose={() => setIsRestoreModalOpen(false)}
+                user={user}
+                onSuccess={() => {
+                    setIsRestoreModalOpen(false);
+                    fetchUser();
+                }}
             />
 
             <ToastProvider />

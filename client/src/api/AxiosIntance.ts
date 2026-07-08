@@ -59,4 +59,12 @@ AxiosInstance.interceptors.response.use(
   }
 );
 
+export const apiHandler = {
+    get: <T>(url: string, options?: any) => AxiosInstance.get<T>(url, options),
+    post: <T>(url: string, data?: any, options?: any) => AxiosInstance.post<T>(url, data, options),
+    put: <T>(url: string, data?: any, options?: any) => AxiosInstance.put<T>(url, data, options),
+    delete: <T>(url: string, options?: any) => AxiosInstance.delete<T>(url, options),
+    patch: <T>(url: string, data?: any, options?: any) => AxiosInstance.patch<T>(url, data, options),
+};
+
 export default AxiosInstance;

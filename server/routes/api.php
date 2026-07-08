@@ -3,6 +3,7 @@
 use App\Http\Controllers\API\v1\AuthenticationController;
 use App\Http\Controllers\API\v1\ActivityLogController;
 use App\Http\Controllers\API\v1\UserController;
+use App\Http\Controllers\API\v1\ViolationCategoryController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('auth/login', [AuthenticationController::class, 'login']);
@@ -21,5 +22,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Activity Logs (Accounting)
         Route::get('activity-logs', [ActivityLogController::class, 'index']);
+
+        // Violation Categories
+        Route::apiResource('violation-categories', ViolationCategoryController::class);
+        Route::post('violation-categories/{id}/restore', [ViolationCategoryController::class, 'restore']);
     });
 });

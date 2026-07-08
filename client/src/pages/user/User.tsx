@@ -355,77 +355,98 @@ const Users = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              users.map((user) => (
-                <TableRow key={user.id} className="hover:bg-emerald-500/5 transition-colors border-b border-white/2 last:border-0 group">
-                  <TableCell>
-                    {user.avatar ? (
-                      <div className="relative">
-                        <img
-                          src={`${import.meta.env.VITE_STORAGE_URL}/${user.avatar}`}
-                          alt={user.name}
-                          className="w-10 h-10 rounded-xl object-cover border border-white/10 group-hover:border-emerald-500/50 transition-colors"
-                        />
-                        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-[#0B0F1A] rounded-full" />
+              users.map((user) => {
+                const isDeleted = Boolean(user.deleted_at);
+                const displayName = user.name || `${user.first_name} ${user.last_name}`.trim();
+
+                return (
+                  <TableRow key={user.id} className="hover:bg-emerald-500/5 transition-colors border-b border-white/2 last:border-0 group">
+                    <TableCell>
+                      {user.avatar ? (
+                        <div className="relative">
+                          <img
+                            src={`${import.meta.env.VITE_STORAGE_URL}/${user.avatar}`}
+                            alt={displayName}
+                            className="w-10 h-10 rounded-xl object-cover border border-white/10 group-hover:border-emerald-500/50 transition-colors"
+                          />
+                          {!isDeleted && <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-[#0B0F1A] rounded-full" />}
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 font-black">
+                          {displayName.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-bold text-slate-200">
+                      <div className="flex items-center gap-2">
+                        <span>{displayName}</span>
+                        {isDeleted && (
+                          <span className="px-2 py-1 rounded-md bg-red-500/10 text-red-400 font-mono text-[9px] uppercase border border-red-500/20">
+                            Deleted
+                          </span>
+                        )}
                       </div>
-                    ) : (
-                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 font-black">
-                        {user.name.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell className="font-bold text-slate-200">{user.name}</TableCell>
-                  <TableCell className="text-slate-400 text-xs">{user.email}</TableCell>
-                  <TableCell>
-                    <span className="px-2 py-1 rounded-md bg-black/40 text-emerald-400 font-mono text-[10px] border border-emerald-500/20">
-                      @{user.username}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span className={`
-                      px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border
-                      ${user.role === 'admin' 
-                        ? 'bg-red-500/10 text-red-400 border-red-500/20' 
-                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}
-                    `}>
-                      {user.role}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right pr-2">
-                    <div className='flex gap-2 items-center justify-end'>
-                      <Button
-                        size='sm'
-                        variant='ghost'
-                        iconName='FaEye'
-                        className='text-slate-500 hover:text-emerald-400 border-transparent hover:bg-emerald-500/10'
-                        onClick={() => navigate(PATHS.APP.USER_DETAIL.replace(':slug', user.slug))}
-                      />
-                      <Button
-                        size='sm'
-                        variant='ghost'
-                        iconName='FaPencil'
-                        className='text-slate-500 hover:text-emerald-400 border-transparent hover:bg-emerald-500/10'
-                        onClick={() => handleEditUser(user)}
-                      />
-                      {filter === 'deleted' && (
+                    </TableCell>
+                    <TableCell className="text-slate-400 text-xs">{user.email}</TableCell>
+                    <TableCell>
+                      <span className="px-2 py-1 rounded-md bg-black/40 text-emerald-400 font-mono text-[10px] border border-emerald-500/20">
+                        @{user.username}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`
+                        px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border
+                        ${user.role === 'admin' 
+                          ? 'bg-red-500/10 text-red-400 border-red-500/20' 
+                          : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}
+                      `}>
+                        {user.role}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right pr-2">
+                      <div className='flex gap-2 items-center justify-end'>
                         <Button
                           size='sm'
                           variant='ghost'
-                          iconName='FaArrowRotateLeft'
-                          className='text-emerald-500 hover:bg-emerald-500/10 border-transparent'
-                          onClick={() => handleRestoreUser(user)}
+                          iconName='FaEye'
+                          className='text-slate-500 hover:text-emerald-400 border-transparent hover:bg-emerald-500/10'
+                          onClick={() => navigate(PATHS.APP.USER_DETAIL.replace(':slug', user.slug))}
+                          tooltip="View"
                         />
-                      )}
-                      <Button
-                        size='sm'
-                        variant='ghost'
-                        iconName='FaTrash'
-                        className='text-slate-500 hover:text-red-400 border-transparent hover:bg-red-500/10'
-                        onClick={() => handleDeleteUser(user)}
-                      />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+                        {isDeleted ? (
+                          <Button
+                            size='sm'
+                            variant='ghost'
+                            iconName='FaArrowRotateLeft'
+                            className='text-emerald-500 hover:bg-emerald-500/10 border-transparent'
+                            onClick={() => handleRestoreUser(user)}
+                            tooltip="Restore"
+                          />
+                        ) : (
+                          <>
+                            <Button
+                              size='sm'
+                              variant='ghost'
+                              iconName='FaPencil'
+                              className='text-slate-500 hover:text-emerald-400 border-transparent hover:bg-emerald-500/10'
+                              onClick={() => handleEditUser(user)}
+                              tooltip="Edit"
+                            />
+                            <Button
+                              size='sm'
+                              variant='ghost'
+                              iconName='FaTrash'
+                              className='text-slate-500 hover:text-red-400 border-transparent hover:bg-red-500/10'
+                              onClick={() => handleDeleteUser(user)}
+                              tooltip="Move to recycle bin"
+                            />
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
@@ -467,7 +488,6 @@ const Users = () => {
         isOpen={isDeleteModalOpen}
         onClose={handleCancelDelete}
         user={userToDelete}
-        isPermanentDelete={filter === 'deleted'}
         onSuccess={handleDeleteSuccess}
       />
 

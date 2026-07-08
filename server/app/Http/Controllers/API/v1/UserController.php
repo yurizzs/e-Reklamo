@@ -180,30 +180,17 @@ class UserController extends Controller
     {
         $user = User::withTrashed()->findOrFail($id);
 
-        // If user is already trashed (soft deleted), do a hard delete (permanent)
-        // Otherwise, do a soft delete
         if ($user->trashed()) {
-            // Permanently delete the user and their avatar
-            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
-                Storage::disk('public')->delete($user->avatar);
-            }
-            $user->forceDelete();
-
-            return $this->success(
-                "User permanently deleted successfully",
-                null,
-                200
-            );
-        } else {
-            // Soft delete the user
-            $user->delete();
-
-            return $this->success(
-                "User deleted successfully",
-                null,
-                200
-            );
+            return $this->error("User is already deleted", 400);
         }
+
+        $user->delete();
+
+        return $this->success(
+            "User deleted successfully",
+            null,
+            200
+        );
     }
 
     /**

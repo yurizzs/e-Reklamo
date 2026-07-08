@@ -1,5 +1,8 @@
 import type { AxiosResponse, AxiosError } from "axios";
 import { notify } from "../util/notify";
+import { apiHandler as axiosApiHandler } from "./AxiosIntance";
+
+export const apiHandler = axiosApiHandler;
 
 type HandleRequestOptions = {
     returnFullResponse?: boolean;

@@ -49,6 +49,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
           path: PATHS.APP.LOGS,
           roles: ["admin"],
         },
+        {
+          name: "Violation Categories",
+          icon: "FaListUl",
+          path: PATHS.APP.VIOLATION_CATEGORIES,
+          roles: ["admin"],
+        },
       ],
     },
   ];
