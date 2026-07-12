@@ -6,11 +6,12 @@ import RootLayout from "./RootLayout";
 
 // Lazy Loading
 const Login = React.lazy(() => import("../pages/auth/Login"));
-const Dashboard = React.lazy(() => import("../pages/Dashboard"));
+const RoleDashboard = React.lazy(() => import("../pages/RoleDashboard"));
 const Users = React.lazy(() => import("../pages/user/User"));
 const ViewUserDetail = React.lazy(() => import("../pages/user/components/ViewUserModal"));
 const ActivityLogs = React.lazy(() => import("../pages/logs/ActivityLogs"));
 const ViolationCategories = React.lazy(() => import("../pages/violation-categories/ViolationCategories"));
+const StaffSchedules = React.lazy(() => import("../pages/schedules/StaffSchedulePage"));
 
 export const Routes = createBrowserRouter([
   {
@@ -46,7 +47,7 @@ export const Routes = createBrowserRouter([
               },
               {
                 path: PATHS.APP.DASHBOARD,
-                element: <Dashboard />,
+                element: <RoleDashboard />,
               },
 
               // Admin Only
@@ -68,6 +69,10 @@ export const Routes = createBrowserRouter([
                   {
                     path: PATHS.APP.VIOLATION_CATEGORIES,
                     element: <ViolationCategories />,
+                  },
+                  {
+                    path: PATHS.APP.STAFF_SCHEDULES,
+                    element: <StaffSchedules />,
                   },
                 ],
               },

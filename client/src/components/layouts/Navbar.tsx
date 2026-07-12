@@ -22,6 +22,8 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
   const avatarUrl = user?.avatar
     ? `${import.meta.env.VITE_STORAGE_URL}/${user.avatar}`
     : null;
+  const displayName = user?.name || user?.username || "User";
+  const displayInitial = displayName.charAt(0).toUpperCase();
 
   const handleLogout = async () => {
     try {
@@ -81,19 +83,19 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
                   {avatarUrl ? (
                     <img
                       src={avatarUrl}
-                      alt={user.name}
+                      alt={displayName}
                       className="w-full h-full object-cover"
                     />
                   ) : (
                     <span className="text-sm font-black uppercase text-primary">
-                      {user.name.charAt(0)}
+                      {displayInitial}
                     </span>
                   )}
                 </div>
 
                 <div className="hidden md:flex flex-col items-start">
                   <span className="text-sm font-bold text-white leading-tight">
-                    {user.name}
+                    {displayName}
                   </span>
                   <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/70">
                     {user.role}
@@ -117,18 +119,18 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
                         {avatarUrl ? (
                           <img
                             src={avatarUrl}
-                            alt={user.name}
+                            alt={displayName}
                             className="w-full h-full object-cover rounded-xl"
                           />
                         ) : (
                           <span className="text-lg font-black text-primary">
-                            {user.name.charAt(0)}
+                            {displayInitial}
                           </span>
                         )}
                       </div>
                       <div className="flex flex-col min-w-0">
                         <span className="text-sm font-bold text-white truncate">
-                          {user.name}
+                          {displayName}
                         </span>
                         <span className="text-[10px] text-slate-500 truncate font-medium">
                           {user.email}

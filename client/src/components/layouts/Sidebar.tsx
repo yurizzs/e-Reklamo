@@ -38,6 +38,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
           path: PATHS.APP.DASHBOARD,
         },
         {
+          name: "Cases",
+          icon: "FaClipboardList",
+          path: PATHS.APP.DASHBOARD,
+          roles: ["operator", "staff"],
+        },
+        {
           name: "Users",
           icon: "FaUsers",
           path: PATHS.APP.USERS,
@@ -53,6 +59,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
           name: "Violation Categories",
           icon: "FaListUl",
           path: PATHS.APP.VIOLATION_CATEGORIES,
+          roles: ["admin"],
+        },
+        {
+          name: "Staff Schedules",
+          icon: "FaCalendarDays",
+          path: PATHS.APP.STAFF_SCHEDULES,
           roles: ["admin"],
         },
       ],

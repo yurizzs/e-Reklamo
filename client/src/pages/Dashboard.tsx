@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "../components/layouts/MainLayout";
+import { useAuth } from "../contexts/AuthContext";
 import { LoadingSpinner, Icon, Button } from "../components/ui/index";
 import { 
   Table, TableHeader, TableCell, TableBody, TableRow 
@@ -18,11 +19,13 @@ interface Stats {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState<Stats>({ total: 0, admins: 0, operators: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [isStatsLoading, setIsStatsLoading] = useState(true);
   const dateFormat = useDateFormatter();
+  const displayName = user?.name || user?.username || "User";
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -224,7 +227,7 @@ const Dashboard = () => {
                         </div>
                       ) : (
                         <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 font-black">
-                          {user.name.charAt(0).toUpperCase()}
+                          {displayName.charAt(0).toUpperCase()}
                         </div>
                       )}
                     </TableCell>
