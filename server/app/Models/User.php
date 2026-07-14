@@ -25,7 +25,10 @@ class User extends Authenticatable
     protected $fillable = [
         'slug',
         'avatar',
-        'name',
+        'first_name',
+        'middle_name',
+        'last_name',
+        'suffix_1name',
         'username',
         'email',
         'phone',
@@ -62,15 +65,22 @@ class User extends Authenticatable
         return $this->hasMany(ActivityLog::class);
     }
 
+    public function complaints(): HasMany
+    {
+        return $this->hasMany(Complaint::class);
+    }
+
    protected static function booted()
     {
         static::creating(function ($user) {
-            $user->slug = self::generateUniqueSlug($user->name);
+            $fullName = trim("{$user->first_name} {$user->last_name}");
+            $user->slug = self::generateUniqueSlug($fullName);
         });
 
         static::updating(function ($user) {
-            if ($user->isDirty('name')) {
-                $user->slug = self::generateUniqueSlug($user->name, $user->id);
+            if ($user->isDirty('first_name') || $user->isDirty('last_name')) {
+                $fullName = trim("{$user->first_name} {$user->last_name}");
+                $user->slug = self::generateUniqueSlug($fullName, $user->id);
             }
         });
     }

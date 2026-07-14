@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\API\v1\AuthenticationController;
 use App\Http\Controllers\API\v1\ActivityLogController;
+use App\Http\Controllers\API\v1\ComplaintController;
 use App\Http\Controllers\API\v1\UserController;
 use App\Http\Controllers\API\v1\ViolationCategoryController;
 use App\Http\Controllers\API\v1\OperatorScheduleController;
@@ -14,6 +15,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::get('user/auth/me', [AuthenticationController::class, 'me']);
     Route::post('auth/logout', [AuthenticationController::class, 'logout']);
+
+    Route::middleware('role:admin,operator,staff')->group(function () {
+        Route::get('complaints/options', [ComplaintController::class, 'options']);
+        Route::get('complaints', [ComplaintController::class, 'index']);
+        Route::post('complaints', [ComplaintController::class, 'store']);
+    });
 
     // Admin Only
     Route::middleware('role:admin')->group(function () {

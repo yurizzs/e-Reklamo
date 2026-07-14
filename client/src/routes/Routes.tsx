@@ -12,6 +12,7 @@ const ViewUserDetail = React.lazy(() => import("../pages/user/components/ViewUse
 const ActivityLogs = React.lazy(() => import("../pages/logs/ActivityLogs"));
 const ViolationCategories = React.lazy(() => import("../pages/violation-categories/ViolationCategories"));
 const StaffSchedules = React.lazy(() => import("../pages/schedules/StaffSchedulePage"));
+const ComplaintsList = React.lazy(() => import("../pages/staff/ComplaintsList"));
 
 export const Routes = createBrowserRouter([
   {
@@ -48,6 +49,15 @@ export const Routes = createBrowserRouter([
               {
                 path: PATHS.APP.DASHBOARD,
                 element: <RoleDashboard />,
+              },
+              {
+                element: <RoleRoute allowedRoles={['operator', 'staff']} />,
+                children: [
+                  {
+                    path: PATHS.APP.COMPLAINTS,
+                    element: <ComplaintsList />,
+                  },
+                ],
               },
 
               // Admin Only

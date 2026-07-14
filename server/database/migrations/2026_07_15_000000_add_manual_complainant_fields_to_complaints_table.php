@@ -1,0 +1,34 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('complaints', function (Blueprint $table) {
+            $table->string('complainant_first_name')->nullable()->after('user_id');
+            $table->string('complainant_last_name')->nullable()->after('complainant_first_name');
+        });
+
+        DB::statement('ALTER TABLE complaints MODIFY user_id BIGINT UNSIGNED NULL');
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('complaints', function (Blueprint $table) {
+            $table->dropColumn(['complainant_first_name', 'complainant_last_name']);
+        });
+
+        DB::statement('ALTER TABLE complaints MODIFY user_id BIGINT UNSIGNED NOT NULL');
+    }
+};

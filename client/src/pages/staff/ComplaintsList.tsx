@@ -1,0 +1,340 @@
+import { useEffect, useMemo, useState } from "react";
+import { MainLayout } from "../../components/layouts";
+import { Button, Icon, LoadingSpinner } from "../../components/ui";
+import { InputField, Select } from "../../components/ui/forms";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TablePagination,
+  TableRow,
+} from "../../components/ui/table/Table";
+import { useDebounce } from "../../hooks";
+import ComplaintService from "../../services/ComplaintService";
+import CreateComplaintModal from "./CreateComplaintModal";
+
+type ComplaintStatus = "all" | "new" | "pending" | "resolved";
+
+interface ComplaintRecord {
+  id: number;
+  user?: {
+    id: number | null;
+    first_name: string | null;
+    last_name: string | null;
+    name: string;
+  };
+  complainant?: {
+    first_name: string | null;
+    last_name: string | null;
+    name: string;
+  };
+  driver?: {
+    id: number | null;
+    first_name: string | null;
+    last_name: string | null;
+    name: string;
+  };
+  category?: {
+    id: number | null;
+    category_name: string | null;
+  };
+  title: string;
+  status: string;
+  incident_date_time: string;
+}
+
+interface ComplaintStats {
+  new: number;
+  pending: number;
+  resolved: number;
+}
+
+interface PaginationMeta {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+}
+
+const statusOptions = [
+  { value: "all", label: "All Statuses" },
+  { value: "new", label: "New" },
+  { value: "pending", label: "Pending" },
+  { value: "resolved", label: "Resolved" },
+];
+
+const statusStyle = (status: string) => {
+  const normalized = status.toLowerCase();
+
+  if (normalized === "resolved") {
+    return "border-emerald-500/20 bg-emerald-500/10 text-emerald-400";
+  }
+
+  if (normalized === "new") {
+    return "border-sky-500/20 bg-sky-500/10 text-sky-400";
+  }
+
+  return "border-amber-500/20 bg-amber-500/10 text-amber-400";
+};
+
+const formatIncidentTime = (value: string) => {
+  if (!value) return "Not set";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const ComplaintsList = () => {
+  const [complaints, setComplaints] = useState<ComplaintRecord[]>([]);
+  const [stats, setStats] = useState<ComplaintStats>({
+    new: 0,
+    pending: 0,
+    resolved: 0,
+  });
+  const [meta, setMeta] = useState<PaginationMeta>({
+    current_page: 1,
+    last_page: 1,
+    per_page: 10,
+    total: 0,
+  });
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<ComplaintStatus>("all");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const debouncedSearch = useDebounce(search, 400);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, status]);
+
+  useEffect(() => {
+    const fetchComplaints = async () => {
+      setIsLoading(true);
+
+      try {
+        const response = (await ComplaintService.getAll({
+          search: debouncedSearch || undefined,
+          status,
+          page,
+          limit,
+          sort_by: "incident_date_time",
+          sort_order: "desc",
+        })) as any;
+
+        const payload = response?.data ?? response;
+        setComplaints(payload?.complaints ?? []);
+        setStats(payload?.stats ?? { new: 0, pending: 0, resolved: 0 });
+        setMeta(
+          payload?.meta ?? {
+            current_page: page,
+            last_page: 1,
+            per_page: limit,
+            total: 0,
+          },
+        );
+      } catch {
+        setComplaints([]);
+        setStats({ new: 0, pending: 0, resolved: 0 });
+        setMeta({
+          current_page: page,
+          last_page: 1,
+          per_page: limit,
+          total: 0,
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchComplaints();
+  }, [debouncedSearch, status, page, limit, refreshKey]);
+
+  const cards = useMemo(
+    () => [
+      {
+        label: "New",
+        value: stats.new,
+        icon: "FaInbox" as const,
+        tone: "border-sky-500/20 bg-sky-500/10 text-sky-400",
+      },
+      {
+        label: "Pending",
+        value: stats.pending,
+        icon: "FaClock" as const,
+        tone: "border-amber-500/20 bg-amber-500/10 text-amber-400",
+      },
+      {
+        label: "Resolved",
+        value: stats.resolved,
+        icon: "FaCircleCheck" as const,
+        tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-400",
+      },
+    ],
+    [stats],
+  );
+
+  const content = (
+    <div className="space-y-6 pb-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-2">
+          <p className="text-[10px] font-black uppercase tracking-[0.35em] text-emerald-500/60">
+            Staff Operations
+          </p>
+          <h1 className="text-3xl font-black uppercase tracking-tighter text-white">
+            Complaints List
+          </h1>
+        </div>
+
+        <Button
+          iconName="FaPlus"
+          onClick={() => setIsCreateModalOpen(true)}
+          className="self-start bg-emerald-600 hover:bg-emerald-500 md:self-auto"
+        >
+          Add Complaint
+        </Button>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        {cards.map((card) => (
+          <div
+            key={card.label}
+            className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-md"
+          >
+            <div className="flex items-center justify-between">
+              <div className={`rounded-xl border p-3 ${card.tone}`}>
+                <Icon iconName={card.icon} />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
+                {card.label}
+              </span>
+            </div>
+            <div className="mt-5 text-3xl font-black text-white">
+              {card.value.toString().padStart(2, "0")}
+            </div>
+            <p className="mt-1 text-sm text-slate-400">
+              {card.label} complaints
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md lg:flex-row lg:items-end">
+        <InputField
+          label="Search"
+          iconName="FaMagnifyingGlass"
+          placeholder="Search complainant, driver, category, title"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          fullWidth
+        />
+        <Select
+          label="Filter"
+          iconName="FaFilter"
+          options={statusOptions}
+          value={status}
+          onChange={(event) => setStatus(event.target.value as ComplaintStatus)}
+          fullWidth
+        />
+      </div>
+
+      <div className="space-y-4">
+        <Table>
+          <TableHeader>
+            <tr>
+              <TableCell isHeader>Complainant</TableCell>
+              <TableCell isHeader>Driver</TableCell>
+              <TableCell isHeader>Category</TableCell>
+              <TableCell isHeader>Title</TableCell>
+              <TableCell isHeader>Status</TableCell>
+              <TableCell isHeader>Incident Time</TableCell>
+            </tr>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={6} align="center" className="py-16">
+                  <LoadingSpinner text="Loading complaints..." />
+                </TableCell>
+              </TableRow>
+            ) : complaints.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} align="center" className="py-16">
+                  <div className="flex flex-col items-center gap-3 text-slate-500">
+                    <Icon iconName="FaFolderOpen" size={32} />
+                    <span className="text-xs font-black uppercase tracking-[0.3em]">
+                      No complaints found
+                    </span>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              complaints.map((complaint) => (
+                <TableRow key={complaint.id} className="border-b border-white/5 last:border-0">
+                  <TableCell className="font-semibold text-slate-200">
+                    {complaint.complainant?.name || complaint.user?.name || "Unknown complainant"}
+                  </TableCell>
+                  <TableCell>{complaint.driver?.name || "Unknown driver"}</TableCell>
+                  <TableCell>{complaint.category?.category_name || "Uncategorized"}</TableCell>
+                  <TableCell className="max-w-xs truncate font-semibold text-white">
+                    {complaint.title}
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-widest ${statusStyle(
+                        complaint.status,
+                      )}`}
+                    >
+                      {complaint.status}
+                    </span>
+                  </TableCell>
+                  <TableCell className="font-mono text-[11px] text-slate-400">
+                    {formatIncidentTime(complaint.incident_date_time)}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+
+        <TablePagination
+          currentPage={meta.current_page}
+          totalPages={Math.max(meta.last_page, 1)}
+          onPageChange={(nextPage) => setPage(Math.max(nextPage, 1))}
+          onPageSizeChange={(nextLimit) => {
+            setLimit(nextLimit);
+            setPage(1);
+          }}
+          totalResults={meta.total}
+          pageSize={meta.per_page}
+          resourceLabel="Complaints"
+        />
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      <MainLayout content={content} />
+      <CreateComplaintModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => setRefreshKey((key) => key + 1)}
+      />
+    </>
+  );
+};
+
+export default ComplaintsList;

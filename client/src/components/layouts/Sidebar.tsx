@@ -38,9 +38,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
           path: PATHS.APP.DASHBOARD,
         },
         {
-          name: "Cases",
+          name: "Complaints List",
           icon: "FaClipboardList",
-          path: PATHS.APP.DASHBOARD,
+          path: PATHS.APP.COMPLAINTS,
           roles: ["operator", "staff"],
         },
         {
