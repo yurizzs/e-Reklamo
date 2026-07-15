@@ -316,6 +316,13 @@ const EditUserModal = ({ isOpen, onClose, onSuccess, user, size = "sm" }: Props)
                         />
                         <Radio
                             name="role"
+                            label="Staff"
+                            value="staff"
+                            checked={form.role === "staff"}
+                            onChange={() => handleChange("role", "staff")}
+                        />
+                        <Radio
+                            name="role"
                             label="Admin"
                             value="admin"
                             checked={form.role === "admin"}

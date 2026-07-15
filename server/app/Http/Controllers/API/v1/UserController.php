@@ -176,9 +176,13 @@ class UserController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
         $user = User::withTrashed()->findOrFail($id);
+
+        if ((int) $request->user()->id === (int) $user->id) {
+            return $this->error("You cannot delete your own account.", 400);
+        }
 
         if ($user->trashed()) {
             return $this->error("User is already deleted", 400);

@@ -20,6 +20,7 @@ import type { User } from '../../interfaces/user';
 import { notify } from '../../util/notify';
 import { useDebounce } from '../../hooks/index';
 import { PATHS } from '../../routes/path';
+import { useAuth } from '../../contexts/AuthContext';
 
 /* =========================
    TYPES
@@ -38,6 +39,7 @@ type PaginationMeta = {
 
 const Users = () => {
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pagination, setPagination] = useState<PaginationMeta>({
@@ -357,6 +359,7 @@ const Users = () => {
             ) : (
               users.map((user) => {
                 const isDeleted = Boolean(user.deleted_at);
+                const isCurrentUser = currentUser?.id === user.id;
                 const displayName = user.name || `${user.first_name} ${user.last_name}`.trim();
 
                 return (
@@ -436,9 +439,10 @@ const Users = () => {
                               size='sm'
                               variant='ghost'
                               iconName='FaTrash'
-                              className='text-slate-500 hover:text-red-400 border-transparent hover:bg-red-500/10'
+                              className='text-slate-500 hover:text-red-400 border-transparent hover:bg-red-500/10 disabled:hover:text-slate-500 disabled:hover:bg-transparent'
                               onClick={() => handleDeleteUser(user)}
-                              tooltip="Move to recycle bin"
+                              disabled={isCurrentUser}
+                              tooltip={isCurrentUser ? "You cannot delete your own account" : "Move to recycle bin"}
                             />
                           </>
                         )}

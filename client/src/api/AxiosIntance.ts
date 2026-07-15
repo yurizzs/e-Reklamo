@@ -8,6 +8,8 @@ const AxiosInstance = axios.create({
   xsrfHeaderName: "X-XSRF-TOKEN",
 });
 
+let hasShownSessionExpired = false;
+
 function getCookie(name: string): string | null {
   const match = document.cookie
     .split("; ")
@@ -35,7 +37,10 @@ AxiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 
 // RESPONSE (ONLY GLOBAL ERRORS)
 AxiosInstance.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    hasShownSessionExpired = false;
+    return response;
+  },
   (error: AxiosError) => {
     const status = error.response?.status;
     const url = error.config?.url || "";
@@ -43,7 +48,8 @@ AxiosInstance.interceptors.response.use(
     const isAuthCheck = url.includes("/user/auth/me");
     const isLoginAttempt = url.includes("auth/login");
 
-    if (status === 401 && !isAuthCheck && !isLoginAttempt) {
+    if (status === 401 && !isAuthCheck && !isLoginAttempt && !hasShownSessionExpired) {
+      hasShownSessionExpired = true;
       notify.error("Session expired. Please log in again.");
     }
 

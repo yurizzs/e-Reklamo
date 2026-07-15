@@ -23,8 +23,8 @@ const DeleteUserModal = ({ isOpen, onClose, user, onSuccess }: Props) => {
       notify.success("User moved to recycle bin successfully!");
       onSuccess?.();
       onClose();
-    } catch (error) {
-      notify.error("Failed to delete user");
+    } catch (error: any) {
+      notify.error(error.response?.data?.message || "Failed to delete user");
       console.error(error);
     } finally {
       setIsDeleting(false);
