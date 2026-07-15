@@ -18,6 +18,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('role:admin,operator,staff')->group(function () {
         Route::get('complaints/options', [ComplaintController::class, 'options']);
+        Route::get('complaints/analytics', [ComplaintController::class, 'analytics']);
         Route::get('complaints', [ComplaintController::class, 'index']);
         Route::post('complaints', [ComplaintController::class, 'store']);
     });

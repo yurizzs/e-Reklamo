@@ -42,6 +42,89 @@ class ComplaintController extends Controller
         );
     }
 
+    public function analytics(Request $request)
+    {
+        $year = $request->input('year', 'all');
+        $month = $request->input('month', 'all');
+
+        $query = Complaint::query();
+
+        if ($year !== 'all' && $month !== 'all') {
+            $monthPad = str_pad($month, 2, '0', STR_PAD_LEFT);
+            $query->where('incident_date_time', 'like', "{$year}-{$monthPad}-%");
+        } elseif ($year !== 'all') {
+            $query->where('incident_date_time', 'like', "{$year}-%");
+        } elseif ($month !== 'all') {
+            $monthPad = str_pad($month, 2, '0', STR_PAD_LEFT);
+            $query->where('incident_date_time', 'like', "____-{$monthPad}-%");
+        }
+
+        // 1. Total Complaints Count
+        $totalComplaints = $query->count();
+
+        // 2. Total Fee Collected (Sum of penalty_amount of resolved complaints matching the filter)
+        // Since penalty_amount is stored as a string, we cast it to decimal/double in query.
+        $totalFeeCollected = (double) $query->clone()
+            ->where('status', 'resolved')
+            ->join('violation_categories', 'complaints.category_id', '=', 'violation_categories.id')
+            ->sum(\Illuminate\Support\Facades\DB::raw('CAST(violation_categories.penalty_amount AS DECIMAL(10,2))'));
+
+        // 3. Violation Chart and Table Data
+        $categories = ViolationCategory::all();
+        $chartData = [];
+        $tableData = [];
+
+        foreach ($categories as $cat) {
+            $count = $query->clone()
+                ->where('category_id', $cat->id)
+                ->count();
+
+            $fee = (double) $cat->penalty_amount;
+            $totalAmount = $fee * $count;
+
+            $chartData[] = [
+                'category_name' => $cat->category_name,
+                'complaints_count' => $count,
+            ];
+
+            $tableData[] = [
+                'category_id' => $cat->id,
+                'category_name' => $cat->category_name,
+                'fee' => $fee,
+                'violators_count' => $count,
+                'total_amount' => $totalAmount,
+            ];
+        }
+
+        // 4. Available Years for Filter Dropdown (100% DB Agnostic using PHP date extraction)
+        $rawDates = Complaint::query()
+            ->select('incident_date_time')
+            ->pluck('incident_date_time');
+            
+        $availableYears = $rawDates->map(function($date) {
+            return substr((string)$date, 0, 4);
+        })->filter(function($year) {
+            return is_numeric($year) && strlen($year) === 4;
+        })->unique()->sortDesc()->values()->all();
+
+        // If empty, default to current year
+        if (empty($availableYears)) {
+            $availableYears = [date('Y')];
+        }
+
+        return $this->success(
+            'Analytics report retrieved successfully',
+            [
+                'total_complaints' => $totalComplaints,
+                'total_fee_collected' => $totalFeeCollected,
+                'violation_chart_data' => $chartData,
+                'violation_table_data' => $tableData,
+                'available_years' => $availableYears,
+            ],
+            200
+        );
+    }
+
     public function index(Request $request)
     {
         $query = Complaint::query()

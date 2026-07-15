@@ -44,6 +44,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
           roles: ["operator", "staff"],
         },
         {
+          name: "Analytics Report",
+          icon: "FaChartSimple",
+          path: PATHS.APP.ANALYTICS,
+          roles: ["operator", "staff"],
+        },
+        {
           name: "Users",
           icon: "FaUsers",
           path: PATHS.APP.USERS,

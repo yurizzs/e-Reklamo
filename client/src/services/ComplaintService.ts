@@ -38,6 +38,12 @@ const ComplaintService = {
       AxiosInstance.post(BASE_PREFIX, data),
       "Failed to create complaint",
     ),
+
+  getAnalytics: (params?: { year?: string; month?: string }) =>
+    handleRequest(
+      AxiosInstance.get(`${BASE_PREFIX}/analytics`, { params }),
+      "Failed to fetch complaint analytics",
+    ),
 };
 
 export default ComplaintService;
