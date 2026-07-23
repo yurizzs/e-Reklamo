@@ -52,6 +52,11 @@ const CreateComplaintModal = ({ isOpen, onClose, onSuccess }: Props) => {
   const [isOptionsLoading, setIsOptionsLoading] = useState(false);
   const [drivers, setDrivers] = useState<Option[]>([]);
   const [categories, setCategories] = useState<Option[]>([]);
+  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
+  const [evidenceError, setEvidenceError] = useState<string>("");
+  const [dragActive, setDragActive] = useState(false);
+
+  const MAX_FILES = 3;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -91,17 +96,85 @@ const CreateComplaintModal = ({ isOpen, onClose, onSuccess }: Props) => {
     if (isLoading) return;
     setForm(initialForm);
     setErrors({});
+    setEvidenceFiles([]);
+    setEvidenceError("");
     onClose();
   };
 
+  // ─── File Handling ─────────────────────────────────────────────────────────
+  const ACCEPTED_TYPES = [
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "video/mp4",
+    "video/mpeg",
+    "video/quicktime",
+    "video/webm",
+  ];
+
+  const isAccepted = (file: File) => ACCEPTED_TYPES.includes(file.type);
+
+  const addFiles = (incoming: FileList | null) => {
+    if (!incoming) return;
+    const valid = Array.from(incoming).filter(isAccepted);
+    const invalid = Array.from(incoming).length - valid.length;
+
+    setEvidenceFiles((prev) => {
+      const remaining = MAX_FILES - prev.length;
+      if (remaining <= 0) {
+        setEvidenceError(`You can only attach a maximum of ${MAX_FILES} files.`);
+        return prev;
+      }
+      const capped = valid.slice(0, remaining);
+      const skippedByLimit = valid.length - capped.length;
+
+      if (invalid > 0 || skippedByLimit > 0) {
+        setEvidenceError(
+          invalid > 0
+            ? "Some files were skipped — only images (JPEG, PNG, GIF, WebP) and videos (MP4, MOV, WebM) are allowed."
+            : `Maximum ${MAX_FILES} files allowed. Extra files were ignored.`,
+        );
+      } else {
+        setEvidenceError("");
+      }
+
+      return [...prev, ...capped];
+    });
+  };
+
+  const removeFile = (index: number) => {
+    setEvidenceFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const getPreview = (file: File) => {
+    if (file.type.startsWith("image/")) return URL.createObjectURL(file);
+    return null;
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragActive(false);
+    addFiles(e.dataTransfer.files);
+  };
+
+  // ─── Submit ─────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
+    // Client-side evidence validation
+    if (evidenceFiles.length === 0) {
+      setEvidenceError("Please attach at least 1 image or video as evidence.");
+      return;
+    }
+
     setIsLoading(true);
     setErrors({});
+    setEvidenceError("");
 
     try {
-      await ComplaintService.create(form);
+      await ComplaintService.create({ ...form, evidence: evidenceFiles });
       notify.success("Complaint added successfully.");
       setForm(initialForm);
+      setEvidenceFiles([]);
       onClose();
       onSuccess();
     } catch (error: any) {
@@ -114,6 +187,21 @@ const CreateComplaintModal = ({ isOpen, onClose, onSuccess }: Props) => {
           if (Array.isArray(messages) && messages.length > 0) {
             formattedErrors[field] = messages[0] as string;
           }
+        }
+
+        // Surface evidence array error
+        if (
+          formattedErrors["evidence"] ||
+          formattedErrors["evidence.0"] ||
+          formattedErrors["evidence.1"] ||
+          formattedErrors["evidence.2"]
+        ) {
+          setEvidenceError(
+            formattedErrors["evidence"] ||
+              formattedErrors["evidence.0"] ||
+              "Please ensure all evidence files are valid images or videos.",
+          );
+          delete formattedErrors["evidence"];
         }
 
         setErrors(formattedErrors);
@@ -153,7 +241,9 @@ const CreateComplaintModal = ({ isOpen, onClose, onSuccess }: Props) => {
             iconName="FaUser"
             placeholder="Enter first name"
             value={form.complainant_first_name}
-            onChange={(event) => handleChange("complainant_first_name", event.target.value)}
+            onChange={(event) =>
+              handleChange("complainant_first_name", event.target.value)
+            }
             error={errors.complainant_first_name}
             fullWidth
             required
@@ -164,7 +254,9 @@ const CreateComplaintModal = ({ isOpen, onClose, onSuccess }: Props) => {
             iconName="FaUser"
             placeholder="Enter last name"
             value={form.complainant_last_name}
-            onChange={(event) => handleChange("complainant_last_name", event.target.value)}
+            onChange={(event) =>
+              handleChange("complainant_last_name", event.target.value)
+            }
             error={errors.complainant_last_name}
             fullWidth
             required
@@ -180,7 +272,9 @@ const CreateComplaintModal = ({ isOpen, onClose, onSuccess }: Props) => {
             options={[
               {
                 value: "",
-                label: isOptionsLoading ? "Loading drivers..." : "Select driver",
+                label: isOptionsLoading
+                  ? "Loading drivers..."
+                  : "Select driver",
               },
               ...drivers.map((driver) => ({
                 value: driver.id.toString(),
@@ -199,11 +293,15 @@ const CreateComplaintModal = ({ isOpen, onClose, onSuccess }: Props) => {
             label="Category"
             iconName="FaListUl"
             value={form.category_id}
-            onChange={(event) => handleChange("category_id", event.target.value)}
+            onChange={(event) =>
+              handleChange("category_id", event.target.value)
+            }
             options={[
               {
                 value: "",
-                label: isOptionsLoading ? "Loading categories..." : "Select category",
+                label: isOptionsLoading
+                  ? "Loading categories..."
+                  : "Select category",
               },
               ...categories.map((category) => ({
                 value: category.id.toString(),
@@ -248,7 +346,9 @@ const CreateComplaintModal = ({ isOpen, onClose, onSuccess }: Props) => {
             type="datetime-local"
             iconName="FaCalendarDays"
             value={form.incident_date_time}
-            onChange={(event) => handleChange("incident_date_time", event.target.value)}
+            onChange={(event) =>
+              handleChange("incident_date_time", event.target.value)
+            }
             error={errors.incident_date_time}
             fullWidth
             required
@@ -259,7 +359,9 @@ const CreateComplaintModal = ({ isOpen, onClose, onSuccess }: Props) => {
             iconName="FaLocationDot"
             placeholder="Enter incident location"
             value={form.incident_location}
-            onChange={(event) => handleChange("incident_location", event.target.value)}
+            onChange={(event) =>
+              handleChange("incident_location", event.target.value)
+            }
             error={errors.incident_location}
             fullWidth
             required
@@ -278,6 +380,178 @@ const CreateComplaintModal = ({ isOpen, onClose, onSuccess }: Props) => {
           fullWidth
           required
         />
+
+        {/* ── Evidence Upload ──────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-2">
+          <label className="text-sm text-text-muted font-semibold uppercase tracking-wider ml-1">
+            Evidence <span className="text-danger">*</span>
+            <span className="ml-2 font-normal normal-case tracking-normal text-xs text-text-muted">
+              Max. {MAX_FILES} files &bull; Images &amp; Videos (max 50 MB each)
+            </span>
+          </label>
+
+          {/* Drop zone */}
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragActive(true);
+            }}
+            onDragLeave={() => setDragActive(false)}
+            onDrop={handleDrop}
+            onClick={() => document.getElementById("evidence-input")?.click()}
+            className={[
+              "relative cursor-pointer border rounded-xl bg-bg-light min-h-32 p-4",
+              "flex items-center justify-center transition-all duration-200",
+              "hover:border-primary/40",
+              dragActive
+                ? "border-primary bg-primary/5"
+                : "border-border-muted",
+              evidenceError ? "border-danger bg-danger/5" : "",
+            ].join(" ")}
+          >
+            <input
+              id="evidence-input"
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/mpeg,video/quicktime,video/webm"
+              multiple
+              className="hidden"
+              onChange={(e) => addFiles(e.target.files)}
+            />
+
+            {evidenceFiles.length === 0 ? (
+              <div className="flex flex-col items-center gap-1 text-center pointer-events-none">
+                <svg
+                  className="w-8 h-8 text-text-muted mb-1"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+                  />
+                </svg>
+                <span className="text-sm text-text">
+                  Click or drag files to upload
+                </span>
+                <span className="text-xs text-text-muted">
+                  Images (JPEG, PNG, GIF, WebP) &bull; Videos (MP4, MOV, WebM)
+                  &bull; Max. {MAX_FILES} files
+                </span>
+              </div>
+            ) : (
+              <div className="w-full grid grid-cols-3 gap-2 pointer-events-none">
+                {evidenceFiles.map((file, idx) => {
+                  const preview = getPreview(file);
+                  return (
+                    <div
+                      key={idx}
+                      className="relative rounded-lg overflow-hidden aspect-square bg-bg-dark pointer-events-auto"
+                    >
+                      {preview ? (
+                        <img
+                          src={preview}
+                          alt={file.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-1 p-2">
+                          <svg
+                            className="w-6 h-6 text-primary/70"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={1.5}
+                              d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z"
+                            />
+                          </svg>
+                          <span className="text-xs text-text-muted text-center line-clamp-2">
+                            {file.name}
+                          </span>
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeFile(idx);
+                        }}
+                        className="absolute top-1 right-1 bg-black/70 hover:bg-danger text-white rounded-full p-0.5 transition-colors"
+                      >
+                        <svg
+                          className="w-3.5 h-3.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2.5}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  );
+                })}
+
+                {/* Add-more tile — only shown when under the limit */}
+                {evidenceFiles.length < MAX_FILES && (
+                  <div
+                    className="rounded-lg border border-dashed border-border-muted aspect-square bg-bg-dark flex flex-col items-center justify-center gap-1 text-text-muted hover:border-primary/40 hover:text-primary transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      document.getElementById("evidence-input")?.click();
+                    }}
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 4.5v15m7.5-7.5h-15"
+                      />
+                    </svg>
+                    <span className="text-xs">Add more</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Counter + error */}
+          <div className="flex items-center justify-between ml-1">
+            <span
+              className={[
+                "text-xs font-medium",
+                evidenceFiles.length === MAX_FILES
+                  ? "text-emerald-400"
+                  : "text-text-muted",
+              ].join(" ")}
+            >
+              {evidenceFiles.length} / {MAX_FILES} files selected
+              {evidenceFiles.length === MAX_FILES && " ✓ (max reached)"}
+            </span>
+          </div>
+
+          {evidenceError && (
+            <span className="text-sm font-medium text-danger ml-1">
+              {evidenceError}
+            </span>
+          )}
+        </div>
       </form>
     </Modal>
   );

@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class ComplaintResource extends JsonResource
 {
@@ -49,14 +50,42 @@ class ComplaintResource extends JsonResource
                 'first_name' => $this->driver?->first_name,
                 'last_name' => $this->driver?->last_name,
                 'name' => $this->formatName($this->driver),
+                'plate_number' => $this->driver?->plate_number,
             ],
             'category' => [
                 'id' => $this->category?->id,
                 'category_name' => $this->category?->category_name,
             ],
             'title' => $this->title,
+            'description' => $this->description,
+            'incident_location' => $this->incident_location,
             'status' => $this->status,
             'incident_date_time' => $this->incident_date_time,
+            'created_at' => $this->created_at?->toIso8601String(),
+            'evidence' => $this->whenLoaded('evidence', function () {
+                return $this->evidence->map(function ($item) {
+                    $url = asset('storage/' . ltrim($item->file_path, '/'));
+                    return [
+                        'id' => $item->id,
+                        'file_path' => $item->file_path,
+                        'file_url' => $url,
+                        'file_type' => $item->file_type,
+                    ];
+                });
+            }, []),
+            'status_histories' => $this->whenLoaded('statusHistories', function () {
+                return $this->statusHistories->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'old_status' => $item->old_status,
+                        'new_status' => $item->new_status,
+                        'remarks' => $item->remarks,
+                        'changed_by' => $item->changed_by,
+                        'created_at' => $item->created_at?->toIso8601String(),
+                    ];
+                });
+            }, []),
         ];
     }
 }
+

@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\ComplaintResource;
 use App\Models\Complaint;
 use App\Models\Driver;
+use App\Models\Evidence;
 use App\Models\ViolationCategory;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class ComplaintController extends Controller
@@ -130,8 +132,10 @@ class ComplaintController extends Controller
         $query = Complaint::query()
             ->with([
                 'user:id,first_name,last_name',
-                'driver:id,first_name,last_name',
+                'driver:id,first_name,last_name,plate_number',
                 'category:id,category_name',
+                'evidence',
+                'statusHistories',
             ]);
 
         if ($request->filled('search')) {
@@ -198,6 +202,23 @@ class ComplaintController extends Controller
         );
     }
 
+    public function show($id)
+    {
+        $complaint = Complaint::with([
+            'user:id,first_name,last_name',
+            'driver:id,first_name,last_name,plate_number',
+            'category:id,category_name',
+            'evidence',
+            'statusHistories',
+        ])->findOrFail($id);
+
+        return $this->success(
+            'Complaint details retrieved successfully',
+            ComplaintResource::make($complaint),
+            200
+        );
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -210,15 +231,44 @@ class ComplaintController extends Controller
             'incident_date_time' => ['required', 'date'],
             'incident_location' => ['required', 'string', 'max:255'],
             'status' => ['sometimes', 'string', Rule::in(['new', 'pending', 'resolved'])],
+            'evidence' => ['required', 'array', 'min:1', 'max:3'],
+            'evidence.*' => [
+                'required',
+                'file',
+                'max:51200', // 50 MB per file
+                'mimetypes:image/jpeg,image/png,image/gif,image/webp,video/mp4,video/mpeg,video/quicktime,video/webm',
+            ],
+        ], [
+            'evidence.required' => 'Please upload at least 1 image or video as evidence.',
+            'evidence.min' => 'At least 1 evidence file is required.',
+            'evidence.max' => 'You may attach a maximum of 3 evidence files.',
+            'evidence.*.mimetypes' => 'Each file must be an image (JPEG, PNG, GIF, WebP) or a video (MP4, MPEG, MOV, WebM).',
+            'evidence.*.max' => 'Each file must not exceed 50 MB.',
         ]);
 
         $validated['status'] = $validated['status'] ?? 'new';
 
-        $complaint = Complaint::create($validated)->load([
+        $complaintData = collect($validated)->except('evidence')->toArray();
+        $complaint = Complaint::create($complaintData)->load([
             'user:id,first_name,last_name',
             'driver:id,first_name,last_name',
             'category:id,category_name',
         ]);
+
+        // Store evidence files
+        if ($request->hasFile('evidence')) {
+            foreach ($request->file('evidence') as $file) {
+                $mimeType = $file->getMimeType() ?? '';
+                $fileType = str_starts_with($mimeType, 'video/') ? 'video' : 'image';
+                $path = $file->store("evidence/{$complaint->id}", 'public');
+
+                Evidence::create([
+                    'complaint_id' => $complaint->id,
+                    'file_path' => $path,
+                    'file_type' => $fileType,
+                ]);
+            }
+        }
 
         return $this->success(
             'Complaint created successfully',
@@ -226,4 +276,46 @@ class ComplaintController extends Controller
             201
         );
     }
+
+    public function updateStatus(Request $request, $id)
+    {
+        $complaint = Complaint::findOrFail($id);
+
+        $validated = $request->validate([
+            'status' => ['required', 'string', Rule::in(['new', 'pending', 'resolved'])],
+            'description' => ['required', 'string', 'min:10', 'max:1000'],
+        ], [
+            'status.required' => 'Please select a new status.',
+            'description.required' => 'A description is required before changing the status.',
+            'description.min' => 'Description must be at least 10 characters.',
+            'description.max' => 'Description may not exceed 1000 characters.',
+        ]);
+
+        $oldStatus = $complaint->status;
+
+        $complaint->update([
+            'status' => $validated['status'],
+        ]);
+
+        // Record status history
+        $complaint->statusHistories()->create([
+            'old_status' => $oldStatus,
+            'new_status' => $validated['status'],
+            'remarks' => $validated['description'],
+            'changed_by' => (string) ($request->user()?->id ?? 'system'),
+        ]);
+
+        $complaint->load([
+            'user:id,first_name,last_name',
+            'driver:id,first_name,last_name',
+            'category:id,category_name',
+        ]);
+
+        return $this->success(
+            'Complaint status updated successfully',
+            ComplaintResource::make($complaint),
+            200
+        );
+    }
 }
+

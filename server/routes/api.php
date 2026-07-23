@@ -20,7 +20,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('complaints/options', [ComplaintController::class, 'options']);
         Route::get('complaints/analytics', [ComplaintController::class, 'analytics']);
         Route::get('complaints', [ComplaintController::class, 'index']);
+        Route::get('complaints/{id}', [ComplaintController::class, 'show']);
         Route::post('complaints', [ComplaintController::class, 'store']);
+        Route::patch('complaints/{id}/status', [ComplaintController::class, 'updateStatus']);
     });
 
     // Admin Only

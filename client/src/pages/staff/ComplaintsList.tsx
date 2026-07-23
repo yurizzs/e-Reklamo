@@ -12,6 +12,7 @@ import {
 } from "../../components/ui/table/Table";
 import { useDebounce } from "../../hooks";
 import ComplaintService from "../../services/ComplaintService";
+import ComplaintDetailsModal from "./ComplaintDetailsModal";
 import CreateComplaintModal from "./CreateComplaintModal";
 
 type ComplaintStatus = "all" | "new" | "pending" | "resolved";
@@ -113,6 +114,7 @@ const ComplaintsList = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [selectedComplaintId, setSelectedComplaintId] = useState<number | null>(null);
 
   const debouncedSearch = useDebounce(search, 400);
 
@@ -260,18 +262,19 @@ const ComplaintsList = () => {
               <TableCell isHeader>Title</TableCell>
               <TableCell isHeader>Status</TableCell>
               <TableCell isHeader>Incident Time</TableCell>
+              <TableCell isHeader>Actions</TableCell>
             </tr>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} align="center" className="py-16">
+                <TableCell colSpan={7} align="center" className="py-16">
                   <LoadingSpinner text="Loading complaints..." />
                 </TableCell>
               </TableRow>
             ) : complaints.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center" className="py-16">
+                <TableCell colSpan={7} align="center" className="py-16">
                   <div className="flex flex-col items-center gap-3 text-slate-500">
                     <Icon iconName="FaFolderOpen" size={32} />
                     <span className="text-xs font-black uppercase tracking-[0.3em]">
@@ -303,6 +306,17 @@ const ComplaintsList = () => {
                   <TableCell className="font-mono text-[11px] text-slate-400">
                     {formatIncidentTime(complaint.incident_date_time)}
                   </TableCell>
+                  <TableCell>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      iconName="FaEye"
+                      onClick={() => setSelectedComplaintId(complaint.id)}
+                      className="text-emerald-400 hover:text-emerald-300 border-emerald-500/20 bg-emerald-500/10 hover:bg-emerald-500/20 text-xs font-semibold"
+                    >
+                      View Details
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))
             )}
@@ -332,6 +346,12 @@ const ComplaintsList = () => {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={() => setRefreshKey((key) => key + 1)}
+      />
+      <ComplaintDetailsModal
+        isOpen={selectedComplaintId !== null}
+        onClose={() => setSelectedComplaintId(null)}
+        complaintId={selectedComplaintId}
+        onStatusUpdated={() => setRefreshKey((key) => key + 1)}
       />
     </>
   );
