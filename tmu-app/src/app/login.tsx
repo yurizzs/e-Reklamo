@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { apiService } from '@/services/api';
+import { authStore } from '@/services/auth-store';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -72,10 +73,13 @@ export default function LoginScreen() {
       });
 
       if (res.success) {
+        if (res.user) {
+          authStore.setUser(res.user, res.token);
+        }
         Alert.alert('Success', res.message || 'Logged in successfully!', [
           {
             text: 'OK',
-            onPress: () => router.replace('/explore'), // Navigate to explore/home after auth
+            onPress: () => router.replace('/(tabs)' as any),
           },
         ]);
       }

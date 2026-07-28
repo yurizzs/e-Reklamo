@@ -8,7 +8,9 @@ use App\Http\Controllers\API\v1\ViolationCategoryController;
 use App\Http\Controllers\API\v1\OperatorScheduleController;
 use Illuminate\Support\Facades\Route;
 
+// Public Auth Endpoints
 Route::post('auth/login', [AuthenticationController::class, 'login']);
+Route::post('auth/register', [AuthenticationController::class, 'register']);
 
 Route::middleware('auth:sanctum')->group(function () {
 

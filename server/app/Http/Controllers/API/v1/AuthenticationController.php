@@ -36,6 +36,42 @@ class AuthenticationController extends Controller
         }
     }
 
+    /**
+     * Register a new citizen account (saved to users table).
+     */
+    public function register(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'first_name' => ['required', 'string', 'max:255'],
+            'middle_name' => ['nullable', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'suffix_1name' => ['nullable', 'string', 'max:255'],
+            'username' => ['required', 'string', 'max:255', 'unique:users,username'],
+            'email' => ['nullable', 'email', 'max:255', 'unique:users,email'],
+            'phone' => ['nullable', 'string', 'max:20', 'unique:users,phone'],
+            'password' => ['required', 'string', 'min:6'],
+            'device_name' => ['sometimes', 'string', 'max:255'],
+        ]);
+
+        $validated['role'] = 'citizen';
+
+        $user = User::create($validated);
+
+        $deviceName = $request->input('device_name', 'Mobile App');
+        $token = $user->createToken($deviceName)->plainTextToken;
+
+        $this->recordActivity($user->id, 'register (citizen)');
+
+        return $this->success(
+            'Account created successfully.',
+            [
+                'user' => new UserResource($user),
+                'token' => $token,
+            ],
+            201
+        );
+    }
+
     public function login(Request $request): JsonResponse
     {
         $request->validate([
