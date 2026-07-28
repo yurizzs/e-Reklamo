@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API\v1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UserRequest;
 use App\Http\Resources\UserResource;
+use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -19,9 +20,10 @@ class UserController extends Controller
         return $this->success(
             "User statistics retrieved successfully",
             [
-                'total' => User::count(),
-                'admins' => User::where('role', 'admin')->count(),
-                'operators' => User::where('role', 'operator')->count(),
+                'total' => Employee::count(),
+                'admins' => Employee::where('role', 'admin')->count(),
+                'operators' => Employee::whereIn('role', ['operator'])->count(),
+                'users' => User::where('role', 'user')->count(),
             ],
             200
         );
@@ -32,9 +34,9 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $query = User::query();
+        $query = Employee::query();
 
-        // Handle soft deletes - exclude deleted users by default
+        // Handle soft deletes - exclude deleted employees by default
         $filter = $request->input('filter', 'active'); // active, deleted, all
 
         match ($filter) {
@@ -59,13 +61,11 @@ class UserController extends Controller
         $sortBy = $request->input('sort_by', 'first_name');
         $sortOrder = $request->input('sort_order', 'asc');
 
-        // Validate sort field to prevent SQL injection
         $allowedSortFields = ['first_name', 'last_name', 'role', 'created_at'];
         if (!in_array($sortBy, $allowedSortFields)) {
             $sortBy = 'first_name';
         }
 
-        // Validate sort order
         if (!in_array(strtolower($sortOrder), ['asc', 'desc'])) {
             $sortOrder = 'asc';
         }
@@ -100,6 +100,13 @@ class UserController extends Controller
     {
         $validated = $request->validated();
 
+        if (isset($validated['suffix_1name']) && !isset($validated['suffix_name'])) {
+            $validated['suffix_name'] = $validated['suffix_1name'];
+        }
+        if (!isset($validated['position'])) {
+            $validated['position'] = ucfirst($validated['role'] ?? 'Operator');
+        }
+
         if ($request->hasFile('avatar')) {
             $avatarFile = $request->file('avatar');
             $filename = time() . '_' . uniqid() . '.' . $avatarFile->getClientOriginalExtension();
@@ -107,11 +114,11 @@ class UserController extends Controller
             $validated['avatar'] = $path;
         }
 
-        $user = User::create($validated);
+        $employee = Employee::create($validated);
 
         return $this->success(
             "User created successfully",
-            ['user' => new UserResource($user)],
+            ['user' => new UserResource($employee)],
             201
         );
     }
@@ -121,11 +128,11 @@ class UserController extends Controller
      */
     public function show(string $slug)
     {
-        $user = User::withTrashed()->where('slug', $slug)->firstOrFail();
+        $employee = Employee::withTrashed()->where('slug', $slug)->firstOrFail();
 
         return $this->success(
             "User retrieved successfully",
-            ['user' => new UserResource($user)],
+            ['user' => new UserResource($employee)],
             200
         );
     }
@@ -135,15 +142,17 @@ class UserController extends Controller
      */
     public function update(UserRequest $request, string $id)
     {
-        $user = User::withTrashed()->findOrFail($id);
+        $employee = Employee::withTrashed()->where('id', $id)->orWhere('slug', $id)->firstOrFail();
 
         $validated = $request->validated();
 
-        // Handle avatar upload — replace old file if a new one is provided
+        if (isset($validated['suffix_1name']) && !isset($validated['suffix_name'])) {
+            $validated['suffix_name'] = $validated['suffix_1name'];
+        }
+
         if ($request->hasFile('avatar')) {
-            // Delete old avatar from storage if it exists
-            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
-                Storage::disk('public')->delete($user->avatar);
+            if ($employee->avatar && Storage::disk('public')->exists($employee->avatar)) {
+                Storage::disk('public')->delete($employee->avatar);
             }
 
             $avatarFile = $request->file('avatar');
@@ -151,24 +160,21 @@ class UserController extends Controller
             $path = $avatarFile->storeAs('avatars', $filename, 'public');
             $validated['avatar'] = $path;
         } else {
-            // Keep the existing avatar
             unset($validated['avatar']);
         }
 
-        // Only update password when a new one is explicitly provided
         if (empty($validated['password'])) {
             unset($validated['password']);
             unset($validated['password_confirmation']);
         }
 
-        // Remove confirmation field — not a DB column
         unset($validated['password_confirmation']);
 
-        $user->update($validated);
+        $employee->update($validated);
 
         return $this->success(
             "User updated successfully",
-            ['user' => new UserResource($user)],
+            ['user' => new UserResource($employee)],
             200
         );
     }
@@ -178,17 +184,17 @@ class UserController extends Controller
      */
     public function destroy(Request $request, string $id)
     {
-        $user = User::withTrashed()->findOrFail($id);
+        $employee = Employee::withTrashed()->where('id', $id)->orWhere('slug', $id)->firstOrFail();
 
-        if ((int) $request->user()->id === (int) $user->id) {
+        if ((int) $request->user()->id === (int) $employee->id && get_class($request->user()) === Employee::class) {
             return $this->error("You cannot delete your own account.", 400);
         }
 
-        if ($user->trashed()) {
+        if ($employee->trashed()) {
             return $this->error("User is already deleted", 400);
         }
 
-        $user->delete();
+        $employee->delete();
 
         return $this->success(
             "User deleted successfully",
@@ -202,19 +208,18 @@ class UserController extends Controller
      */
     public function restore(string $id)
     {
-        $user = User::withTrashed()->findOrFail($id);
+        $employee = Employee::withTrashed()->where('id', $id)->orWhere('slug', $id)->firstOrFail();
 
-        if (!$user->trashed()) {
+        if (!$employee->trashed()) {
             return $this->error("User is not deleted", 400);
         }
 
-        $user->restore();
+        $employee->restore();
 
         return $this->success(
             "User restored successfully",
-            ['user' => new UserResource($user)],
+            ['user' => new UserResource($employee)],
             200
         );
     }
-
 }

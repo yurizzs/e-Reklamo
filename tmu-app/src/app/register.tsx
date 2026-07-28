@@ -85,7 +85,7 @@ export default function RegisterScreen() {
         email: email.trim() || undefined,
         phone: phone.trim() || undefined,
         password: password,
-        role: 'citizen',
+        role: 'user',
       });
 
       if (res.success) {

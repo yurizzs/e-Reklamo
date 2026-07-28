@@ -1,5 +1,5 @@
 export type Theme = 'light' | 'dark' | 'system';
-export type Role = 'operator' | 'admin' | 'staff';
+export type Role = 'operator' | 'admin' | 'user';
 
 export interface User {
   id: number;

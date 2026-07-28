@@ -442,7 +442,7 @@ const Users = () => {
                               className='text-slate-500 hover:text-red-400 border-transparent hover:bg-red-500/10 disabled:hover:text-slate-500 disabled:hover:bg-transparent'
                               onClick={() => handleDeleteUser(user)}
                               disabled={isCurrentUser}
-                              tooltip={isCurrentUser ? "You cannot delete your own account" : "Move to recycle bin"}
+                              tooltip={isCurrentUser ? "You cannot delete your own account" : "Delete"}
                             />
                           </>
                         )}

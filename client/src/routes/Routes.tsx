@@ -52,7 +52,7 @@ export const Routes = createBrowserRouter([
                 element: <RoleDashboard />,
               },
               {
-                element: <RoleRoute allowedRoles={['operator', 'staff']} />,
+                element: <RoleRoute allowedRoles={['operator']} />,
                 children: [
                   {
                     path: PATHS.APP.COMPLAINTS,

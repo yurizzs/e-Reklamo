@@ -1,15 +1,21 @@
 <?php
+
 namespace App\Http\Controllers\API\v1;
+
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
+use App\Models\Employee;
+use App\Models\User;
 use App\Traits\ApiResponse;
 use Illuminate\Support\Str;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use App\Models\ActivityLog;
+
 class AuthenticationController extends Controller
 {
     use ApiResponse;
@@ -41,6 +47,7 @@ class AuthenticationController extends Controller
         $maxAttempts = 5;
         $decaySeconds = 30;
         $username = Str::lower((string) $request->input('username'));
+        $password = (string) $request->input('password');
         $throttleKey = 'login|' . (string) $request->ip() . '|' . $username;
 
         if (RateLimiter::tooManyAttempts($throttleKey, $maxAttempts)) {
@@ -56,7 +63,13 @@ class AuthenticationController extends Controller
             );
         }
 
-        if (!Auth::attempt($request->only('username', 'password'))) {
+        // Search in Employee table first (for Admin/Operator/Officer), then User table (for Citizens)
+        $account = Employee::where('username', $username)->first();
+        if (!$account) {
+            $account = User::where('username', $username)->first();
+        }
+
+        if (!$account || !Hash::check($password, $account->password)) {
             RateLimiter::hit($throttleKey, $decaySeconds);
             ActivityLog::create([
                 'user_id' => null,
@@ -66,42 +79,39 @@ class AuthenticationController extends Controller
         }
 
         RateLimiter::clear($throttleKey);
-        $user = Auth::user();
 
         if ($request->filled('device_name')) {
-            // Revoke any existing tokens for this device (prevent duplicates)
-            $user->tokens()->where('name', $request->device_name)->delete();
-            $token = $user->createToken($request->device_name)->plainTextToken;
-            ActivityLog::create([
-                'user_id' => $user->id,
-                'activity' => 'login (token: ' . $request->device_name . ')',
-            ]);
+            // Revoke existing tokens for this device name
+            $account->tokens()->where('name', $request->device_name)->delete();
+            $token = $account->createToken($request->device_name)->plainTextToken;
+            
+            $this->recordActivity($account->id, 'login (token: ' . $request->device_name . ')');
+            
             return $this->success(
                 'Logged in successfully.',
                 [
-                    'user'  => new UserResource($user),
+                    'user' => new UserResource($account),
                     'token' => $token,
                 ],
                 200
             );
         }
 
+        // Web SPA session login
+        Auth::guard('web')->login($account);
         $request->session()->regenerate();
-        ActivityLog::create([
-            'user_id' => $user->id,
-            'activity' => 'login (session)',
-        ]);
+
+        $this->recordActivity($account->id, 'login (session)');
+
         return $this->success(
             'Logged in successfully.',
-            ['user' => new UserResource($user)],
+            ['user' => new UserResource($account)],
             200
         );
     }
+
     /**
-     * Return the currently authenticated user.
-     *
-     * Works for both web (session) and mobile (Bearer token)
-     * because Sanctum's auth middleware handles both guards.
+     * Return the currently authenticated user/employee.
      */
     public function me(Request $request): JsonResponse
     {
@@ -111,28 +121,20 @@ class AuthenticationController extends Controller
             200
         );
     }
+
     /**
-     * Log out the current user.
-     *
-     * - Mobile: revokes the current access token.
-     * - Web: invalidates the session.
+     * Log out the current user/employee.
      */
     public function logout(Request $request): JsonResponse
     {
-        // ──────────────────────────────────────────
-        // MOBILE: revoke the Bearer token used for this request
-        // ──────────────────────────────────────────
         $user = $request->user();
 
-        if ($user?->currentAccessToken() &&
-            method_exists($user->currentAccessToken(), 'delete')) {
+        if ($user?->currentAccessToken() && method_exists($user->currentAccessToken(), 'delete')) {
             $this->recordActivity($user->id, 'logout (token)');
             $user->currentAccessToken()->delete();
             return $this->success('Logged out successfully.', null, 200);
         }
-        // ──────────────────────────────────────────
-        // WEB SPA: invalidate the session (unchanged)
-        // ──────────────────────────────────────────
+
         if ($user) {
             $this->recordActivity($user->id, 'logout (session)');
         }

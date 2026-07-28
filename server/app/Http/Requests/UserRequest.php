@@ -2,8 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\UserRole;
-use App\Models\User;
+use App\Models\Employee;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -26,32 +25,37 @@ class UserRequest extends FormRequest
      */
     public function rules(): array
     {
-
-        $user = User::find($this->route('user'));
+        $employeeId = $this->route('user') ?? $this->route('employee');
+        if (is_string($employeeId) && !is_numeric($employeeId)) {
+            $employee = Employee::where('slug', $employeeId)->first();
+            $employeeId = $employee?->id;
+        }
 
         return [
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'middle_name' => ['nullable', 'string', 'max:255'],
             'suffix_1name' => ['nullable', 'string', 'max:255'],
+            'suffix_name' => ['nullable', 'string', 'max:255'],
+            'position' => ['nullable', 'string', 'max:255'],
 
-            'username' => ['required', 'string', 'max:255', Rule::unique('users', 'username')->ignore($user?->id)],
+            'username' => ['required', 'string', 'max:255', Rule::unique('employees', 'username')->ignore($employeeId)],
 
             'email' => [
                 'required',
                 'email',
-                Rule::unique('users', 'email')->ignore($user?->id),
+                Rule::unique('employees', 'email')->ignore($employeeId),
             ],
             'phone' => [
                 'nullable',
                 'string',
-                'phone:PH',
                 'max:20',
-                Rule::unique('users', 'phone')->ignore($user?->id),
+                Rule::unique('employees', 'phone')->ignore($employeeId),
             ],
             'role' => [
                 'required',
-                Rule::enum(UserRole::class),
+                'string',
+                Rule::in(['admin', 'operator', 'officer']),
             ],
 
             'password' => [
@@ -74,10 +78,7 @@ class UserRequest extends FormRequest
     public function messages(): array
     {
         return [
-            // Custom phone validation message
-            'phone.phone' => 'The provided number is not a valid contact format for the Philippines.',
             'phone.max' => 'The contact number must not exceed 20 characters.',
-            // Custom image validation message
             'avatar.image' => 'The profile picture must be a valid image file (jpeg, png, bmp, gif, or svg).',
             'avatar.max' => 'The image size is too large. Please upload an avatar smaller than 25MB.',
         ];

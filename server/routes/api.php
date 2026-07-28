@@ -16,7 +16,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('user/auth/me', [AuthenticationController::class, 'me']);
     Route::post('auth/logout', [AuthenticationController::class, 'logout']);
 
-    Route::middleware('role:admin,operator,staff')->group(function () {
+    Route::middleware('role:admin,operator,officer,staff')->group(function () {
         Route::get('complaints/options', [ComplaintController::class, 'options']);
         Route::get('complaints/analytics', [ComplaintController::class, 'analytics']);
         Route::get('complaints', [ComplaintController::class, 'index']);
@@ -27,9 +27,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Admin Only
     Route::middleware('role:admin')->group(function () {
+        // User & Employee Management (Saves Admin & Operator to employees table)
         Route::get('users/stats', [UserController::class, 'stats']);
         Route::apiResource('users', UserController::class);
         Route::post('users/{id}/restore', [UserController::class, 'restore']);
+
+        Route::get('employees/stats', [UserController::class, 'stats']);
+        Route::apiResource('employees', UserController::class);
+        Route::post('employees/{id}/restore', [UserController::class, 'restore']);
 
         // Activity Logs (Accounting)
         Route::get('activity-logs', [ActivityLogController::class, 'index']);

@@ -14,7 +14,9 @@ class UserResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        // return parent::toArray($request);
+        $roleValue = is_object($this->role) && isset($this->role->value) 
+            ? $this->role->value 
+            : (string) $this->role;
 
         return [
             'id' => $this->id,
@@ -23,15 +25,17 @@ class UserResource extends JsonResource
             'first_name' => $this->first_name,
             'middle_name' => $this->middle_name,
             'last_name' => $this->last_name,
-            'suffix_1name' => $this->suffix_1name,
+            'suffix_1name' => $this->suffix_1name ?? $this->suffix_name ?? null,
+            'suffix_name' => $this->suffix_name ?? $this->suffix_1name ?? null,
+            'position' => $this->position ?? null,
             'name' => trim("{$this->first_name} {$this->last_name}"),
             'email' => $this->email,
             'username' => $this->username,
             'phone' => $this->phone,
-            'role' => $this->role,
-            'theme' => $this->theme,
-            'created_at' => $this->created_at->toDateTimeString(),
-            'updated_at' => $this->updated_at->toDateTimeString(),
+            'role' => $roleValue,
+            'theme' => $this->theme ?? 'system',
+            'created_at' => $this->created_at ? $this->created_at->toDateTimeString() : null,
+            'updated_at' => $this->updated_at ? $this->updated_at->toDateTimeString() : null,
             'deleted_at' => $this->deleted_at ? $this->deleted_at->toDateTimeString() : null,
         ];
     }

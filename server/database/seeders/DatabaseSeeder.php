@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Models\Employee;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -16,14 +17,18 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         User::factory(10)->create();
+        Employee::factory(10)->create();
+
+        $citizenUser = User::first();
 
         // Ensure a stable admin account exists for local access
-        \App\Models\User::updateOrCreate(
+        \App\Models\Employee::updateOrCreate(
             ['username' => 'admin'],
             [
                 'slug' => \Illuminate\Support\Str::slug('Administrator'),
                 'first_name' => 'Administrator',
                 'last_name' => 'Admin',
+                'position' => 'TMU Administrator',
                 'email' => 'admin@example.com',
                 'username' => 'admin',
                 'phone' => null,
@@ -33,12 +38,13 @@ class DatabaseSeeder extends Seeder
         );
 
         // Ensure an operator account exists
-        $operatorUser = \App\Models\User::updateOrCreate(
+        $operatorUser = \App\Models\Employee::updateOrCreate(
             ['username' => 'operator'],
             [
                 'slug' => \Illuminate\Support\Str::slug('Operator User'),
                 'first_name' => 'Operator',
                 'last_name' => 'User',
+                'position' => 'TMU Operator',
                 'email' => 'operator@example.com',
                 'username' => 'operator',
                 'phone' => null,
@@ -108,7 +114,8 @@ class DatabaseSeeder extends Seeder
         \App\Models\Complaint::firstOrCreate(
             ['title' => 'Overcharged on tricycle'],
             [
-                'user_id' => $operatorUser->id,
+                'user_id' => $citizenUser?->id,
+                'employee_id' => $operatorUser->id,
                 'complainant_first_name' => 'Pedro',
                 'complainant_last_name' => 'Penduko',
                 'driver_id' => $driver1->id,
@@ -124,6 +131,7 @@ class DatabaseSeeder extends Seeder
             ['title' => 'Jeepney out of route'],
             [
                 'user_id' => null,
+                'employee_id' => $operatorUser->id,
                 'complainant_first_name' => 'Juana',
                 'complainant_last_name' => 'Change',
                 'driver_id' => $driver2->id,
@@ -135,26 +143,12 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        \App\Models\Complaint::firstOrCreate(
-            ['title' => 'Dangerous swerving'],
-            [
-                'user_id' => $operatorUser->id,
-                'complainant_first_name' => 'Pedro',
-                'complainant_last_name' => 'Penduko',
-                'driver_id' => $driver1->id,
-                'category_id' => $cat3->id,
-                'description' => 'Driver was driving extremely fast and swerving.',
-                'incident_date_time' => '2026-06-05 18:00:00',
-                'incident_location' => 'Lerma St, Manila',
-                'status' => 'resolved',
-            ]
-        );
-
         // Create some complaints for 2025
         \App\Models\Complaint::firstOrCreate(
             ['title' => 'Last year overcharging'],
             [
                 'user_id' => null,
+                'employee_id' => $operatorUser->id,
                 'complainant_first_name' => 'Jose',
                 'complainant_last_name' => 'Rizal',
                 'driver_id' => $driver2->id,

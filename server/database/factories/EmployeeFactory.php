@@ -3,15 +3,15 @@
 namespace Database\Factories;
 
 use App\Enums\UserRole;
-use App\Models\User;
+use App\Models\Employee;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * @extends Factory<User>
+ * @extends Factory<Employee>
  */
-class UserFactory extends Factory
+class EmployeeFactory extends Factory
 {
     /**
      * The current password being used by the factory.
@@ -25,19 +25,26 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
+        $roles = [UserRole::OPERATOR, UserRole::ADMIN];
+
         $firstName = fake()->firstName();
+        $middleName = fake()->firstName();
         $lastName = fake()->lastName();
-        $fullName = "$firstName $lastName";
+        $suffixName = fake()->suffix();
+        $fullName = "$firstName $middleName $lastName";
 
         return [
             'slug' => Str::slug($fullName),
             'first_name' => $firstName,
+            'middle_name' => $middleName,
             'last_name' => $lastName,
+            'suffix_name' => $suffixName,
+            'position' => fake()->randomElement(['TMU Administrator','TMU Operator',]),
             'email' => fake()->unique()->safeEmail(),
             'username' => fake()->unique()->userName(),
             'email_verified_at' => now(),
             'phone' => '+639' . fake()->numerify('#########'),
-            'role' => UserRole::CITIZEN,
+            'role' => fake()->randomElement($roles),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
         ];
