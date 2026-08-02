@@ -23,7 +23,7 @@ class UserController extends Controller
                 'total' => Employee::count(),
                 'admins' => Employee::where('role', 'admin')->count(),
                 'operators' => Employee::whereIn('role', ['operator'])->count(),
-                'users' => User::where('role', 'user')->count(),
+                'users' => User::where('role', 'citizen')->count(),
             ],
             200
         );

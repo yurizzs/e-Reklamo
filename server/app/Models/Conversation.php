@@ -11,11 +11,17 @@ class Conversation extends Model
 {
     protected $fillable = [
         'complaint_id',
+        'user_id',
     ];
 
     public function complaint(): BelongsTo
     {
         return $this->belongsTo(Complaint::class, 'complaint_id');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function messages(): HasMany

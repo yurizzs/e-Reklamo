@@ -51,15 +51,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const login = async (credentials: { username: string; password: string }) => {
         await AuthService.csrf();
         const res = await AuthService.login(credentials) as any;
-        setUser(res?.data?.data?.user ?? null);
+        const dataPayload = res?.data?.data || res?.data;
+        if (dataPayload?.token) {
+            localStorage.setItem("auth_token", dataPayload.token);
+        }
+        setUser(dataPayload?.user ?? null);
     };
 
     /**
      * Logout flow: call server -> clear local state.
      */
     const logout = async () => {
-        await AuthService.logout();
-        setUser(null);
+        try {
+            await AuthService.logout();
+        } finally {
+            localStorage.removeItem("auth_token");
+            setUser(null);
+        }
     };
 
     return (

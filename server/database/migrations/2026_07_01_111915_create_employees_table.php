@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('last_name');
             $table->string('suffix_name')->nullable();
             $table->string('position');
-            $table->enum('role', ['admin', 'operator'])->default('operator');
+            $table->string('role')->default('operator');
             $table->string('avatar')->nullable();
             $table->string('phone')->unique()->nullable();
             $table->string('email')->unique()->nullable();

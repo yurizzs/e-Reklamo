@@ -5,6 +5,8 @@ namespace App\Http\Controllers\API\v1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ComplaintResource;
 use App\Models\Complaint;
+use App\Models\Conversation;
+use App\Models\Message;
 use App\Models\Driver;
 use App\Models\Evidence;
 use App\Models\ViolationCategory;
@@ -249,10 +251,40 @@ class ComplaintController extends Controller
         $validated['status'] = $validated['status'] ?? 'new';
 
         $complaintData = collect($validated)->except('evidence')->toArray();
+
+        $authUser = $request->user();
+        if ($authUser) {
+            if (get_class($authUser) === \App\Models\User::class) {
+                $complaintData['user_id'] = $authUser->id;
+            } elseif (get_class($authUser) === \App\Models\Employee::class) {
+                $complaintData['employee_id'] = $authUser->id;
+            }
+        }
+
         $complaint = Complaint::create($complaintData)->load([
             'user:id,first_name,last_name',
-            'driver:id,first_name,last_name',
+            'driver:id,first_name,last_name,plate_number',
             'category:id,category_name',
+        ]);
+
+        // Create dedicated conversation for this complaint
+        $conversation = Conversation::create([
+            'complaint_id' => $complaint->id,
+            'user_id' => $complaint->user_id ?? null,
+        ]);
+
+        $complainantName = trim("{$complaint->complainant_first_name} {$complaint->complainant_last_name}");
+        if (empty($complainantName)) {
+            $complainantName = $complaint->user ? trim("{$complaint->user->first_name} {$complaint->user->last_name}") : 'Citizen Inquiry';
+        }
+
+        Message::create([
+            'conversation_id' => $conversation->id,
+            'sender_type' => 'user',
+            'sender_id' => $complaint->user_id ?? null,
+            'sender_name' => $complainantName,
+            'sender_role' => 'citizen',
+            'message_text' => "Complaint report: '{$complaint->title}' at {$complaint->incident_location}. Description: {$complaint->description}",
         ]);
 
         // Store evidence files
@@ -274,6 +306,52 @@ class ComplaintController extends Controller
             'Complaint created successfully',
             ComplaintResource::make($complaint),
             201
+        );
+    }
+
+    /**
+     * Check violations for a driver by plate number or driver name.
+     */
+    public function checkViolation(Request $request)
+    {
+        $search = trim((string) $request->input('search', $request->input('query', '')));
+
+        if (empty($search)) {
+            $authUser = $request->user();
+            if ($authUser) {
+                $search = trim("{$authUser->first_name} {$authUser->last_name}");
+            }
+        }
+
+        if (empty($search)) {
+            return $this->error('Please provide a plate number or driver name to check violations.', 422);
+        }
+
+        $complaints = Complaint::query()
+            ->with([
+                'driver:id,first_name,last_name,plate_number',
+                'category:id,category_name,penalty_amount',
+                'statusHistories',
+            ])
+            ->where(function ($q) use ($search) {
+                $q->whereHas('driver', function ($driverQuery) use ($search) {
+                    $driverQuery->where('plate_number', 'like', "%{$search}%")
+                        ->orWhere('first_name', 'like', "%{$search}%")
+                        ->orWhere('last_name', 'like', "%{$search}%")
+                        ->orWhere(\Illuminate\Support\Facades\DB::raw("CONCAT(first_name, ' ', last_name)"), 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('incident_date_time', 'desc')
+            ->get();
+
+        return $this->success(
+            'Violation status retrieved successfully',
+            [
+                'query' => $search,
+                'total_violations' => $complaints->count(),
+                'violations' => ComplaintResource::collection($complaints),
+            ],
+            200
         );
     }
 

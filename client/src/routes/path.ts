@@ -14,6 +14,7 @@ export const PATHS = {
     LOGS: `${APP_ROOT}/logs`,
     COMPLAINTS: `${APP_ROOT}/complaints`,
     ANALYTICS: `${APP_ROOT}/analytics`,
+    CHAT: `${APP_ROOT}/chat`,
     VIOLATION_CATEGORIES: `${APP_ROOT}/violation-categories`,
     STAFF_SCHEDULES: `${APP_ROOT}/staff-schedules`,
   },

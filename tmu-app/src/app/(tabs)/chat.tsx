@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -8,58 +9,163 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { apiService } from '@/services/api';
+import { authStore } from '@/services/auth-store';
 
 export default function ChatScreen() {
-  const [messages, setMessages] = useState<Array<{ id: number; sender: 'ai' | 'operator' | 'user'; text: string; time: string }>>([
-    { id: 1, sender: 'ai', text: 'Welcome to TMU Direct Support. How can we assist your traffic inquiry today?', time: '10:00 AM' },
+  const currentUser = authStore.getUser();
+  const isOperator = currentUser.role === 'operator' || currentUser.role === 'admin';
+
+  const [conversationId, setConversationId] = useState<number>(1);
+  const [messages, setMessages] = useState<Array<{ id: number; sender_type: string; sender_name: string; text: string; time: string }>>([
+    {
+      id: 1,
+      sender_type: 'employee',
+      sender_name: 'TMU Duty Helpdesk',
+      text: 'Welcome to TMU Direct Support. How can we assist your traffic inquiry today?',
+      time: '10:00 AM',
+    },
   ]);
   const [inputText, setInputText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
 
-  const handleSend = () => {
-    if (!inputText.trim()) return;
-    const userMsg = { id: Date.now(), sender: 'user' as const, text: inputText.trim(), time: 'Just now' };
+  const token = authStore.getToken() || undefined;
+
+  const loadBackendMessages = async (convId: number) => {
+    try {
+      const res = await apiService.fetchMessages(convId, token);
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const mapped = res.data.map((m: any) => ({
+          id: m.id,
+          sender_type: m.sender_type || (m.sender_role === 'citizen' ? 'user' : 'employee'),
+          sender_name: m.sender_name || 'TMU Duty Officer',
+          text: m.message_text,
+          time: m.time_formatted || 'Just now',
+        }));
+        setMessages(mapped);
+      }
+    } catch {
+      // Keep existing state on network error
+    }
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    let pollInterval: any = null;
+
+    const initChat = async () => {
+      try {
+        const convRes = await apiService.fetchConversations(token);
+        let targetConvId = 1;
+        if (convRes.success && Array.isArray(convRes.data) && convRes.data.length > 0) {
+          targetConvId = convRes.data[0].id;
+        }
+        if (isMounted) {
+          setConversationId(targetConvId);
+          await loadBackendMessages(targetConvId);
+        }
+      } catch (err) {
+        console.warn("Silent chat init:", err);
+      }
+    };
+
+    initChat();
+
+    pollInterval = setInterval(() => {
+      if (isMounted) {
+        loadBackendMessages(conversationId);
+      }
+    }, 3000);
+
+    return () => {
+      isMounted = false;
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, [conversationId]);
+
+  const handleSend = async () => {
+    const textToSend = inputText.trim();
+    if (!textToSend) return;
+
+    const userMsg = {
+      id: Date.now(),
+      sender_type: isOperator ? 'employee' : 'user',
+      sender_name: `${currentUser.first_name} ${currentUser.last_name}`,
+      text: textToSend,
+      time: 'Just now',
+    };
+
     setMessages((prev) => [...prev, userMsg]);
     setInputText('');
 
+    // Send to Laravel API backend with user name and role
+    const senderName = `${currentUser.first_name} ${currentUser.last_name}`;
+    const senderRole = currentUser.role || (isOperator ? 'operator' : 'citizen');
+    const sendRes = await apiService.sendChatMessage(conversationId, textToSend, token, senderName, senderRole);
+
+    if (sendRes?.data?.conversation_id && sendRes.data.conversation_id !== conversationId) {
+      setConversationId(sendRes.data.conversation_id);
+    }
+    
+    // Refresh messages from server
     setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        { id: Date.now() + 1, sender: 'operator', text: 'Thank you for reaching out. A TMU duty operator is reviewing your message.', time: 'Just now' },
-      ]);
-    }, 1000);
+      loadBackendMessages(sendRes?.data?.conversation_id || conversationId);
+    }, 800);
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Support & Operator Chat</Text>
-        <Text style={styles.headerSub}>TMU Helpdesk • Active</Text>
+        <View style={styles.headerTop}>
+          <Text style={styles.headerTitle}>
+            {isOperator ? 'Operator Dispatch & Peer Chat' : 'Support & Helpdesk Chat'}
+          </Text>
+          {isOperator && (
+            <View style={styles.opBadge}>
+              <Text style={styles.opBadgeText}>DUTY OPERATOR</Text>
+            </View>
+          )}
+        </View>
+        <Text style={styles.headerSub}>
+          {isOperator ? 'Internal Operator Channel • Live Sync' : 'TMU Public Helpdesk • Active'}
+        </Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.chatScroll} showsVerticalScrollIndicator={false}>
-        {messages.map((msg) => (
-          <View
-            key={msg.id}
-            style={[
-              styles.bubble,
-              msg.sender === 'user' ? styles.userBubble : styles.staffBubble,
-            ]}
-          >
-            <Text style={styles.senderLabel}>
-              {msg.sender === 'user' ? 'You' : msg.sender === 'ai' ? 'TMU AI Bot' : 'TMU Duty Officer'}
-            </Text>
-            <Text style={[styles.msgText, msg.sender === 'user' ? styles.userMsgText : styles.staffMsgText]}>
-              {msg.text}
-            </Text>
-            <Text style={styles.timeText}>{msg.time}</Text>
-          </View>
-        ))}
+      <ScrollView
+        ref={scrollViewRef}
+        onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+        contentContainerStyle={styles.chatScroll}
+        showsVerticalScrollIndicator={false}
+      >
+        {isLoading ? (
+          <ActivityIndicator size="small" color="#10b981" style={{ marginVertical: 20 }} />
+        ) : (
+          messages.map((msg) => {
+            const isUserMsg = msg.sender_type === 'user';
+            return (
+              <View
+                key={msg.id}
+                style={[
+                  styles.bubble,
+                  isUserMsg ? styles.userBubble : styles.staffBubble,
+                ]}
+              >
+                <Text style={styles.senderLabel}>{msg.sender_name}</Text>
+                <Text style={[styles.msgText, isUserMsg ? styles.userMsgText : styles.staffMsgText]}>
+                  {msg.text}
+                </Text>
+                <Text style={styles.timeText}>{msg.time}</Text>
+              </View>
+            );
+          })
+        )}
       </ScrollView>
 
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          placeholder="Type message to TMU support..."
+          placeholder={isOperator ? "Broadcast message to duty operators..." : "Type message to TMU support..."}
           placeholderTextColor="rgba(255, 255, 255, 0.4)"
           value={inputText}
           onChangeText={setInputText}
@@ -83,10 +189,28 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(16, 185, 129, 0.15)',
   },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   headerTitle: {
     fontSize: 18,
     fontWeight: '800',
     color: '#ffffff',
+  },
+  opBadge: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderWidth: 1,
+    borderColor: '#10b981',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  opBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#10b981',
   },
   headerSub: {
     fontSize: 11,

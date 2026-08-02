@@ -14,6 +14,7 @@ const ViolationCategories = React.lazy(() => import("../pages/violation-categori
 const StaffSchedules = React.lazy(() => import("../pages/schedules/StaffSchedulePage"));
 const ComplaintsList = React.lazy(() => import("../pages/staff/ComplaintsList"));
 const AnalyticsReport = React.lazy(() => import("../pages/staff/AnalyticsReport"));
+const OperatorChat = React.lazy(() => import("../pages/staff/OperatorChat"));
 
 export const Routes = createBrowserRouter([
   {
@@ -52,7 +53,7 @@ export const Routes = createBrowserRouter([
                 element: <RoleDashboard />,
               },
               {
-                element: <RoleRoute allowedRoles={['operator']} />,
+                element: <RoleRoute allowedRoles={['staff', 'operator', 'admin']} />,
                 children: [
                   {
                     path: PATHS.APP.COMPLAINTS,
@@ -61,6 +62,10 @@ export const Routes = createBrowserRouter([
                   {
                     path: PATHS.APP.ANALYTICS,
                     element: <AnalyticsReport />,
+                  },
+                  {
+                    path: PATHS.APP.STAFF_SCHEDULES,
+                    element: <StaffSchedules />,
                   },
                 ],
               },
@@ -84,10 +89,6 @@ export const Routes = createBrowserRouter([
                   {
                     path: PATHS.APP.VIOLATION_CATEGORIES,
                     element: <ViolationCategories />,
-                  },
-                  {
-                    path: PATHS.APP.STAFF_SCHEDULES,
-                    element: <StaffSchedules />,
                   },
                 ],
               },

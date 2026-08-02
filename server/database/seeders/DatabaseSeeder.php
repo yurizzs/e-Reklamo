@@ -17,12 +17,11 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         User::factory(10)->create();
-        Employee::factory(10)->create();
 
         $citizenUser = User::first();
 
         // Ensure a stable admin account exists for local access
-        \App\Models\Employee::updateOrCreate(
+        $adminUser = \App\Models\Employee::updateOrCreate(
             ['username' => 'admin'],
             [
                 'slug' => \Illuminate\Support\Str::slug('Administrator'),
@@ -33,6 +32,22 @@ class DatabaseSeeder extends Seeder
                 'username' => 'admin',
                 'phone' => null,
                 'role' => \App\Enums\UserRole::ADMIN,
+                'password' => \Illuminate\Support\Facades\Hash::make('password'),
+            ]
+        );
+
+        // Ensure a stable staff account exists
+        $staffUser = \App\Models\Employee::updateOrCreate(
+            ['username' => 'staff'],
+            [
+                'slug' => \Illuminate\Support\Str::slug('Staff Helpdesk'),
+                'first_name' => 'TMU Staff',
+                'last_name' => 'Officer',
+                'position' => 'TMU Duty Staff',
+                'email' => 'staff@example.com',
+                'username' => 'staff',
+                'phone' => null,
+                'role' => \App\Enums\UserRole::STAFF,
                 'password' => \Illuminate\Support\Facades\Hash::make('password'),
             ]
         );

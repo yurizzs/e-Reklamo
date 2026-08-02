@@ -20,16 +20,22 @@ class AuthenticationController extends Controller
 {
     use ApiResponse;
 
-    private function recordActivity(?int $userId, string $activity): void
+    private function recordActivity($userOrId, string $activity): void
     {
         try {
+            $userId = null;
+            if ($userOrId instanceof User) {
+                $userId = $userOrId->id;
+            } elseif (is_numeric($userOrId)) {
+                $userId = User::where('id', $userOrId)->exists() ? (int) $userOrId : null;
+            }
+
             ActivityLog::create([
                 'user_id' => $userId,
                 'activity' => $activity,
             ]);
         } catch (\Throwable $e) {
             Log::warning('Unable to record activity log.', [
-                'user_id' => $userId,
                 'activity' => $activity,
                 'error' => $e->getMessage(),
             ]);
@@ -116,32 +122,25 @@ class AuthenticationController extends Controller
 
         RateLimiter::clear($throttleKey);
 
-        if ($request->filled('device_name')) {
-            // Revoke existing tokens for this device name
-            $account->tokens()->where('name', $request->device_name)->delete();
-            $token = $account->createToken($request->device_name)->plainTextToken;
-            
-            $this->recordActivity($account->id, 'login (token: ' . $request->device_name . ')');
-            
-            return $this->success(
-                'Logged in successfully.',
-                [
-                    'user' => new UserResource($account),
-                    'token' => $token,
-                ],
-                200
-            );
+        $deviceName = $request->input('device_name', 'Web Dashboard');
+        $account->tokens()->where('name', $deviceName)->delete();
+        $token = $account->createToken($deviceName)->plainTextToken;
+
+        try {
+            Auth::guard('web')->login($account);
+            $request->session()->regenerate();
+        } catch (\Throwable $e) {
+            Log::warning('Session login notice: ' . $e->getMessage());
         }
 
-        // Web SPA session login
-        Auth::guard('web')->login($account);
-        $request->session()->regenerate();
-
-        $this->recordActivity($account->id, 'login (session)');
+        $this->recordActivity($account->id, 'login (' . $deviceName . ')');
 
         return $this->success(
             'Logged in successfully.',
-            ['user' => new UserResource($account)],
+            [
+                'user' => new UserResource($account),
+                'token' => $token,
+            ],
             200
         );
     }

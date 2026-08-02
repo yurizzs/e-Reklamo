@@ -11,6 +11,7 @@ import {
 } from "../../components/ui/table/Table";
 import OperatorScheduleService from "../../services/OperatorScheduleService";
 import { notify } from "../../util/notify";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface EmployeeOption {
   id: number;
@@ -37,57 +38,68 @@ interface ScheduleItem {
 const dayLabels = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 const StaffSchedulePage = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
   const [selectedMember, setSelectedMember] = useState<ScheduleItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState<string>("monday");
   const [isSaving, setIsSaving] = useState(false);
 
+  const fetchData = async () => {
+    try {
+      const [employeesResponse, schedulesResponse] = await Promise.all([
+        OperatorScheduleService.getEmployees() as any,
+        OperatorScheduleService.getAll() as any,
+      ]);
+
+      const employeeList = employeesResponse?.data ?? [];
+      const scheduleRecords = schedulesResponse?.data ?? [];
+
+      const scheduleMap = new Map<string, Record<string, string>>();
+      scheduleRecords.forEach((record: any) => {
+        const key = String(record.employee_id);
+        let day = "";
+        if (record.schedule_date) {
+          const dateParts = record.schedule_date.split("-").map(Number);
+          if (dateParts.length === 3) {
+            const dateObj = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
+            day = dateObj.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" }).toLowerCase();
+          }
+        }
+        if (!day) return;
+
+        const current = scheduleMap.get(key) ?? {};
+        current[day] = (record.shift_type === "Off" || record.shift_start === "00:00")
+          ? "Off" 
+          : `${record.shift_start} - ${record.shift_end}`;
+        scheduleMap.set(key, current);
+      });
+
+      const mapped = employeeList.map((employee: EmployeeOption) => {
+        const weekSchedule = scheduleMap.get(String(employee.id)) ?? {};
+        return {
+          employee_id: employee.id,
+          staff: `${employee.first_name} ${employee.last_name}`.trim() || employee.username,
+          role: employee.position || employee.role || "Staff",
+          monday: weekSchedule.monday ?? "Off",
+          tuesday: weekSchedule.tuesday ?? "Off",
+          wednesday: weekSchedule.wednesday ?? "Off",
+          thursday: weekSchedule.thursday ?? "Off",
+          friday: weekSchedule.friday ?? "Off",
+          saturday: weekSchedule.saturday ?? "Off",
+          sunday: weekSchedule.sunday ?? "Off",
+        };
+      });
+
+      setSchedules(mapped);
+    } catch {
+      notify.error("Could not load schedules from the server.");
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [employeesResponse, schedulesResponse] = await Promise.all([
-          OperatorScheduleService.getEmployees() as any,
-          OperatorScheduleService.getAll({
-            start_date: "2026-07-01",
-            end_date: "2026-07-07",
-          }) as any,
-        ]);
-
-        const employeeList = employeesResponse?.data ?? [];
-        const scheduleRecords = schedulesResponse?.data ?? [];
-
-        const scheduleMap = new Map<string, Record<string, string>>();
-        scheduleRecords.forEach((record: any) => {
-          const key = record.employee_id;
-          const day = new Date(record.schedule_date).toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
-          const current = scheduleMap.get(key) ?? {};
-          current[day] = `${record.shift_start} - ${record.shift_end}`;
-          scheduleMap.set(key, current);
-        });
-
-        const mapped = employeeList.map((employee: EmployeeOption) => {
-          const weekSchedule = scheduleMap.get(String(employee.id)) ?? {};
-          return {
-            employee_id: employee.id,
-            staff: `${employee.first_name} ${employee.last_name}`.trim() || employee.username,
-            role: employee.position || employee.role || "Staff",
-            monday: weekSchedule.monday ?? "Off",
-            tuesday: weekSchedule.tuesday ?? "Off",
-            wednesday: weekSchedule.wednesday ?? "Off",
-            thursday: weekSchedule.thursday ?? "Off",
-            friday: weekSchedule.friday ?? "Off",
-            saturday: weekSchedule.saturday ?? "Off",
-            sunday: weekSchedule.sunday ?? "Off",
-          };
-        });
-
-        setSchedules(mapped);
-      } catch {
-        notify.error("Could not load schedules from the server.");
-      }
-    };
-
     fetchData();
   }, []);
 
@@ -106,6 +118,14 @@ const StaffSchedulePage = () => {
 
   const openEditModal = (member: ScheduleItem) => {
     setSelectedMember(member);
+    setSelectedDay("monday");
+    setIsModalOpen(true);
+  };
+
+  const handleAddScheduleClick = () => {
+    if (schedules.length > 0) {
+      setSelectedMember(schedules[0]);
+    }
     setSelectedDay("monday");
     setIsModalOpen(true);
   };
@@ -158,6 +178,7 @@ const StaffSchedulePage = () => {
       await OperatorScheduleService.create(payload);
       notify.success("Schedule saved to server.");
       setIsModalOpen(false);
+      await fetchData();
     } catch {
       notify.error("Failed to save schedule to the server.");
     } finally {
@@ -171,18 +192,27 @@ const StaffSchedulePage = () => {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-2">
             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-500/70">
-              Admin Operations
+              {isAdmin ? "Admin Operations" : "Staff Roster"}
             </p>
             <h1 className="text-3xl font-black uppercase tracking-tighter text-white">
-              Staff Work Schedule
+              {isAdmin ? "Staff Work Schedule" : "Final Staff Schedule"}
             </h1>
             <p className="max-w-2xl text-sm leading-6 text-slate-400">
-              Manage recurring staff shifts in a weekly roster view so allocation stays clear and easy to update.
+              {isAdmin
+                ? "Manage recurring staff shifts in a weekly roster view so allocation stays clear and easy to update."
+                : "View your official published weekly work roster and assigned duty shifts."}
             </p>
           </div>
-          <Button variant="primary" iconName="FaPlus" className="w-fit">
-            Add Schedule
-          </Button>
+          {isAdmin && (
+            <Button
+              variant="primary"
+              iconName="FaPlus"
+              className="w-fit"
+              onClick={handleAddScheduleClick}
+            >
+              Add Schedule
+            </Button>
+          )}
         </div>
       </div>
 
@@ -205,10 +235,12 @@ const StaffSchedulePage = () => {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Icon iconName="FaCalendarDays" className="text-emerald-400" />
-            <h2 className="text-lg font-bold uppercase tracking-tight text-white/90">Weekly roster</h2>
+            <h2 className="text-lg font-bold uppercase tracking-tight text-white/90">
+              {isAdmin ? "Weekly roster" : "Official Weekly Schedule"}
+            </h2>
           </div>
           <div className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400">
-            Weekly View
+            {isAdmin ? "Weekly View" : "Final Roster"}
           </div>
         </div>
 
@@ -220,7 +252,9 @@ const StaffSchedulePage = () => {
                 {dayLabels.map((day) => (
                   <TableCell key={day} isHeader className="text-emerald-500/50 font-mono text-[10px] uppercase tracking-widest py-4">{day}</TableCell>
                 ))}
-                <TableCell isHeader className="text-emerald-500/50 font-mono text-[10px] uppercase tracking-widest py-4">Action</TableCell>
+                {isAdmin && (
+                  <TableCell isHeader className="text-emerald-500/50 font-mono text-[10px] uppercase tracking-widest py-4">Action</TableCell>
+                )}
               </tr>
             </TableHeader>
 
@@ -244,26 +278,28 @@ const StaffSchedulePage = () => {
                       </TableCell>
                     );
                   })}
-                  <TableCell>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        iconName="FaPenToSquare"
-                        onClick={() => openEditModal(member)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        iconName="FaCalendarPlus"
-                        onClick={() => openEditModal(member)}
-                      >
-                        Assign
-                      </Button>
-                    </div>
-                  </TableCell>
+                  {isAdmin && (
+                    <TableCell>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          iconName="FaPenToSquare"
+                          onClick={() => openEditModal(member)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          iconName="FaCalendarPlus"
+                          onClick={() => openEditModal(member)}
+                        >
+                          Assign
+                        </Button>
+                      </div>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>

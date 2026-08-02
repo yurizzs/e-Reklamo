@@ -13,13 +13,16 @@ class OperatorScheduleController extends Controller
 
     public function index(Request $request)
     {
-        $startDate = $request->input('start_date', now()->toDateString());
-        $endDate = $request->input('end_date', $startDate);
+        $query = DB::table('operator_schedules as os')
+            ->join('employees as e', 'e.id', '=', 'os.employee_id');
 
-        $records = DB::table('operator_schedules as os')
-            ->join('employees as e', 'e.id', '=', 'os.employee_id')
-            ->whereBetween('os.schedule_date', [$startDate, $endDate])
-            ->select(
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->whereBetween('os.schedule_date', [$request->input('start_date'), $request->input('end_date')]);
+        } elseif ($request->filled('start_date')) {
+            $query->where('os.schedule_date', '>=', $request->input('start_date'));
+        }
+
+        $records = $query->select(
                 'os.id',
                 'os.employee_id',
                 'os.schedule_date',

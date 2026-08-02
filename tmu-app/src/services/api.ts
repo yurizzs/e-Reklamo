@@ -1,10 +1,13 @@
 import { Platform } from 'react-native';
 
-// Default local environment API URL
-// Android Emulator uses 10.0.2.2:8000, Web/iOS uses 127.0.0.1:8000 or localhost:8000
+// Local Wi-Fi IP address for physical mobile phones: http://192.168.254.112:8000/api/v1
+// Android Emulator fallback: 10.0.2.2:8000
+const DEV_LAN_IP = '192.168.254.112';
+
 const DEFAULT_API_BASE_URL = Platform.select({
-  android: 'http://10.0.2.2:8000/api/v1',
-  default: 'http://127.0.0.1:8000/api/v1',
+  android: `http://${DEV_LAN_IP}:8000/api/v1`,
+  ios: `http://${DEV_LAN_IP}:8000/api/v1`,
+  default: `http://${DEV_LAN_IP}:8000/api/v1`,
 });
 
 export interface LoginPayload {
@@ -169,6 +172,126 @@ class ApiService {
         };
       }
       throw error;
+    }
+  }
+
+  public async checkViolations(searchQuery: string, token?: string): Promise<{ success: boolean; data?: any; message?: string }> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    try {
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(
+        `${this.baseUrl}/complaints/check-violation?search=${encodeURIComponent(searchQuery)}`,
+        {
+          method: 'GET',
+          headers,
+          signal: controller.signal,
+        }
+      );
+
+      clearTimeout(timeoutId);
+      const resData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(resData.message || 'Failed to check violations.');
+      }
+
+      return {
+        success: true,
+        data: resData.data,
+        message: resData.message,
+      };
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (this.isNetworkException(error)) {
+        return {
+          success: true,
+          data: {
+            query: searchQuery,
+            total_violations: 0,
+            violations: [],
+          },
+          message: 'Offline Mode: No network connection.',
+        };
+      }
+      throw error;
+    }
+  }
+
+  public async fetchConversations(token?: string): Promise<{ success: boolean; data?: any }> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    try {
+      const headers: Record<string, string> = { 'Accept': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(`${this.baseUrl}/chat/conversations`, { headers, signal: controller.signal });
+      clearTimeout(timeoutId);
+      const data = await res.json();
+      return { success: res.ok, data: data?.data?.conversations || [] };
+    } catch {
+      clearTimeout(timeoutId);
+      return { success: false, data: [] };
+    }
+  }
+
+  public async fetchMessages(conversationId: number, token?: string): Promise<{ success: boolean; data?: any }> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    try {
+      const headers: Record<string, string> = { 'Accept': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(`${this.baseUrl}/chat/conversations/${conversationId}/messages`, { headers, signal: controller.signal });
+      clearTimeout(timeoutId);
+      const data = await res.json();
+      return { success: res.ok, data: data?.data?.messages || [] };
+    } catch {
+      clearTimeout(timeoutId);
+      return { success: false, data: [] };
+    }
+  }
+
+  public async sendChatMessage(
+    conversationId: number,
+    messageText: string,
+    token?: string,
+    senderName?: string,
+    senderRole?: string
+  ): Promise<{ success: boolean; data?: any }> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    try {
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(`${this.baseUrl}/chat/messages`, {
+        method: 'POST',
+        headers,
+        signal: controller.signal,
+        body: JSON.stringify({
+          conversation_id: conversationId,
+          message_text: messageText,
+          sender_name: senderName,
+          sender_role: senderRole,
+        }),
+      });
+      clearTimeout(timeoutId);
+      const data = await res.json();
+      return { success: res.ok, data: data?.data?.message };
+    } catch {
+      clearTimeout(timeoutId);
+      return { success: false };
     }
   }
 }
