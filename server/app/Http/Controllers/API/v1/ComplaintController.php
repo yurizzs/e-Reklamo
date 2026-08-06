@@ -186,6 +186,7 @@ class ComplaintController extends Controller
             'new' => Complaint::where('status', 'new')->count(),
             'pending' => Complaint::where('status', 'pending')->count(),
             'resolved' => Complaint::where('status', 'resolved')->count(),
+            'unresolved' => Complaint::where('status', 'unresolved')->count(),
         ];
 
         return $this->success(
@@ -226,23 +227,23 @@ class ComplaintController extends Controller
         $validated = $request->validate([
             'complainant_first_name' => ['required', 'string', 'max:255'],
             'complainant_last_name' => ['required', 'string', 'max:255'],
+            'complainant_address' => ['required', 'string', 'max:500'],
+            'complainant_contact' => ['required', 'string', 'max:50'],
             'driver_id' => ['required', 'integer', 'exists:drivers,id'],
             'category_id' => ['required', 'integer', 'exists:violation_categories,id'],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string', 'max:1000'],
             'incident_date_time' => ['required', 'date'],
             'incident_location' => ['required', 'string', 'max:255'],
-            'status' => ['sometimes', 'string', Rule::in(['new', 'pending', 'resolved'])],
-            'evidence' => ['required', 'array', 'min:1', 'max:3'],
+            'status' => ['sometimes', 'string', Rule::in(['new', 'pending', 'resolved', 'unresolved'])],
+            'evidence' => ['nullable', 'array', 'max:3'],
             'evidence.*' => [
-                'required',
+                'nullable',
                 'file',
                 'max:51200', // 50 MB per file
                 'mimetypes:image/jpeg,image/png,image/gif,image/webp,video/mp4,video/mpeg,video/quicktime,video/webm',
             ],
         ], [
-            'evidence.required' => 'Please upload at least 1 image or video as evidence.',
-            'evidence.min' => 'At least 1 evidence file is required.',
             'evidence.max' => 'You may attach a maximum of 3 evidence files.',
             'evidence.*.mimetypes' => 'Each file must be an image (JPEG, PNG, GIF, WebP) or a video (MP4, MPEG, MOV, WebM).',
             'evidence.*.max' => 'Each file must not exceed 50 MB.',
@@ -360,7 +361,7 @@ class ComplaintController extends Controller
         $complaint = Complaint::findOrFail($id);
 
         $validated = $request->validate([
-            'status' => ['required', 'string', Rule::in(['new', 'pending', 'resolved'])],
+            'status' => ['required', 'string', Rule::in(['new', 'pending', 'resolved', 'unresolved'])],
             'description' => ['required', 'string', 'min:10', 'max:1000'],
         ], [
             'status.required' => 'Please select a new status.',

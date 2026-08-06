@@ -32,6 +32,7 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'username' => $this->username,
             'phone' => $this->phone,
+            'address' => $this->address ?? null,
             'role' => $roleValue,
             'theme' => $this->theme ?? 'system',
             'created_at' => $this->created_at ? $this->created_at->toDateTimeString() : null,

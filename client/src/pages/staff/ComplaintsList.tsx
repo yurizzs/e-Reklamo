@@ -15,7 +15,7 @@ import ComplaintService from "../../services/ComplaintService";
 import ComplaintDetailsModal from "./ComplaintDetailsModal";
 import CreateComplaintModal from "./CreateComplaintModal";
 
-type ComplaintStatus = "all" | "new" | "pending" | "resolved";
+type ComplaintStatus = "all" | "new" | "pending" | "resolved" | "unresolved";
 
 interface ComplaintRecord {
   id: number;
@@ -49,6 +49,7 @@ interface ComplaintStats {
   new: number;
   pending: number;
   resolved: number;
+  unresolved: number;
 }
 
 interface PaginationMeta {
@@ -63,13 +64,18 @@ const statusOptions = [
   { value: "new", label: "New" },
   { value: "pending", label: "Pending" },
   { value: "resolved", label: "Resolved" },
+  { value: "unresolved", label: "Unresolved" },
 ];
 
 const statusStyle = (status: string) => {
-  const normalized = status.toLowerCase();
+  const normalized = (status || "").toLowerCase();
 
   if (normalized === "resolved") {
     return "border-emerald-500/20 bg-emerald-500/10 text-emerald-400";
+  }
+
+  if (normalized === "unresolved") {
+    return "border-rose-500/20 bg-rose-500/10 text-rose-400";
   }
 
   if (normalized === "new") {
@@ -100,6 +106,7 @@ const ComplaintsList = () => {
     new: 0,
     pending: 0,
     resolved: 0,
+    unresolved: 0,
   });
   const [meta, setMeta] = useState<PaginationMeta>({
     current_page: 1,
@@ -138,7 +145,7 @@ const ComplaintsList = () => {
 
         const payload = response?.data ?? response;
         setComplaints(payload?.complaints ?? []);
-        setStats(payload?.stats ?? { new: 0, pending: 0, resolved: 0 });
+        setStats(payload?.stats ?? { new: 0, pending: 0, resolved: 0, unresolved: 0 });
         setMeta(
           payload?.meta ?? {
             current_page: page,
@@ -149,7 +156,7 @@ const ComplaintsList = () => {
         );
       } catch {
         setComplaints([]);
-        setStats({ new: 0, pending: 0, resolved: 0 });
+        setStats({ new: 0, pending: 0, resolved: 0, unresolved: 0 });
         setMeta({
           current_page: page,
           last_page: 1,
@@ -184,6 +191,12 @@ const ComplaintsList = () => {
         icon: "FaCircleCheck" as const,
         tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-400",
       },
+      {
+        label: "Unresolved",
+        value: stats.unresolved ?? 0,
+        icon: "FaCircleXmark" as const,
+        tone: "border-rose-500/20 bg-rose-500/10 text-rose-400",
+      },
     ],
     [stats],
   );
@@ -209,7 +222,7 @@ const ComplaintsList = () => {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {cards.map((card) => (
           <div
             key={card.label}

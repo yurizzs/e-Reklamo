@@ -20,6 +20,8 @@ type Option = {
 interface ComplaintFormData {
   complainant_first_name: string;
   complainant_last_name: string;
+  complainant_address: string;
+  complainant_contact: string;
   driver_id: string;
   category_id: string;
   title: string;
@@ -36,6 +38,8 @@ interface FormErrors {
 const initialForm: ComplaintFormData = {
   complainant_first_name: "",
   complainant_last_name: "",
+  complainant_address: "",
+  complainant_contact: "",
   driver_id: "",
   category_id: "",
   title: "",
@@ -264,6 +268,34 @@ const CreateComplaintModal = ({ isOpen, onClose, onSuccess }: Props) => {
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <InputField
+            label="Complainant Address"
+            iconName="FaLocationDot"
+            placeholder="Enter address"
+            value={form.complainant_address}
+            onChange={(event) =>
+              handleChange("complainant_address", event.target.value)
+            }
+            error={errors.complainant_address}
+            fullWidth
+            required
+          />
+
+          <InputField
+            label="Complainant Contact Number"
+            iconName="FaPhone"
+            placeholder="Enter contact number"
+            value={form.complainant_contact}
+            onChange={(event) =>
+              handleChange("complainant_contact", event.target.value)
+            }
+            error={errors.complainant_contact}
+            fullWidth
+            required
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Select
             label="Driver"
             iconName="FaIdCard"
@@ -323,6 +355,7 @@ const CreateComplaintModal = ({ isOpen, onClose, onSuccess }: Props) => {
               { value: "new", label: "New" },
               { value: "pending", label: "Pending" },
               { value: "resolved", label: "Resolved" },
+              { value: "unresolved", label: "Unresolved" },
             ]}
             error={errors.status}
             fullWidth

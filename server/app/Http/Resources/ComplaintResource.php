@@ -37,6 +37,8 @@ class ComplaintResource extends JsonResource
             'complainant' => [
                 'first_name' => $this->complainant_first_name,
                 'last_name' => $this->complainant_last_name,
+                'address' => $this->complainant_address,
+                'contact_number' => $this->complainant_contact,
                 'name' => $manualComplainantName ?: $this->formatName($this->user),
             ],
             'user' => [

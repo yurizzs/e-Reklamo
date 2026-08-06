@@ -14,6 +14,8 @@ class Complaint extends Model
         'user_id',
         'complainant_first_name',
         'complainant_last_name',
+        'complainant_address',
+        'complainant_contact',
         'driver_id',
         'category_id',
         'employee_id',

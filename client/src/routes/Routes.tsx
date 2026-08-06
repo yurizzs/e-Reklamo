@@ -67,6 +67,10 @@ export const Routes = createBrowserRouter([
                     path: PATHS.APP.STAFF_SCHEDULES,
                     element: <StaffSchedules />,
                   },
+                  {
+                    path: PATHS.APP.CHAT,
+                    element: <OperatorChat />,
+                  },
                 ],
               },
 

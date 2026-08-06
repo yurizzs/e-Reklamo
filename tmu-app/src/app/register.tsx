@@ -27,6 +27,7 @@ export default function RegisterScreen() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -84,6 +85,7 @@ export default function RegisterScreen() {
         username: username.trim(),
         email: email.trim() || undefined,
         phone: phone.trim() || undefined,
+        address: address.trim() || undefined,
         password: password,
         role: 'user',
       });
@@ -233,6 +235,19 @@ export default function RegisterScreen() {
                     keyboardType="phone-pad"
                     value={phone}
                     onChangeText={setPhone}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>ADDRESS</Text>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Brgy. San Jose, Pasig City"
+                    placeholderTextColor="rgba(255, 255, 255, 0.35)"
+                    value={address}
+                    onChangeText={setAddress}
                   />
                 </View>
               </View>

@@ -25,6 +25,8 @@ export interface ComplaintDetail {
   complainant: {
     first_name: string | null;
     last_name: string | null;
+    address?: string | null;
+    contact_number?: string | null;
     name: string;
   };
   user?: {
@@ -65,6 +67,9 @@ const statusStyle = (status: string) => {
   const normalized = (status || "").toLowerCase();
   if (normalized === "resolved") {
     return "border-emerald-500/20 bg-emerald-500/10 text-emerald-400";
+  }
+  if (normalized === "unresolved") {
+    return "border-rose-500/20 bg-rose-500/10 text-rose-400";
   }
   if (normalized === "new") {
     return "border-sky-500/20 bg-sky-500/10 text-sky-400";
@@ -186,6 +191,16 @@ const ComplaintDetailsModal = ({
                 <p className="text-sm font-semibold text-slate-200">
                   {complaint.complainant?.name || "N/A"}
                 </p>
+                {complaint.complainant?.contact_number && (
+                  <p className="text-xs text-slate-400">
+                    <span className="font-medium text-slate-500">Contact:</span> {complaint.complainant.contact_number}
+                  </p>
+                )}
+                {complaint.complainant?.address && (
+                  <p className="text-xs text-slate-400">
+                    <span className="font-medium text-slate-500">Address:</span> {complaint.complainant.address}
+                  </p>
+                )}
               </div>
 
               {/* Driver */}

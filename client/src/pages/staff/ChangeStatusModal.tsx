@@ -4,7 +4,7 @@ import { Select, TextArea } from "../../components/ui/forms";
 import ComplaintService from "../../services/ComplaintService";
 import { notify } from "../../util/notify";
 
-type ComplaintStatus = "new" | "pending" | "resolved";
+type ComplaintStatus = "new" | "pending" | "resolved" | "unresolved";
 
 type Props = {
   isOpen: boolean;
@@ -23,11 +23,14 @@ const STATUS_OPTIONS: { value: ComplaintStatus; label: string; color: string }[]
   { value: "new", label: "New", color: "text-sky-400" },
   { value: "pending", label: "Pending", color: "text-amber-400" },
   { value: "resolved", label: "Resolved", color: "text-emerald-400" },
+  { value: "unresolved", label: "Unresolved", color: "text-rose-400" },
 ];
 
 const statusStyle = (status: string) => {
-  if (status === "resolved") return "border-emerald-500/20 bg-emerald-500/10 text-emerald-400";
-  if (status === "new") return "border-sky-500/20 bg-sky-500/10 text-sky-400";
+  const normalized = (status || "").toLowerCase();
+  if (normalized === "resolved") return "border-emerald-500/20 bg-emerald-500/10 text-emerald-400";
+  if (normalized === "unresolved") return "border-rose-500/20 bg-rose-500/10 text-rose-400";
+  if (normalized === "new") return "border-sky-500/20 bg-sky-500/10 text-sky-400";
   return "border-amber-500/20 bg-amber-500/10 text-amber-400";
 };
 

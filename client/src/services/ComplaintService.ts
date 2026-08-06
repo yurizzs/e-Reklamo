@@ -32,6 +32,8 @@ const ComplaintService = {
   create: (data: {
     complainant_first_name: string;
     complainant_last_name: string;
+    complainant_address?: string;
+    complainant_contact?: string;
     driver_id: string;
     category_id: string;
     title: string;
@@ -44,6 +46,8 @@ const ComplaintService = {
     const formData = new FormData();
     formData.append("complainant_first_name", data.complainant_first_name);
     formData.append("complainant_last_name", data.complainant_last_name);
+    if (data.complainant_address) formData.append("complainant_address", data.complainant_address);
+    if (data.complainant_contact) formData.append("complainant_contact", data.complainant_contact);
     formData.append("driver_id", data.driver_id);
     formData.append("category_id", data.category_id);
     formData.append("title", data.title);

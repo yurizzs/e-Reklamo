@@ -270,7 +270,7 @@ const OperatorChat: React.FC = () => {
   });
 
   return (
-    <MainLayout>
+    <MainLayout content={
       <div className="flex flex-col h-[calc(100vh-6rem)] max-w-7xl mx-auto rounded-2xl border border-emerald-500/20 bg-[#040c07] overflow-hidden shadow-2xl">
         
         {/* ─── MESSENGER TWO-COLUMN LAYOUT ─── */}
@@ -586,7 +586,7 @@ const OperatorChat: React.FC = () => {
 
         </div>
       </div>
-    </MainLayout>
+    } />
   );
 };
 

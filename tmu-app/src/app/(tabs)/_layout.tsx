@@ -19,7 +19,7 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size }: { color: string; size?: number }) => (
             <SymbolView
               name={{ ios: 'house.fill', android: 'home', web: 'home' }}
               tintColor={color}
@@ -34,7 +34,7 @@ export default function TabsLayout() {
         options={{
           href: null,
           title: 'Chat',
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size }: { color: string; size?: number }) => (
             <SymbolView
               name={{ ios: 'message.fill', android: 'chat', web: 'chat' }}
               tintColor={color}
@@ -48,7 +48,7 @@ export default function TabsLayout() {
         name="track"
         options={{
           title: 'Track',
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size }: { color: string; size?: number }) => (
             <SymbolView
               name={{ ios: 'magnifyingglass.circle.fill', android: 'search', web: 'search' }}
               tintColor={color}
@@ -62,7 +62,7 @@ export default function TabsLayout() {
         name="history"
         options={{
           title: 'History',
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size }: { color: string; size?: number }) => (
             <SymbolView
               name={{ ios: 'clock.fill', android: 'history', web: 'history' }}
               tintColor={color}
@@ -76,7 +76,7 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size }: { color: string; size?: number }) => (
             <SymbolView
               name={{ ios: 'person.fill', android: 'person', web: 'person' }}
               tintColor={color}

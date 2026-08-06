@@ -51,6 +51,11 @@ export default function ProfileScreen() {
           </View>
 
           <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Address</Text>
+            <Text style={styles.infoValue}>{user.address || 'Not provided'}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Account ID</Text>
             <Text style={styles.infoValue}>#{user.id}</Text>
           </View>

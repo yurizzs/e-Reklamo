@@ -17,7 +17,7 @@ export default function HistoryScreen() {
       title: 'Jeepney reckless swerving report',
       category: 'Reckless Driving',
       location: 'Lerma St, Manila',
-      status: 'RESOLVED',
+      status: 'UNRESOLVED',
       date: '2025-12-25',
     },
   ];
@@ -26,32 +26,37 @@ export default function HistoryScreen() {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Report History</Text>
-        <Text style={styles.headerSub}>Past resolved and processed complaints</Text>
+        <Text style={styles.headerSub}>Past resolved and unresolved processed complaints</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {historyReports.map((report) => (
-          <View key={report.ticketNo} style={styles.ticketCard}>
-            <View style={styles.ticketHeader}>
-              <Text style={styles.ticketNo}>{report.ticketNo}</Text>
-              <View style={styles.statusBadge}>
-                <Text style={styles.statusText}>{report.status}</Text>
+        {historyReports.map((report) => {
+          const isUnresolved = report.status === 'UNRESOLVED';
+          return (
+            <View key={report.ticketNo} style={styles.ticketCard}>
+              <View style={styles.ticketHeader}>
+                <Text style={styles.ticketNo}>{report.ticketNo}</Text>
+                <View style={[styles.statusBadge, isUnresolved && styles.statusBadgeUnresolved]}>
+                  <Text style={[styles.statusText, isUnresolved && styles.statusTextUnresolved]}>
+                    {report.status}
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={styles.ticketTitle}>{report.title}</Text>
+
+              <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>Category:</Text>
+                <Text style={styles.metaValue}>{report.category}</Text>
+              </View>
+
+              <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>Closed On:</Text>
+                <Text style={styles.metaValue}>{report.date}</Text>
               </View>
             </View>
-
-            <Text style={styles.ticketTitle}>{report.title}</Text>
-
-            <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Category:</Text>
-              <Text style={styles.metaValue}>{report.category}</Text>
-            </View>
-
-            <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Resolved On:</Text>
-              <Text style={styles.metaValue}>{report.date}</Text>
-            </View>
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
     </SafeAreaView>
   );
@@ -109,11 +114,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
+  statusBadgeUnresolved: {
+    borderColor: '#f87171',
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+  },
   statusText: {
     fontSize: 9,
     fontWeight: '800',
     color: '#34d399',
     letterSpacing: 1,
+  },
+  statusTextUnresolved: {
+    color: '#f87171',
   },
   ticketTitle: {
     fontSize: 14,

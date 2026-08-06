@@ -37,7 +37,7 @@ export function AnimatedSplashOverlay() {
 
   return animate ? (
     <Animated.View
-      entering={splashKeyframe.duration(DURATION).withCallback((finished) => {
+      entering={splashKeyframe.duration(DURATION).withCallback((finished: boolean) => {
         'worklet';
         if (finished) {
           scheduleOnRN(setVisible, false);

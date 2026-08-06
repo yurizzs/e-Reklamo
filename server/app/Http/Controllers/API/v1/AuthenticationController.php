@@ -55,6 +55,7 @@ class AuthenticationController extends Controller
             'username' => ['required', 'string', 'max:255', 'unique:users,username'],
             'email' => ['nullable', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'max:20', 'unique:users,phone'],
+            'address' => ['nullable', 'string', 'max:500'],
             'password' => ['required', 'string', 'min:6'],
             'device_name' => ['sometimes', 'string', 'max:255'],
         ]);

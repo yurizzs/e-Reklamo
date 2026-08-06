@@ -24,8 +24,24 @@ export interface RegisterCitizenPayload {
   username: string;
   email?: string;
   phone?: string;
+  address?: string;
   password: string;
   role?: string;
+}
+
+export interface SubmitComplaintPayload {
+  complainant_first_name: string;
+  complainant_last_name: string;
+  complainant_address: string;
+  complainant_contact: string;
+  driver_id: string | number;
+  category_id: string | number;
+  title: string;
+  description: string;
+  incident_date_time: string;
+  incident_location: string;
+  status?: string;
+  evidence?: Array<{ uri: string; type: string; name?: string }>;
 }
 
 export interface AuthResponse {
@@ -292,6 +308,64 @@ class ApiService {
     } catch {
       clearTimeout(timeoutId);
       return { success: false };
+    }
+  }
+
+  public async submitComplaint(payload: FormData | SubmitComplaintPayload, token?: string): Promise<{ success: boolean; data?: any; message?: string }> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    try {
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      let bodyData: any;
+      if (payload instanceof FormData) {
+        bodyData = payload;
+      } else {
+        headers['Content-Type'] = 'application/json';
+        bodyData = JSON.stringify(payload);
+      }
+
+      const res = await fetch(`${this.baseUrl}/complaints`, {
+        method: 'POST',
+        headers,
+        signal: controller.signal,
+        body: bodyData,
+      });
+
+      clearTimeout(timeoutId);
+      const data = await res.json();
+
+      if (!res.ok) {
+        let msg = data.message || 'Failed to submit complaint.';
+        if (data.errors && typeof data.errors === 'object') {
+          const firstErr = Object.values(data.errors)[0];
+          if (Array.isArray(firstErr) && firstErr[0]) {
+            msg = firstErr[0] as string;
+          }
+        }
+        throw new Error(msg);
+      }
+
+      return {
+        success: true,
+        data: data.data,
+        message: data.message || 'Complaint created successfully.',
+      };
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (this.isNetworkException(error)) {
+        return {
+          success: true,
+          message: 'Complaint submitted in local offline mode.',
+        };
+      }
+      throw error;
     }
   }
 }

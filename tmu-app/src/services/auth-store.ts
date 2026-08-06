@@ -7,6 +7,7 @@ export interface UserSession {
   username: string;
   email?: string;
   phone?: string;
+  address?: string;
   role: string;
   avatar?: string;
 }
@@ -34,6 +35,7 @@ class AuthStore {
       username: 'juandelacruz',
       email: 'juan.delacruz@example.com',
       phone: '+63 912 345 6789',
+      address: 'Brgy. San Jose, Pasig City',
       role: 'citizen',
     };
   }

@@ -17,7 +17,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import * as ImagePicker from 'expo-image-picker';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker from '@react-native-community/datetimepicker';
+
+import { authStore } from '@/services/auth-store';
+import { apiService } from '@/services/api';
 
 interface CategoryOption {
   id: string;
@@ -26,13 +29,10 @@ interface CategoryOption {
 }
 
 const VIOLATION_CATEGORIES: CategoryOption[] = [
-  { id: '1', name: 'Overcharging Fare', code: 'OVERCHARGE' },
-  { id: '2', name: 'Route Deviation', code: 'DEVIATION' },
-  { id: '3', name: 'Reckless Driving', code: 'RECKLESS' },
-  { id: '4', name: 'Refusal of Passenger', code: 'REFUSAL' },
-  { id: '5', name: 'No Franchise / Colorum', code: 'COLORUM' },
-  { id: '6', name: 'Improper Loading / Unloading', code: 'LOADING' },
-  { id: '7', name: 'Others / Unspecified', code: 'OTHERS' },
+  { id: '1', name: 'Speeding', code: 'SPEEDING' },
+  { id: '2', name: 'Overcharging Fare', code: 'OVERCHARGE' },
+  { id: '3', name: 'Route Deviation', code: 'DEVIATION' },
+  { id: '4', name: 'Reckless Driving', code: 'RECKLESS' },
 ];
 
 interface EvidenceItem {
@@ -44,19 +44,23 @@ interface EvidenceItem {
 export default function ComplaintFormScreen() {
   const router = useRouter();
 
+  const currentUser = authStore.getUser();
+
   const [title, setTitle] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<CategoryOption>(VIOLATION_CATEGORIES[0]);
   const [isCategoryModalVisible, setIsCategoryModalVisible] = useState(false);
   const [isMediaSourceModalVisible, setIsMediaSourceModalVisible] = useState(false);
   const [plateNumber, setPlateNumber] = useState('');
-  
+  const [complainantAddress, setComplainantAddress] = useState(currentUser?.address || '');
+  const [contactNumber, setContactNumber] = useState(currentUser?.phone || '');
+
   // Date & Time Picker State
   const [incidentDate, setIncidentDate] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [datePickerMode, setDatePickerMode] = useState<'date' | 'time'>('date');
 
   const [incidentLocation, setIncidentLocation] = useState('');
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState('Color: Red');
   const [evidenceList, setEvidenceList] = useState<EvidenceItem[]>([]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -73,7 +77,7 @@ export default function ComplaintFormScreen() {
     });
   };
 
-  const handleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+  const handleDateChange = (event: any, selectedDate?: Date) => {
     if (event.type === 'dismissed') {
       setShowDatePicker(false);
       return;
@@ -186,6 +190,14 @@ export default function ComplaintFormScreen() {
       newErrors.title = 'Complaint title is required.';
     }
 
+    if (!complainantAddress.trim()) {
+      newErrors.complainantAddress = 'Complainant address is required.';
+    }
+
+    if (!contactNumber.trim()) {
+      newErrors.contactNumber = 'Contact number is required.';
+    }
+
     if (!incidentLocation.trim()) {
       newErrors.incidentLocation = 'Incident location is required.';
     }
@@ -203,7 +215,34 @@ export default function ComplaintFormScreen() {
 
     setIsSubmitting(true);
 
-    setTimeout(() => {
+    try {
+      const token = authStore.getToken() || undefined;
+      const formData = new FormData();
+
+      formData.append('complainant_first_name', currentUser?.first_name || 'Citizen');
+      formData.append('complainant_last_name', currentUser?.last_name || 'User');
+      formData.append('complainant_address', complainantAddress.trim());
+      formData.append('complainant_contact', contactNumber.trim());
+      formData.append('driver_id', '1'); // Default or selected driver ID
+      formData.append('category_id', selectedCategory.id);
+      formData.append('title', title.trim());
+      formData.append('description', description.trim());
+      formData.append('incident_date_time', incidentDate.toISOString().slice(0, 19).replace('T', ' '));
+      formData.append('incident_location', incidentLocation.trim());
+      formData.append('status', 'new');
+
+      evidenceList.forEach((item, index) => {
+        const fileExtension = item.uri.split('.').pop() || (item.type === 'video' ? 'mp4' : 'jpg');
+        const mimeType = item.type === 'video' ? `video/${fileExtension}` : `image/${fileExtension}`;
+        formData.append('evidence[]', {
+          uri: item.uri,
+          name: item.name || `evidence_${index}.${fileExtension}`,
+          type: mimeType,
+        } as any);
+      });
+
+      await apiService.submitComplaint(formData, token);
+
       setIsSubmitting(false);
       Alert.alert(
         'Complaint Submitted!',
@@ -215,7 +254,18 @@ export default function ComplaintFormScreen() {
           },
         ]
       );
-    }, 1000);
+    } catch (err: any) {
+      setIsSubmitting(false);
+      Alert.alert('Submission Error', err.message || 'Failed to submit complaint. Please check your inputs.');
+    }
+  };
+
+  const handleGoBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)');
+    }
   };
 
   return (
@@ -226,7 +276,7 @@ export default function ComplaintFormScreen() {
       >
         {/* Top Header */}
         <View style={styles.topBar}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
+          <Pressable onPress={handleGoBack} style={styles.backBtn}>
             <SymbolView
               name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }}
               tintColor="#10b981"
@@ -261,6 +311,43 @@ export default function ComplaintFormScreen() {
                 />
               </View>
               {!!errors.title && <Text style={styles.errorText}>{errors.title}</Text>}
+            </View>
+
+            {/* Complainant Address */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>COMPLAINANT ADDRESS *</Text>
+              <View style={[styles.inputContainer, errors.complainantAddress && styles.inputError]}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. Brgy. San Jose, Pasig City"
+                  placeholderTextColor="rgba(255, 255, 255, 0.35)"
+                  value={complainantAddress}
+                  onChangeText={(t) => {
+                    setComplainantAddress(t);
+                    if (errors.complainantAddress) setErrors((prev) => ({ ...prev, complainantAddress: '' }));
+                  }}
+                />
+              </View>
+              {!!errors.complainantAddress && <Text style={styles.errorText}>{errors.complainantAddress}</Text>}
+            </View>
+
+            {/* Contact Number */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>CONTACT NUMBER *</Text>
+              <View style={[styles.inputContainer, errors.contactNumber && styles.inputError]}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. 09123456789"
+                  placeholderTextColor="rgba(255, 255, 255, 0.35)"
+                  keyboardType="phone-pad"
+                  value={contactNumber}
+                  onChangeText={(t) => {
+                    setContactNumber(t);
+                    if (errors.contactNumber) setErrors((prev) => ({ ...prev, contactNumber: '' }));
+                  }}
+                />
+              </View>
+              {!!errors.contactNumber && <Text style={styles.errorText}>{errors.contactNumber}</Text>}
             </View>
 
             {/* Violation Category Dropdown Menu */}
@@ -359,14 +446,20 @@ export default function ComplaintFormScreen() {
 
             {/* Description */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>INCIDENT DESCRIPTION *</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={styles.label}>INCIDENT DESCRIPTION *</Text>
+                <Text style={{ fontSize: 9, color: 'rgba(16, 185, 129, 0.7)', fontWeight: '600' }}>
+                  Preset: "Color: Red"
+                </Text>
+              </View>
+
               <View style={[styles.textAreaContainer, errors.description && styles.inputError]}>
                 <TextInput
                   style={styles.textArea}
-                  placeholder="Describe what happened in detail..."
+                  placeholder="Color: Red&#10;"
                   placeholderTextColor="rgba(255, 255, 255, 0.35)"
                   multiline
-                  numberOfLines={4}
+                  numberOfLines={5}
                   textAlignVertical="top"
                   value={description}
                   onChangeText={(t) => {
