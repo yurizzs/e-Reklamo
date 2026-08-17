@@ -34,6 +34,8 @@ export interface ComplaintDetail {
     first_name: string | null;
     last_name: string | null;
     name: string;
+    phone?: string | null;
+    address?: string | null;
   };
   driver: {
     id: number | null;
@@ -65,14 +67,8 @@ type Props = {
 
 const statusStyle = (status: string) => {
   const normalized = (status || "").toLowerCase();
-  if (normalized === "resolved") {
+  if (normalized === "settled") {
     return "border-emerald-500/20 bg-emerald-500/10 text-emerald-400";
-  }
-  if (normalized === "unresolved") {
-    return "border-rose-500/20 bg-rose-500/10 text-rose-400";
-  }
-  if (normalized === "new") {
-    return "border-sky-500/20 bg-sky-500/10 text-sky-400";
   }
   return "border-amber-500/20 bg-amber-500/10 text-amber-400";
 };
@@ -189,16 +185,20 @@ const ComplaintDetailsModal = ({
                   Complainant
                 </p>
                 <p className="text-sm font-semibold text-slate-200">
-                  {complaint.complainant?.name || "N/A"}
+                  {complaint.complainant?.name || complaint.user?.name || "N/A"}
                 </p>
-                {complaint.complainant?.contact_number && (
+                {(complaint.user?.phone || complaint.complainant?.contact_number) && (
                   <p className="text-xs text-slate-400">
-                    <span className="font-medium text-slate-500">Contact:</span> {complaint.complainant.contact_number}
+                    <span className="font-medium text-slate-500">Phone / Contact:</span>{" "}
+                    <span className="font-mono text-emerald-400">
+                      {complaint.user?.phone || complaint.complainant?.contact_number}
+                    </span>
                   </p>
                 )}
-                {complaint.complainant?.address && (
+                {(complaint.user?.address || complaint.complainant?.address) && (
                   <p className="text-xs text-slate-400">
-                    <span className="font-medium text-slate-500">Address:</span> {complaint.complainant.address}
+                    <span className="font-medium text-slate-500">Address:</span>{" "}
+                    {complaint.user?.address || complaint.complainant?.address}
                   </p>
                 )}
               </div>

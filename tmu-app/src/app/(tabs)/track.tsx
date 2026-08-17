@@ -172,16 +172,16 @@ export default function TrackScreen() {
                         <View
                           style={[
                             styles.statusBadge,
-                            { borderColor: item.status === 'resolved' ? '#10b981' : '#f59e0b' },
+                            { borderColor: (item.status || '').toLowerCase() === 'settled' ? '#10b981' : '#f59e0b' },
                           ]}
                         >
                           <Text
                             style={[
                               styles.statusText,
-                              { color: item.status === 'resolved' ? '#10b981' : '#f59e0b' },
+                              { color: (item.status || '').toLowerCase() === 'settled' ? '#10b981' : '#f59e0b' },
                             ]}
                           >
-                            {(item.status || 'new').toUpperCase()}
+                            {(item.status || 'unsettled').toUpperCase()}
                           </Text>
                         </View>
                       </View>

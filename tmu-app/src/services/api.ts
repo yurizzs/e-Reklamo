@@ -34,7 +34,10 @@ export interface SubmitComplaintPayload {
   complainant_last_name: string;
   complainant_address: string;
   complainant_contact: string;
-  driver_id: string | number;
+  driver_id?: string | number;
+  driver_first_name?: string;
+  driver_last_name?: string;
+  plate_number?: string;
   category_id: string | number;
   title: string;
   description: string;

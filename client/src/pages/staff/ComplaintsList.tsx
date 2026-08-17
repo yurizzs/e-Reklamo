@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { MainLayout } from "../../components/layouts";
 import { Button, Icon, LoadingSpinner } from "../../components/ui";
 import { InputField, Select } from "../../components/ui/forms";
@@ -15,7 +15,7 @@ import ComplaintService from "../../services/ComplaintService";
 import ComplaintDetailsModal from "./ComplaintDetailsModal";
 import CreateComplaintModal from "./CreateComplaintModal";
 
-type ComplaintStatus = "all" | "new" | "pending" | "resolved" | "unresolved";
+type ComplaintStatus = "all" | "unsettled" | "settled";
 
 interface ComplaintRecord {
   id: number;
@@ -46,10 +46,9 @@ interface ComplaintRecord {
 }
 
 interface ComplaintStats {
-  new: number;
-  pending: number;
-  resolved: number;
-  unresolved: number;
+  all?: number;
+  unsettled: number;
+  settled: number;
 }
 
 interface PaginationMeta {
@@ -61,25 +60,15 @@ interface PaginationMeta {
 
 const statusOptions = [
   { value: "all", label: "All Statuses" },
-  { value: "new", label: "New" },
-  { value: "pending", label: "Pending" },
-  { value: "resolved", label: "Resolved" },
-  { value: "unresolved", label: "Unresolved" },
+  { value: "unsettled", label: "Unsettled" },
+  { value: "settled", label: "Settled" },
 ];
 
 const statusStyle = (status: string) => {
   const normalized = (status || "").toLowerCase();
 
-  if (normalized === "resolved") {
+  if (normalized === "settled") {
     return "border-emerald-500/20 bg-emerald-500/10 text-emerald-400";
-  }
-
-  if (normalized === "unresolved") {
-    return "border-rose-500/20 bg-rose-500/10 text-rose-400";
-  }
-
-  if (normalized === "new") {
-    return "border-sky-500/20 bg-sky-500/10 text-sky-400";
   }
 
   return "border-amber-500/20 bg-amber-500/10 text-amber-400";
@@ -103,102 +92,86 @@ const formatIncidentTime = (value: string) => {
 const ComplaintsList = () => {
   const [complaints, setComplaints] = useState<ComplaintRecord[]>([]);
   const [stats, setStats] = useState<ComplaintStats>({
-    new: 0,
-    pending: 0,
-    resolved: 0,
-    unresolved: 0,
+    all: 0,
+    unsettled: 0,
+    settled: 0,
   });
-  const [meta, setMeta] = useState<PaginationMeta>({
+
+  const [pagination, setPagination] = useState<PaginationMeta>({
     current_page: 1,
     last_page: 1,
     per_page: 10,
     total: 0,
   });
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<ComplaintStatus>("all");
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+
   const [isLoading, setIsLoading] = useState(true);
+
+  // Filters & Sorting
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<ComplaintStatus>("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Modals
+  const [selectedComplaintId, setSelectedComplaintId] = useState<number | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [selectedComplaintId, setSelectedComplaintId] = useState<number | null>(null);
 
-  const debouncedSearch = useDebounce(search, 400);
+  const debouncedSearch = useDebounce(search, 300);
 
-  useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch, status]);
+  const fetchComplaints = useCallback(async () => {
+    setIsLoading(true);
 
-  useEffect(() => {
-    const fetchComplaints = async () => {
-      setIsLoading(true);
+    try {
+      const response = (await ComplaintService.getAll({
+        search: debouncedSearch,
+        status: statusFilter,
+        page,
+        limit: pageSize,
+      })) as any;
 
-      try {
-        const response = (await ComplaintService.getAll({
-          search: debouncedSearch || undefined,
-          status,
-          page,
-          limit,
-          sort_by: "incident_date_time",
-          sort_order: "desc",
-        })) as any;
+      const payload = response?.data ?? response;
 
-        const payload = response?.data ?? response;
-        setComplaints(payload?.complaints ?? []);
-        setStats(payload?.stats ?? { new: 0, pending: 0, resolved: 0, unresolved: 0 });
-        setMeta(
-          payload?.meta ?? {
-            current_page: page,
-            last_page: 1,
-            per_page: limit,
-            total: 0,
-          },
-        );
-      } catch {
-        setComplaints([]);
-        setStats({ new: 0, pending: 0, resolved: 0, unresolved: 0 });
-        setMeta({
-          current_page: page,
-          last_page: 1,
-          per_page: limit,
-          total: 0,
-        });
-      } finally {
-        setIsLoading(false);
+      setComplaints(payload?.complaints ?? []);
+      setStats(payload?.stats ?? { all: 0, unsettled: 0, settled: 0 });
+
+      if (payload?.meta) {
+        setPagination(payload.meta);
       }
-    };
+    } catch {
+      setComplaints([]);
+      setStats({ all: 0, unsettled: 0, settled: 0 });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [debouncedSearch, statusFilter, page, pageSize, refreshKey]);
 
+  useEffect(() => {
     fetchComplaints();
-  }, [debouncedSearch, status, page, limit, refreshKey]);
+  }, [fetchComplaints]);
 
-  const cards = useMemo(
+  const statCards = useMemo(
     () => [
       {
-        label: "New",
-        value: stats.new,
-        icon: "FaInbox" as const,
+        label: "Total Complaints",
+        value: stats.all ?? pagination.total,
+        icon: "FaList" as const,
         tone: "border-sky-500/20 bg-sky-500/10 text-sky-400",
       },
       {
-        label: "Pending",
-        value: stats.pending,
+        label: "Unsettled",
+        value: stats.unsettled,
         icon: "FaClock" as const,
         tone: "border-amber-500/20 bg-amber-500/10 text-amber-400",
       },
       {
-        label: "Resolved",
-        value: stats.resolved,
+        label: "Settled",
+        value: stats.settled,
         icon: "FaCircleCheck" as const,
         tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-400",
       },
-      {
-        label: "Unresolved",
-        value: stats.unresolved ?? 0,
-        icon: "FaCircleXmark" as const,
-        tone: "border-rose-500/20 bg-rose-500/10 text-rose-400",
-      },
     ],
-    [stats],
+    [stats, pagination.total],
   );
 
   const content = (
@@ -222,8 +195,8 @@ const ComplaintsList = () => {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {cards.map((card) => (
+      <div className="grid gap-4 md:grid-cols-3">
+        {statCards.map((card) => (
           <div
             key={card.label}
             className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-md"
@@ -256,11 +229,14 @@ const ComplaintsList = () => {
           fullWidth
         />
         <Select
-          label="Filter"
+          label="Filter Status"
           iconName="FaFilter"
           options={statusOptions}
-          value={status}
-          onChange={(event) => setStatus(event.target.value as ComplaintStatus)}
+          value={statusFilter}
+          onChange={(event) => {
+            setStatusFilter(event.target.value as ComplaintStatus);
+            setPage(1);
+          }}
           fullWidth
         />
       </div>
@@ -337,15 +313,15 @@ const ComplaintsList = () => {
         </Table>
 
         <TablePagination
-          currentPage={meta.current_page}
-          totalPages={Math.max(meta.last_page, 1)}
+          currentPage={pagination.current_page}
+          totalPages={Math.max(pagination.last_page, 1)}
           onPageChange={(nextPage) => setPage(Math.max(nextPage, 1))}
           onPageSizeChange={(nextLimit) => {
-            setLimit(nextLimit);
+            setPageSize(nextLimit);
             setPage(1);
           }}
-          totalResults={meta.total}
-          pageSize={meta.per_page}
+          totalResults={pagination.total}
+          pageSize={pagination.per_page}
           resourceLabel="Complaints"
         />
       </div>

@@ -138,7 +138,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'The driver charged 50 PHP instead of 20 PHP standard fare.',
                 'incident_date_time' => '2026-07-10 14:30:00',
                 'incident_location' => 'Espana Blvd, Manila',
-                'status' => 'resolved',
+                'status' => 'settled',
             ]
         );
 
@@ -154,7 +154,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'The jeepney deviated to avoid traffic, leaving passengers far from target.',
                 'incident_date_time' => '2026-07-12 09:15:00',
                 'incident_location' => 'Quezon Ave, QC',
-                'status' => 'pending',
+                'status' => 'unsettled',
             ]
         );
 
@@ -171,8 +171,10 @@ class DatabaseSeeder extends Seeder
                 'description' => 'Overcharged during Christmas rush.',
                 'incident_date_time' => '2025-12-25 10:00:00',
                 'incident_location' => 'Intramuros, Manila',
-                'status' => 'resolved',
+                'status' => 'settled',
             ]
         );
+
+        $this->call(ComplaintSeeder::class);
     }
 }

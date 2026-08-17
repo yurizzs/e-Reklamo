@@ -5,6 +5,7 @@ use App\Http\Controllers\API\v1\ActivityLogController;
 use App\Http\Controllers\API\v1\ComplaintController;
 use App\Http\Controllers\API\v1\UserController;
 use App\Http\Controllers\API\v1\ViolationCategoryController;
+use App\Http\Controllers\API\v1\DriverController;
 use App\Http\Controllers\API\v1\OperatorScheduleController;
 use App\Http\Controllers\API\v1\ChatController;
 use Illuminate\Support\Facades\Route;
@@ -28,18 +29,24 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('complaints/options', [ComplaintController::class, 'options']);
     Route::get('complaints/check-violation', [ComplaintController::class, 'checkViolation']);
     Route::post('complaints', [ComplaintController::class, 'store']);
-    Route::get('complaints/{id}', [ComplaintController::class, 'show']);
 
     // Admin, Operator & Staff Access
     Route::middleware('role:admin,operator,staff')->group(function () {
         Route::get('complaints/analytics', [ComplaintController::class, 'analytics']);
         Route::get('complaints', [ComplaintController::class, 'index']);
-        Route::patch('complaints/{id}/status', [ComplaintController::class, 'updateStatus']);
+        Route::patch('complaints/{id}/status', [ComplaintController::class, 'updateStatus'])->where('id', '[0-9]+');
+
+        // Driver Violation Records Access
+        Route::get('drivers/records', [DriverController::class, 'records']);
+        Route::get('drivers/{id}/history', [DriverController::class, 'history'])->where('id', '[0-9]+');
 
         // Schedules View Access
         Route::get('operator-schedules/employees', [OperatorScheduleController::class, 'employees']);
         Route::get('operator-schedules', [OperatorScheduleController::class, 'index']);
     });
+
+    // Detail view accessible to authenticated users
+    Route::get('complaints/{id}', [ComplaintController::class, 'show'])->where('id', '[0-9]+');
 
     // Admin Only
     Route::middleware('role:admin')->group(function () {

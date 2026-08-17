@@ -73,8 +73,10 @@ class ComplaintController extends Controller
             ->join('violation_categories', 'complaints.category_id', '=', 'violation_categories.id')
             ->sum(\Illuminate\Support\Facades\DB::raw('CAST(violation_categories.penalty_amount AS DECIMAL(10,2))'));
 
-        // 3. Violation Chart and Table Data
-        $categories = ViolationCategory::all();
+        // 3. Violation Chart and Table Data (Includes soft-deleted categories to prevent missing category metrics)
+        $categories = ViolationCategory::withTrashed()
+            ->orderBy('category_name')
+            ->get();
         $chartData = [];
         $tableData = [];
 
@@ -87,16 +89,39 @@ class ComplaintController extends Controller
             $totalAmount = $fee * $count;
 
             $chartData[] = [
-                'category_name' => $cat->category_name,
+                'category_name' => $cat->category_name . ($cat->trashed() ? ' (Archived)' : ''),
                 'complaints_count' => $count,
             ];
 
             $tableData[] = [
                 'category_id' => $cat->id,
-                'category_name' => $cat->category_name,
+                'category_name' => $cat->category_name . ($cat->trashed() ? ' (Archived)' : ''),
                 'fee' => $fee,
                 'violators_count' => $count,
                 'total_amount' => $totalAmount,
+            ];
+        }
+
+        // Include uncategorized complaints if any exist for the selected filter
+        $uncategorizedCount = $query->clone()
+            ->where(function ($q) use ($categories) {
+                $q->whereNull('category_id')
+                    ->orWhereNotIn('category_id', $categories->pluck('id'));
+            })
+            ->count();
+
+        if ($uncategorizedCount > 0) {
+            $chartData[] = [
+                'category_name' => 'Uncategorized / Other',
+                'complaints_count' => $uncategorizedCount,
+            ];
+
+            $tableData[] = [
+                'category_id' => 0,
+                'category_name' => 'Uncategorized / Other',
+                'fee' => 0,
+                'violators_count' => $uncategorizedCount,
+                'total_amount' => 0,
             ];
         }
 
@@ -133,7 +158,7 @@ class ComplaintController extends Controller
     {
         $query = Complaint::query()
             ->with([
-                'user:id,first_name,last_name',
+                'user:id,first_name,last_name,phone,address',
                 'driver:id,first_name,last_name,plate_number',
                 'category:id,category_name',
                 'evidence',
@@ -183,10 +208,9 @@ class ComplaintController extends Controller
         $paginated = $query->orderBy($sortBy, $sortOrder)->paginate($perPage);
 
         $stats = [
-            'new' => Complaint::where('status', 'new')->count(),
-            'pending' => Complaint::where('status', 'pending')->count(),
-            'resolved' => Complaint::where('status', 'resolved')->count(),
-            'unresolved' => Complaint::where('status', 'unresolved')->count(),
+            'all' => Complaint::count(),
+            'unsettled' => Complaint::where('status', 'unsettled')->count(),
+            'settled' => Complaint::where('status', 'settled')->count(),
         ];
 
         return $this->success(
@@ -208,7 +232,7 @@ class ComplaintController extends Controller
     public function show($id)
     {
         $complaint = Complaint::with([
-            'user:id,first_name,last_name',
+            'user:id,first_name,last_name,phone,address',
             'driver:id,first_name,last_name,plate_number',
             'category:id,category_name',
             'evidence',
@@ -229,13 +253,17 @@ class ComplaintController extends Controller
             'complainant_last_name' => ['required', 'string', 'max:255'],
             'complainant_address' => ['required', 'string', 'max:500'],
             'complainant_contact' => ['required', 'string', 'max:50'],
-            'driver_id' => ['required', 'integer', 'exists:drivers,id'],
+            'driver_id' => ['nullable', 'integer', 'exists:drivers,id'],
+            'driver_first_name' => ['nullable', 'string', 'max:255'],
+            'driver_last_name' => ['nullable', 'string', 'max:255'],
+            'plate_number' => ['nullable', 'string', 'max:50'],
+            'vehicle_id' => ['nullable', 'integer', 'exists:vehicle_types,id'],
             'category_id' => ['required', 'integer', 'exists:violation_categories,id'],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string', 'max:1000'],
             'incident_date_time' => ['required', 'date'],
             'incident_location' => ['required', 'string', 'max:255'],
-            'status' => ['sometimes', 'string', Rule::in(['new', 'pending', 'resolved', 'unresolved'])],
+            'status' => ['sometimes', 'string', Rule::in(['unsettled', 'settled'])],
             'evidence' => ['nullable', 'array', 'max:3'],
             'evidence.*' => [
                 'nullable',
@@ -249,9 +277,61 @@ class ComplaintController extends Controller
             'evidence.*.max' => 'Each file must not exceed 50 MB.',
         ]);
 
-        $validated['status'] = $validated['status'] ?? 'new';
+        // Auto-match or create Driver record based on plate number / driver name
+        $driverId = $request->input('driver_id');
+        $plateNumber = strtoupper(trim((string) $request->input('plate_number', '')));
+        $driverFirstName = trim((string) $request->input('driver_first_name', ''));
+        $driverLastName = trim((string) $request->input('driver_last_name', ''));
 
-        $complaintData = collect($validated)->except('evidence')->toArray();
+        if (!$driverId && (!empty($plateNumber) || !empty($driverFirstName) || !empty($driverLastName))) {
+            $existingDriver = null;
+
+            if (!empty($plateNumber)) {
+                $existingDriver = Driver::where(DB::raw('UPPER(plate_number)'), $plateNumber)->first();
+            }
+
+            if (!$existingDriver && !empty($driverFirstName) && !empty($driverLastName)) {
+                $existingDriver = Driver::where(function ($q) use ($driverFirstName, $driverLastName) {
+                    $q->where(DB::raw('UPPER(first_name)'), strtoupper($driverFirstName))
+                      ->where(DB::raw('UPPER(last_name)'), strtoupper($driverLastName));
+                })->first();
+            }
+
+            if ($existingDriver) {
+                if (!empty($driverFirstName) && (empty($existingDriver->first_name) || $existingDriver->first_name === 'Driver')) {
+                    $existingDriver->first_name = $driverFirstName;
+                }
+                if (!empty($driverLastName) && (empty($existingDriver->last_name) || $existingDriver->last_name === $existingDriver->plate_number)) {
+                    $existingDriver->last_name = $driverLastName;
+                }
+                if (!empty($plateNumber) && (empty($existingDriver->plate_number) || $existingDriver->plate_number === 'N/A')) {
+                    $existingDriver->plate_number = $plateNumber;
+                }
+                $existingDriver->save();
+                $driverId = $existingDriver->id;
+            } else {
+                $vehicleId = $request->input('vehicle_id') ?? \App\Models\VehicleType::first()?->id ?? 1;
+                $newDriver = Driver::create([
+                    'first_name' => !empty($driverFirstName) ? $driverFirstName : 'Driver',
+                    'last_name' => !empty($driverLastName) ? $driverLastName : (!empty($plateNumber) ? $plateNumber : 'Unknown'),
+                    'plate_number' => !empty($plateNumber) ? $plateNumber : 'N/A',
+                    'vehicle_id' => $vehicleId,
+                ]);
+                $driverId = $newDriver->id;
+            }
+        }
+
+        if (!$driverId) {
+            $driverId = Driver::first()?->id;
+        }
+
+        $validated['status'] = $validated['status'] ?? 'unsettled';
+
+        $complaintData = collect($validated)
+            ->except(['evidence', 'driver_first_name', 'driver_last_name', 'plate_number', 'vehicle_id'])
+            ->toArray();
+
+        $complaintData['driver_id'] = $driverId;
 
         $authUser = $request->user();
         if ($authUser) {
@@ -361,12 +441,10 @@ class ComplaintController extends Controller
         $complaint = Complaint::findOrFail($id);
 
         $validated = $request->validate([
-            'status' => ['required', 'string', Rule::in(['new', 'pending', 'resolved', 'unresolved'])],
-            'description' => ['required', 'string', 'min:10', 'max:1000'],
+            'status' => ['required', 'string', Rule::in(['unsettled', 'settled'])],
+            'description' => ['nullable', 'string', 'max:1000'],
         ], [
             'status.required' => 'Please select a new status.',
-            'description.required' => 'A description is required before changing the status.',
-            'description.min' => 'Description must be at least 10 characters.',
             'description.max' => 'Description may not exceed 1000 characters.',
         ]);
 
@@ -380,7 +458,7 @@ class ComplaintController extends Controller
         $complaint->statusHistories()->create([
             'old_status' => $oldStatus,
             'new_status' => $validated['status'],
-            'remarks' => $validated['description'],
+            'remarks' => $validated['description'] ?? "Status updated from {$oldStatus} to {$validated['status']}",
             'changed_by' => (string) ($request->user()?->id ?? 'system'),
         ]);
 

@@ -46,6 +46,8 @@ class ComplaintResource extends JsonResource
                 'first_name' => $this->user?->first_name,
                 'last_name' => $this->user?->last_name,
                 'name' => $this->formatName($this->user),
+                'phone' => $this->user?->phone,
+                'address' => $this->user?->address,
             ],
             'driver' => [
                 'id' => $this->driver?->id,

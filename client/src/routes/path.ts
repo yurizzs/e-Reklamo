@@ -13,6 +13,7 @@ export const PATHS = {
     USER_DETAIL: `${APP_ROOT}/users/:slug`,
     LOGS: `${APP_ROOT}/logs`,
     COMPLAINTS: `${APP_ROOT}/complaints`,
+    DRIVER_RECORDS: `${APP_ROOT}/driver-records`,
     ANALYTICS: `${APP_ROOT}/analytics`,
     CHAT: `${APP_ROOT}/chat`,
     VIOLATION_CATEGORIES: `${APP_ROOT}/violation-categories`,

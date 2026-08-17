@@ -6,10 +6,10 @@ export default function HistoryScreen() {
   const historyReports = [
     {
       ticketNo: 'TMU-2026-0010',
-      title: 'Tricycle Fare Overcharge resolved',
+      title: 'Tricycle Fare Overcharge settled',
       category: 'Overcharging Fare',
       location: 'Intramuros, Manila',
-      status: 'RESOLVED',
+      status: 'SETTLED',
       date: '2026-06-15',
     },
     {
@@ -17,7 +17,7 @@ export default function HistoryScreen() {
       title: 'Jeepney reckless swerving report',
       category: 'Reckless Driving',
       location: 'Lerma St, Manila',
-      status: 'UNRESOLVED',
+      status: 'UNSETTLED',
       date: '2025-12-25',
     },
   ];
@@ -26,18 +26,18 @@ export default function HistoryScreen() {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Report History</Text>
-        <Text style={styles.headerSub}>Past resolved and unresolved processed complaints</Text>
+        <Text style={styles.headerSub}>Past settled and unsettled processed complaints</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {historyReports.map((report) => {
-          const isUnresolved = report.status === 'UNRESOLVED';
+          const isUnsettled = report.status === 'UNSETTLED';
           return (
             <View key={report.ticketNo} style={styles.ticketCard}>
               <View style={styles.ticketHeader}>
                 <Text style={styles.ticketNo}>{report.ticketNo}</Text>
-                <View style={[styles.statusBadge, isUnresolved && styles.statusBadgeUnresolved]}>
-                  <Text style={[styles.statusText, isUnresolved && styles.statusTextUnresolved]}>
+                <View style={[styles.statusBadge, isUnsettled && styles.statusBadgeUnresolved]}>
+                  <Text style={[styles.statusText, isUnsettled && styles.statusTextUnresolved]}>
                     {report.status}
                   </Text>
                 </View>

@@ -23,6 +23,9 @@ interface ComplaintFormData {
   complainant_address: string;
   complainant_contact: string;
   driver_id: string;
+  driver_first_name: string;
+  driver_last_name: string;
+  plate_number: string;
   category_id: string;
   title: string;
   description: string;
@@ -41,12 +44,15 @@ const initialForm: ComplaintFormData = {
   complainant_address: "",
   complainant_contact: "",
   driver_id: "",
+  driver_first_name: "",
+  driver_last_name: "",
+  plate_number: "",
   category_id: "",
   title: "",
   description: "",
   incident_date_time: "",
   incident_location: "",
-  status: "new",
+  status: "unsettled",
 };
 
 const CreateComplaintModal = ({ isOpen, onClose, onSuccess }: Props) => {
@@ -295,29 +301,94 @@ const CreateComplaintModal = ({ isOpen, onClose, onSuccess }: Props) => {
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Select
-            label="Driver"
-            iconName="FaIdCard"
-            value={form.driver_id}
-            onChange={(event) => handleChange("driver_id", event.target.value)}
-            options={[
-              {
-                value: "",
-                label: isOptionsLoading
-                  ? "Loading drivers..."
-                  : "Select driver",
-              },
-              ...drivers.map((driver) => ({
-                value: driver.id.toString(),
-                label: `${driver.name || `Driver #${driver.id}`}${driver.plate_number ? ` - ${driver.plate_number}` : ""}`,
-              })),
-            ]}
-            error={errors.driver_id}
-            disabled={isOptionsLoading}
-            fullWidth
-            required
-          />
+        {/* Driver Details (Fillable fields + Quick Select Option) */}
+        <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-400">
+              Driver Identification & Details
+            </p>
+            {drivers.length > 0 && (
+              <span className="text-[10px] text-slate-400 font-mono">
+                Type new driver details or select existing
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <InputField
+              label="Driver First Name"
+              iconName="FaUser"
+              placeholder="e.g. Juan"
+              value={form.driver_first_name}
+              onChange={(e) => {
+                handleChange("driver_first_name", e.target.value);
+                setForm((prev) => ({ ...prev, driver_id: "" }));
+              }}
+              error={errors.driver_first_name}
+              fullWidth
+            />
+
+            <InputField
+              label="Driver Last Name"
+              iconName="FaUser"
+              placeholder="e.g. Dela Cruz"
+              value={form.driver_last_name}
+              onChange={(e) => {
+                handleChange("driver_last_name", e.target.value);
+                setForm((prev) => ({ ...prev, driver_id: "" }));
+              }}
+              error={errors.driver_last_name}
+              fullWidth
+            />
+
+            <InputField
+              label="Plate Number / Body No."
+              iconName="FaIdCard"
+              placeholder="e.g. ABC-123 or Trike 045"
+              value={form.plate_number}
+              onChange={(e) => {
+                handleChange("plate_number", e.target.value);
+                setForm((prev) => ({ ...prev, driver_id: "" }));
+              }}
+              error={errors.plate_number}
+              fullWidth
+              required
+            />
+          </div>
+
+          {drivers.length > 0 && (
+            <Select
+              label="Or autofill from existing driver records"
+              iconName="FaListUl"
+              value={form.driver_id}
+              onChange={(event) => {
+                const selectedId = event.target.value;
+                const matched = drivers.find((d) => d.id.toString() === selectedId);
+                if (matched) {
+                  const names = (matched.name || "").split(",");
+                  const lastName = names[0]?.trim() || "";
+                  const firstName = names[1]?.trim() || "";
+                  setForm((prev) => ({
+                    ...prev,
+                    driver_id: selectedId,
+                    driver_first_name: firstName,
+                    driver_last_name: lastName,
+                    plate_number: matched.plate_number || "",
+                  }));
+                } else {
+                  setForm((prev) => ({ ...prev, driver_id: "" }));
+                }
+              }}
+              options={[
+                { value: "", label: "Select to autofill driver details..." },
+                ...drivers.map((d) => ({
+                  value: d.id.toString(),
+                  label: `${d.name || `Driver #${d.id}`}${d.plate_number ? ` (Plate: ${d.plate_number})` : ""}`,
+                })),
+              ]}
+              fullWidth
+            />
+          )}
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -352,10 +423,8 @@ const CreateComplaintModal = ({ isOpen, onClose, onSuccess }: Props) => {
             value={form.status}
             onChange={(event) => handleChange("status", event.target.value)}
             options={[
-              { value: "new", label: "New" },
-              { value: "pending", label: "Pending" },
-              { value: "resolved", label: "Resolved" },
-              { value: "unresolved", label: "Unresolved" },
+              { value: "unsettled", label: "Unsettled" },
+              { value: "settled", label: "Settled" },
             ]}
             error={errors.status}
             fullWidth

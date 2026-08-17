@@ -44,6 +44,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
           roles: ["staff", "operator"],
         },
         {
+          name: "Driver Records",
+          icon: "FaIdCard",
+          path: PATHS.APP.DRIVER_RECORDS,
+          roles: ["staff", "operator", "admin"],
+        },
+        {
           name: "Analytics Report",
           icon: "FaChartSimple",
           path: PATHS.APP.ANALYTICS,

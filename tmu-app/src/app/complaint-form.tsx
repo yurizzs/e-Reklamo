@@ -50,6 +50,8 @@ export default function ComplaintFormScreen() {
   const [selectedCategory, setSelectedCategory] = useState<CategoryOption>(VIOLATION_CATEGORIES[0]);
   const [isCategoryModalVisible, setIsCategoryModalVisible] = useState(false);
   const [isMediaSourceModalVisible, setIsMediaSourceModalVisible] = useState(false);
+  const [driverFirstName, setDriverFirstName] = useState('');
+  const [driverLastName, setDriverLastName] = useState('');
   const [plateNumber, setPlateNumber] = useState('');
   const [complainantAddress, setComplainantAddress] = useState(currentUser?.address || '');
   const [contactNumber, setContactNumber] = useState(currentUser?.phone || '');
@@ -223,7 +225,9 @@ export default function ComplaintFormScreen() {
       formData.append('complainant_last_name', currentUser?.last_name || 'User');
       formData.append('complainant_address', complainantAddress.trim());
       formData.append('complainant_contact', contactNumber.trim());
-      formData.append('driver_id', '1'); // Default or selected driver ID
+      if (driverFirstName.trim()) formData.append('driver_first_name', driverFirstName.trim());
+      if (driverLastName.trim()) formData.append('driver_last_name', driverLastName.trim());
+      if (plateNumber.trim()) formData.append('plate_number', plateNumber.trim());
       formData.append('category_id', selectedCategory.id);
       formData.append('title', title.trim());
       formData.append('description', description.trim());
@@ -366,9 +370,37 @@ export default function ComplaintFormScreen() {
               </Pressable>
             </View>
 
+            {/* Driver First Name */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>DRIVER FIRST NAME</Text>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. Juan (optional)"
+                  placeholderTextColor="rgba(255, 255, 255, 0.35)"
+                  value={driverFirstName}
+                  onChangeText={setDriverFirstName}
+                />
+              </View>
+            </View>
+
+            {/* Driver Last Name */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>DRIVER LAST NAME</Text>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. Dela Cruz (optional)"
+                  placeholderTextColor="rgba(255, 255, 255, 0.35)"
+                  value={driverLastName}
+                  onChangeText={setDriverLastName}
+                />
+              </View>
+            </View>
+
             {/* Plate / Vehicle Number */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>DRIVER PLATE / BODY NUMBER</Text>
+              <Text style={styles.label}>DRIVER PLATE / BODY NUMBER *</Text>
               <View style={styles.inputContainer}>
                 <TextInput
                   style={styles.input}

@@ -34,7 +34,10 @@ const ComplaintService = {
     complainant_last_name: string;
     complainant_address?: string;
     complainant_contact?: string;
-    driver_id: string;
+    driver_id?: string;
+    driver_first_name?: string;
+    driver_last_name?: string;
+    plate_number?: string;
     category_id: string;
     title: string;
     description: string;
@@ -48,7 +51,10 @@ const ComplaintService = {
     formData.append("complainant_last_name", data.complainant_last_name);
     if (data.complainant_address) formData.append("complainant_address", data.complainant_address);
     if (data.complainant_contact) formData.append("complainant_contact", data.complainant_contact);
-    formData.append("driver_id", data.driver_id);
+    if (data.driver_id) formData.append("driver_id", data.driver_id);
+    if (data.driver_first_name) formData.append("driver_first_name", data.driver_first_name);
+    if (data.driver_last_name) formData.append("driver_last_name", data.driver_last_name);
+    if (data.plate_number) formData.append("plate_number", data.plate_number);
     formData.append("category_id", data.category_id);
     formData.append("title", data.title);
     formData.append("description", data.description);

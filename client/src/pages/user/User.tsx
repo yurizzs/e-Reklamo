@@ -312,6 +312,10 @@ const Users = () => {
 
               <TableCell isHeader align="left" className="text-emerald-500/50 font-mono text-[10px] uppercase tracking-widest py-5">Username</TableCell>
 
+              <TableCell isHeader align="left" className="text-emerald-500/50 font-mono text-[10px] uppercase tracking-widest py-5">Phone</TableCell>
+
+              <TableCell isHeader align="left" className="text-emerald-500/50 font-mono text-[10px] uppercase tracking-widest py-5">Address</TableCell>
+
               <TableCell
                 isHeader
                 sortKey="role"
@@ -328,7 +332,7 @@ const Users = () => {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-24">
+                <TableCell colSpan={10} className="text-center py-24">
                   <div className="flex items-center justify-center w-full">
                     <LoadingSpinner size="lg" text={isSearching ? "Scanning Users..." : "Syncing User Data..."} />
                   </div>
@@ -336,7 +340,7 @@ const Users = () => {
               </TableRow>
             ) : users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="py-24">
+                <TableCell colSpan={10} className="py-24">
                   <div className="flex flex-col items-center justify-center text-center space-y-6">
                     <div className="w-20 h-20 flex items-center justify-center rounded-3xl bg-emerald-500/5 border border-emerald-500/10">
                       <Icon iconName="FaUsersSlash" className="text-4xl text-emerald-500/20" />
@@ -396,6 +400,8 @@ const Users = () => {
                         @{user.username}
                       </span>
                     </TableCell>
+                    <TableCell className="text-slate-400 font-mono text-xs">{user.phone || '-'}</TableCell>
+                    <TableCell className="text-slate-300 text-xs max-w-xs truncate">{user.address || '-'}</TableCell>
                     <TableCell>
                       <span className={`
                         px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border

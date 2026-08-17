@@ -13,6 +13,7 @@ const ActivityLogs = React.lazy(() => import("../pages/logs/ActivityLogs"));
 const ViolationCategories = React.lazy(() => import("../pages/violation-categories/ViolationCategories"));
 const StaffSchedules = React.lazy(() => import("../pages/schedules/StaffSchedulePage"));
 const ComplaintsList = React.lazy(() => import("../pages/staff/ComplaintsList"));
+const DriverRecords = React.lazy(() => import("../pages/drivers/DriverRecords"));
 const AnalyticsReport = React.lazy(() => import("../pages/staff/AnalyticsReport"));
 const OperatorChat = React.lazy(() => import("../pages/staff/OperatorChat"));
 
@@ -58,6 +59,10 @@ export const Routes = createBrowserRouter([
                   {
                     path: PATHS.APP.COMPLAINTS,
                     element: <ComplaintsList />,
+                  },
+                  {
+                    path: PATHS.APP.DRIVER_RECORDS,
+                    element: <DriverRecords />,
                   },
                   {
                     path: PATHS.APP.ANALYTICS,

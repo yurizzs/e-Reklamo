@@ -4,7 +4,7 @@ import { Select, TextArea } from "../../components/ui/forms";
 import ComplaintService from "../../services/ComplaintService";
 import { notify } from "../../util/notify";
 
-type ComplaintStatus = "new" | "pending" | "resolved" | "unresolved";
+type ComplaintStatus = "unsettled" | "settled";
 
 type Props = {
   isOpen: boolean;
@@ -20,17 +20,13 @@ interface FormErrors {
 }
 
 const STATUS_OPTIONS: { value: ComplaintStatus; label: string; color: string }[] = [
-  { value: "new", label: "New", color: "text-sky-400" },
-  { value: "pending", label: "Pending", color: "text-amber-400" },
-  { value: "resolved", label: "Resolved", color: "text-emerald-400" },
-  { value: "unresolved", label: "Unresolved", color: "text-rose-400" },
+  { value: "unsettled", label: "Unsettled", color: "text-amber-400" },
+  { value: "settled", label: "Settled", color: "text-emerald-400" },
 ];
 
 const statusStyle = (status: string) => {
   const normalized = (status || "").toLowerCase();
-  if (normalized === "resolved") return "border-emerald-500/20 bg-emerald-500/10 text-emerald-400";
-  if (normalized === "unresolved") return "border-rose-500/20 bg-rose-500/10 text-rose-400";
-  if (normalized === "new") return "border-sky-500/20 bg-sky-500/10 text-sky-400";
+  if (normalized === "settled") return "border-emerald-500/20 bg-emerald-500/10 text-emerald-400";
   return "border-amber-500/20 bg-amber-500/10 text-amber-400";
 };
 
@@ -50,7 +46,7 @@ const ChangeStatusModal = ({
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
-      setStatus(currentStatus || "new");
+      setStatus(currentStatus || "unsettled");
       setDescription("");
       setErrors({});
     }
@@ -70,11 +66,6 @@ const ChangeStatusModal = ({
     // Client-side validation
     const clientErrors: FormErrors = {};
     if (!status) clientErrors.status = "Please select a status.";
-    if (!description.trim()) {
-      clientErrors.description = "A description is required before changing the status.";
-    } else if (description.trim().length < 10) {
-      clientErrors.description = "Description must be at least 10 characters.";
-    }
 
     if (Object.keys(clientErrors).length > 0) {
       setErrors(clientErrors);
@@ -204,8 +195,8 @@ const ChangeStatusModal = ({
 
         {/* Description */}
         <TextArea
-          label="Reason / Description"
-          placeholder="Describe the reason for this status change (min. 10 characters)…"
+          label="Reason / Description (Optional)"
+          placeholder="Optional: Describe the reason for this status change…"
           value={description}
           onChange={(e) => {
             setDescription(e.target.value);
@@ -216,7 +207,6 @@ const ChangeStatusModal = ({
           maxLength={1000}
           showCounter
           fullWidth
-          required
         />
       </div>
     </Modal>

@@ -13,6 +13,7 @@ export interface User {
   email: string;
   username: string;
   phone: string;
+  address?: string | null;
   role: Role;
   theme: Theme;
   created_at: string;

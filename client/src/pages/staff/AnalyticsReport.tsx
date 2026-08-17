@@ -70,8 +70,15 @@ const AnalyticsReport = () => {
           month: selectedMonth,
         })) as any;
 
-        const payload = response?.data ?? response;
-        setData(payload);
+        const extracted = response?.violation_chart_data
+          ? response
+          : response?.data?.violation_chart_data
+          ? response.data
+          : response?.data?.data?.violation_chart_data
+          ? response.data.data
+          : response?.data ?? response;
+
+        setData(extracted);
       } catch (error) {
         console.error("Failed to load analytics data", error);
       } finally {
