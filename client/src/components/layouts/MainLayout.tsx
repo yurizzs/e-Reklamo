@@ -9,7 +9,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ content }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-      <div className="min-h-screen bg-bg-dark">
+      <div className="min-h-screen bg-bg-dark transition-colors duration-300">
         <Navbar onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
         <Sidebar isOpen={isSidebarOpen} />
         <div className="sm:ml-52 pt-16 flex flex-col min-h-screen">

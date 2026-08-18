@@ -8,7 +8,6 @@ import RootLayout from "./RootLayout";
 const Login = React.lazy(() => import("../pages/auth/Login"));
 const RoleDashboard = React.lazy(() => import("../pages/RoleDashboard"));
 const Users = React.lazy(() => import("../pages/user/User"));
-const ViewUserDetail = React.lazy(() => import("../pages/user/components/ViewUserModal"));
 const ActivityLogs = React.lazy(() => import("../pages/logs/ActivityLogs"));
 const ViolationCategories = React.lazy(() => import("../pages/violation-categories/ViolationCategories"));
 const StaffSchedules = React.lazy(() => import("../pages/schedules/StaffSchedulePage"));
@@ -86,10 +85,6 @@ export const Routes = createBrowserRouter([
                   {
                     path: PATHS.APP.USERS,
                     element: <Users />,
-                  },
-                  {
-                    path: PATHS.APP.USER_DETAIL,
-                    element: <ViewUserDetail />,
                   },
                   {
                     path: PATHS.APP.LOGS,

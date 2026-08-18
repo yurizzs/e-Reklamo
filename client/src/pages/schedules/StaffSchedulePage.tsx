@@ -72,7 +72,7 @@ const StaffSchedulePage = () => {
 
         const current = scheduleMap.get(key) ?? {};
         current[day] = (record.shift_type === "Off" || record.shift_start === "00:00")
-          ? "Off" 
+          ? "Off"
           : `${record.shift_start} - ${record.shift_end}`;
         scheduleMap.set(key, current);
       });
@@ -187,17 +187,17 @@ const StaffSchedulePage = () => {
   };
 
   const content = (
-    <div className="space-y-8 pb-8">
-      <div className="rounded-[28px] border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-transparent to-slate-950/40 p-6 shadow-2xl shadow-emerald-500/10">
+    <div className="space-y-8 pb-8 text-slate-800 dark:text-slate-200 transition-colors duration-300">
+      <div className="bg-white dark:bg-bg-light border border-slate-200 dark:border-white/5 p-6 rounded-2xl shadow-sm transition-colors duration-300">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-2">
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-500/70">
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400">
               {isAdmin ? "Admin Operations" : "Staff Roster"}
             </p>
-            <h1 className="text-3xl font-black uppercase tracking-tighter text-white">
+            <h1 className="text-3xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">
               {isAdmin ? "Staff Work Schedule" : "Final Staff Schedule"}
             </h1>
-            <p className="max-w-2xl text-sm leading-6 text-slate-400">
+            <p className="max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
               {isAdmin
                 ? "Manage recurring staff shifts in a weekly roster view so allocation stays clear and easy to update."
                 : "View your official published weekly work roster and assigned duty shifts."}
@@ -207,7 +207,7 @@ const StaffSchedulePage = () => {
             <Button
               variant="primary"
               iconName="FaPlus"
-              className="w-fit"
+              className="w-fit bg-blue-950 hover:bg-blue-900 text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950 border border-slate-950 dark:border-transparent shadow-sm font-extrabold"
               onClick={handleAddScheduleClick}
             >
               Add Schedule
@@ -217,54 +217,54 @@ const StaffSchedulePage = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-md">
-          <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Assigned Staff</div>
-          <div className="mt-4 text-3xl font-black text-white">{summary.totalStaff}</div>
+        <div className="bg-white dark:bg-bg-light border border-slate-200 dark:border-white/5 p-5 rounded-2xl shadow-sm transition-colors duration-300">
+          <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Assigned Staff</div>
+          <div className="mt-4 text-3xl font-black text-slate-900 dark:text-white">{summary.totalStaff}</div>
         </div>
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-md">
-          <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Active Shifts</div>
-          <div className="mt-4 text-3xl font-black text-white">{summary.activeShifts}</div>
+        <div className="bg-white dark:bg-bg-light border border-slate-200 dark:border-white/5 p-5 rounded-2xl shadow-sm transition-colors duration-300">
+          <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Active Shifts</div>
+          <div className="mt-4 text-3xl font-black text-slate-900 dark:text-white">{summary.activeShifts}</div>
         </div>
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-md">
-          <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Pending Updates</div>
-          <div className="mt-4 text-3xl font-black text-white">{summary.pendingUpdates}</div>
+        <div className="bg-white dark:bg-bg-light border border-slate-200 dark:border-white/5 p-5 rounded-2xl shadow-sm transition-colors duration-300">
+          <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Pending Updates</div>
+          <div className="mt-4 text-3xl font-black text-slate-900 dark:text-white">{summary.pendingUpdates}</div>
         </div>
       </div>
 
-      <div className="rounded-[28px] border border-white/10 bg-white/5 p-4 backdrop-blur-md">
+      <div className="bg-white dark:bg-bg-light border border-slate-200 dark:border-white/5 p-5 rounded-2xl shadow-sm transition-colors duration-300">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Icon iconName="FaCalendarDays" className="text-emerald-400" />
-            <h2 className="text-lg font-bold uppercase tracking-tight text-white/90">
+            <Icon iconName="FaCalendarDays" className="text-slate-900 dark:text-white" />
+            <h2 className="text-lg font-bold uppercase tracking-tight text-slate-800 dark:text-white/90">
               {isAdmin ? "Weekly roster" : "Official Weekly Schedule"}
             </h2>
           </div>
-          <div className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400">
+          <div className="rounded-full border border-slate-250 dark:border-white/10 bg-slate-100 dark:bg-white/10 px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.3em] text-slate-850 dark:text-white">
             {isAdmin ? "Weekly View" : "Final Roster"}
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <Table className="min-w-[900px] border-collapse">
-            <TableHeader className="bg-black/40 border-b border-white/5">
+          <Table className="min-w-[900px] border-collapse bg-white dark:bg-bg-light border-0 shadow-none transition-colors duration-300">
+            <TableHeader className="bg-slate-50 dark:bg-black/25 border-b border-slate-100 dark:border-white/5 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px]">
               <tr>
-                <TableCell isHeader className="text-emerald-500/50 font-mono text-[10px] uppercase tracking-widest py-4">Staff</TableCell>
+                <TableCell isHeader className="text-slate-500 dark:text-slate-400 py-4 w-40">Staff</TableCell>
                 {dayLabels.map((day) => (
-                  <TableCell key={day} isHeader className="text-emerald-500/50 font-mono text-[10px] uppercase tracking-widest py-4">{day}</TableCell>
+                  <TableCell key={day} isHeader className="text-slate-500 dark:text-slate-400 py-4">{day}</TableCell>
                 ))}
                 {isAdmin && (
-                  <TableCell isHeader className="text-emerald-500/50 font-mono text-[10px] uppercase tracking-widest py-4">Action</TableCell>
+                  <TableCell isHeader className="text-slate-500 dark:text-slate-400 py-4 w-32">Action</TableCell>
                 )}
               </tr>
             </TableHeader>
 
             <TableBody>
               {schedules.map((member) => (
-                <TableRow key={member.staff} className="border-b border-white/5 last:border-0 hover:bg-emerald-500/5">
+                <TableRow key={member.staff} className="border-b border-slate-100 dark:border-white/5 last:border-0 hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
                   <TableCell>
                     <div>
-                      <div className="font-semibold text-white">{member.staff}</div>
-                      <div className="text-xs text-slate-400">{member.role}</div>
+                      <div className="font-semibold text-slate-800 dark:text-white">{member.staff}</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">{member.role}</div>
                     </div>
                   </TableCell>
                   {dayLabels.map((day) => {
@@ -272,7 +272,7 @@ const StaffSchedulePage = () => {
                     const isOff = shiftValue === "Off";
                     return (
                       <TableCell key={day}>
-                        <div className={`rounded-full px-3 py-1 text-center text-[11px] font-semibold ${isOff ? "bg-slate-800/70 text-slate-400" : "bg-emerald-500/15 text-emerald-300"}`}>
+                        <div className={`rounded-full px-3 py-1 text-center text-[11px] font-extrabold border ${isOff ? "bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-800/70 dark:border-transparent dark:text-slate-400" : "bg-slate-900 border-transparent text-white dark:bg-white dark:text-slate-950"}`}>
                           {shiftValue}
                         </div>
                       </TableCell>
@@ -285,6 +285,7 @@ const StaffSchedulePage = () => {
                           variant="ghost"
                           size="sm"
                           iconName="FaPenToSquare"
+                          className="text-slate-500 hover:text-emerald-600 border-transparent hover:bg-emerald-500/10"
                           onClick={() => openEditModal(member)}
                         >
                           Edit
@@ -293,6 +294,7 @@ const StaffSchedulePage = () => {
                           variant="primary"
                           size="sm"
                           iconName="FaCalendarPlus"
+                          className="bg-blue-800 hover:bg-blue-700 text-white shadow-sm font-bold"
                           onClick={() => openEditModal(member)}
                         >
                           Assign

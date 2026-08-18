@@ -236,7 +236,7 @@ const ViolationCategories = () => {
   };
 
   const content = (
-    <div className="relative space-y-8 pb-12">
+    <div className="relative space-y-8 pb-12 text-slate-800 dark:text-slate-200 transition-colors duration-300">
       {/* Background Decorative Glows */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-[120px]" />
@@ -246,19 +246,19 @@ const ViolationCategories = () => {
       {/* Header Section */}
       <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
-          <h1 className="text-3xl font-black uppercase tracking-tighter text-white">
+          <h1 className="text-3xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">
             Violation Categories
           </h1>
-          <p className="text-sm text-emerald-500/60 font-mono uppercase tracking-[0.2em]">
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-mono uppercase tracking-[0.2em]">
             Classification Management
           </p>
         </div>
-        
-        <Button 
-          variant='primary' 
-          iconName='FaPlus' 
+
+        <Button
+          variant='primary'
+          iconName='FaPlus'
           size="lg"
-          className="bg-emerald-600 hover:bg-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+          className="bg-blue-950 hover:bg-blue-900 text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950 border border-slate-950 dark:border-transparent shadow-sm font-extrabold"
           onClick={() => setIsCreateModalOpen(true)}
         >
           Add Category
@@ -266,7 +266,7 @@ const ViolationCategories = () => {
       </div>
 
       {/* Search and Filter Bar */}
-      <div className="relative z-10 bg-white/2 border border-white/5 rounded-3xl p-6 backdrop-blur-md shadow-2xl space-y-6">
+      <div className="relative z-10 bg-white dark:bg-bg-light border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm space-y-6 transition-colors duration-300">
         <div className="flex flex-col lg:flex-row gap-6 items-end">
           <div className="flex-1 w-full">
             <InputField
@@ -275,7 +275,7 @@ const ViolationCategories = () => {
               placeholder='Search by category name or description...'
               fullWidth
               iconName='FaMagnifyingGlass'
-              className="bg-black/20 border-white/5 focus:border-emerald-500/50"
+              className="bg-slate-50 dark:bg-black/20 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white focus:border-slate-400 dark:focus:border-white/20"
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -284,7 +284,7 @@ const ViolationCategories = () => {
             />
           </div>
 
-          <div className="bg-black/40 rounded-2xl p-1 flex items-center gap-1 border border-white/5 self-start lg:self-end">
+          <div className="bg-slate-100 dark:bg-black/40 rounded-xl p-1 flex items-center gap-1 border border-slate-200/50 dark:border-white/5 self-start lg:self-end">
             {(Object.keys(filters) as RecycleFilter[]).map((f) => {
               const { icon, label } = filters[f];
               const isActive = filter === f;
@@ -297,10 +297,10 @@ const ViolationCategories = () => {
                     setPage(1);
                   }}
                   className={`
-                    px-4 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all duration-300 flex items-center gap-2
-                    ${isActive 
-                      ? 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]' 
-                      : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}
+                    px-4 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all duration-200 flex items-center gap-2
+                    ${isActive
+                      ? 'bg-blue-800 text-white dark:bg-white dark:text-slate-950 shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-white/5'}
                   `}
                 >
                   <Icon iconName={icon} size={12} />
@@ -313,20 +313,20 @@ const ViolationCategories = () => {
       </div>
 
       {/* Table Container */}
-      <div className="relative z-10 bg-white/2 border border-white/5 rounded-3xl overflow-hidden backdrop-blur-md shadow-2xl">
-        <Table className="border-collapse">
-          <TableHeader className="bg-black/40 border-b border-white/5">
+      <div className="relative z-10 bg-white dark:bg-bg-light border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden transition-colors duration-300">
+        <Table className="border-collapse bg-white dark:bg-bg-light border-0 shadow-none transition-colors duration-300">
+          <TableHeader className="bg-slate-50 dark:bg-black/25 border-b border-slate-100 dark:border-white/5 text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider text-[11px]">
             <tr>
-              <TableCell isHeader sortKey="category_name" currentSort={sort} onSort={handleSort} className="text-emerald-500/50 font-mono text-[10px] uppercase tracking-widest py-5">
+              <TableCell isHeader sortKey="category_name" currentSort={sort} onSort={handleSort} className="text-slate-700 dark:text-slate-300 py-4 w-1/4">
                 Category Name
               </TableCell>
-              <TableCell isHeader className="text-emerald-500/50 font-mono text-[10px] uppercase tracking-widest py-5">
+              <TableCell isHeader className="text-slate-700 dark:text-slate-300 py-4 w-2/5">
                 Description
               </TableCell>
-              <TableCell isHeader sortKey="penalty_amount" currentSort={sort} onSort={handleSort} className="text-emerald-500/50 font-mono text-[10px] uppercase tracking-widest py-5">
+              <TableCell isHeader sortKey="penalty_amount" currentSort={sort} onSort={handleSort} className="text-slate-700 dark:text-slate-300 py-4 w-1/5">
                 Penalty Amount
               </TableCell>
-              <TableCell isHeader className="text-emerald-500/50 font-mono text-[10px] uppercase tracking-widest py-5 text-right pr-8 content-center">Command</TableCell>
+              <TableCell isHeader className="text-slate-700 dark:text-slate-300 py-4 text-right pr-8 content-center w-28">Command</TableCell>
             </tr>
           </TableHeader>
 
@@ -343,11 +343,11 @@ const ViolationCategories = () => {
               <TableRow>
                 <TableCell colSpan={4} align="center" className="py-24">
                   <div className="flex w-full flex-col items-center justify-center text-center space-y-6">
-                    <div className="w-20 h-20 flex items-center justify-center rounded-3xl bg-emerald-500/5 border border-emerald-500/10">
-                      <Icon iconName="FaList" className="text-4xl text-emerald-500/20" />
+                    <div className="w-20 h-20 flex items-center justify-center rounded-3xl bg-slate-100 border border-slate-200 dark:bg-white/10 dark:border-white/10">
+                      <Icon iconName="FaList" className="text-4xl text-slate-400 dark:text-slate-500" />
                     </div>
                     <div className="space-y-2">
-                      <h2 className="text-xl font-bold text-white uppercase tracking-tighter">
+                      <h2 className="text-xl font-bold text-slate-800 dark:text-white uppercase tracking-tighter">
                         {filter === 'deleted' ? 'Recycle Bin Is Empty' : 'Zero Categories Found'}
                       </h2>
                       <p className="text-sm text-slate-500 max-w-xs mx-auto text-wrap">
@@ -364,19 +364,19 @@ const ViolationCategories = () => {
                 const isDeleted = Boolean(category.deleted_at);
 
                 return (
-                  <TableRow key={category.id} className="hover:bg-emerald-500/5 transition-colors border-b border-white/2 last:border-0 group">
-                    <TableCell className="font-bold text-slate-200">
+                  <TableRow key={category.id} className="border-b border-slate-100 dark:border-white/5 last:border-0 hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
+                    <TableCell className="font-extrabold text-sm text-slate-900 dark:text-white">
                       <div className="flex items-center gap-2">
                         <span>{category.category_name}</span>
                         {isDeleted && (
-                          <span className="px-2 py-1 rounded-md bg-red-500/10 text-red-400 font-mono text-[9px] uppercase border border-red-500/20">
+                          <span className="px-2 py-0.5 rounded-md bg-rose-100 dark:bg-red-500/15 text-rose-700 dark:text-red-400 font-mono text-[10px] uppercase border border-rose-300 dark:border-red-500/30">
                             Deleted
                           </span>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-slate-400 text-xs">{category.description || '-'}</TableCell>
-                    <TableCell className="text-slate-400">{category.penalty_amount}</TableCell>
+                    <TableCell className="text-slate-700 dark:text-slate-300 text-xs font-semibold">{category.description || '-'}</TableCell>
+                    <TableCell className="text-slate-900 dark:text-white font-mono text-sm font-bold">{category.penalty_amount}</TableCell>
                     <TableCell className="text-right pr-2">
                       <div className='flex gap-2 items-center justify-end'>
                         {isDeleted ? (
@@ -384,7 +384,7 @@ const ViolationCategories = () => {
                             size='sm'
                             variant='ghost'
                             iconName='FaArrowRotateLeft'
-                            className='text-emerald-500 hover:bg-emerald-500/10 border-transparent'
+                            className='text-emerald-600 hover:bg-emerald-500/10 border-transparent'
                             onClick={() => handleRestore(category)}
                             tooltip="Restore"
                           />
@@ -394,7 +394,7 @@ const ViolationCategories = () => {
                               size='sm'
                               variant='ghost'
                               iconName='FaPencil'
-                              className='text-slate-500 hover:text-emerald-400 border-transparent hover:bg-emerald-500/10'
+                              className='text-slate-500 hover:text-emerald-600 border-transparent hover:bg-emerald-500/10'
                               onClick={() => handleEdit(category)}
                               tooltip="Edit"
                             />
@@ -402,7 +402,7 @@ const ViolationCategories = () => {
                               size='sm'
                               variant='ghost'
                               iconName='FaTrash'
-                              className='text-slate-500 hover:text-red-400 border-transparent hover:bg-red-500/10'
+                              className='text-slate-500 hover:text-red-650 border-transparent hover:bg-red-500/10'
                               onClick={() => handleDelete(category)}
                               tooltip="Move to recycle bin"
                             />
@@ -419,19 +419,19 @@ const ViolationCategories = () => {
 
         {/* Pagination Section */}
         {!isLoading && categories.length > 0 && (
-          <div className="bg-black/40 border-t border-white/5 p-6">
-             <TablePagination
-               currentPage={pagination.current_page}
-               totalPages={totalPages}
-               pageSize={pageSize}
-               totalResults={pagination.total}
-               onPageChange={setPage}
-               onPageSizeChange={(size) => {
-                 setPageSize(size);
-                 setPage(1);
-               }}
-               resourceLabel="Categories"
-             />
+          <div className="bg-slate-50 dark:bg-black/20 border-t border-slate-100 dark:border-white/5 p-6">
+            <TablePagination
+              currentPage={pagination.current_page}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              totalResults={pagination.total}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
+              resourceLabel="Categories"
+            />
           </div>
         )}
       </div>
@@ -441,7 +441,7 @@ const ViolationCategories = () => {
         onClose={handleCreateClose}
         onSuccess={handleSuccess}
       />
-      
+
       <EditViolationCategoryModal
         isOpen={isEditModalOpen}
         onClose={handleEditClose}

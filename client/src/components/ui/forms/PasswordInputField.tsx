@@ -34,7 +34,7 @@ export const PasswordInputField = React.forwardRef<
     const [showPassword, setShowPassword] = useState(false);
 
     const baseInputStyles = `
-      w-full bg-emerald-500/[0.07] border border-emerald-500/35 rounded-lg pl-9 pr-3 py-2 text-sm text-emerald-100 placeholder-emerald-200/20 outline-none focus:border-emerald-400 focus:bg-emerald-500/[0.11] focus:ring-2 focus:ring-emerald-500/10 transition
+      w-full bg-white dark:bg-black/30 border border-slate-300 dark:border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:border-blue-500 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition shadow-sm
     `;
 
     return (
@@ -43,7 +43,7 @@ export const PasswordInputField = React.forwardRef<
         {label && (
           <label
             htmlFor={id}
-            className="text-[11px] font-semibold uppercase tracking-widest text-emerald-400 flex items-center gap-1.5"
+            className="text-[11px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 flex items-center gap-1.5"
           >
             {label}
             {required && <span className="text-danger text-xs">*</span>}

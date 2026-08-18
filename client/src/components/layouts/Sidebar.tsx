@@ -30,7 +30,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
 
   const menuGroups: MenuGroup[] = [
     {
-      group: "Main",
+      group: "Menu",
       items: [
         {
           name: "Dashboard",
@@ -101,78 +101,60 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
 
   return (
     <aside
-      className={`fixed top-0 left-0 z-40 w-56 h-screen bg-bg-dark pt-20 transition-transform border-r border-white/5 
+      className={`fixed top-0 left-0 z-[60] w-56 h-screen bg-[#1e3a8a] dark:bg-bg-light transition-transform border-r border-white/10 dark:border-white/5 flex flex-col 
       ${isOpen ? "translate-x-0" : "-translate-x-full"} sm:translate-x-0`}
     >
-      {/* ─── HUD BACKGROUND ELEMENTS ─── */}
-      <div
-        className="absolute inset-0 opacity-5 pointer-events-none"
-        style={{
-          backgroundImage: `radial-gradient(oklch(var(--primary)) 0.5px, transparent 0.5px)`,
-          backgroundSize: "15px 15px",
-        }}
-      />
+      {/* Sidebar Branding / Logo Header (Desktop-only/Unified) */}
+      <div className="h-18 flex items-center px-6 gap-3 bg-[#1e3a8a] dark:bg-bg-light shrink-0">
+        <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600/20 border border-white/20 shrink-0">
+          <Icon iconName="FaShieldHalved" size={16} className="text-white/90 dark:text-blue-500" />
+        </div>
+        <span className="text-white font-black text-xl tracking-tighter uppercase">
+          e-<span className="text-amber-400">Reklamo</span>
+        </span>
+      </div>
 
-      <div className="relative h-full px-4 pb-4 overflow-y-auto custom-scrollbar">
+      <div className="flex-1 px-4 py-6 overflow-y-auto custom-scrollbar">
         {filteredGroups.map((group) => (
           <div key={group.group} className="mb-8">
-            {/* Group Header with Label Notch */}
+            {/* Group Header */}
             <div className="flex items-center gap-2 px-3 mb-4">
-              <div className="w-1 h-3 bg-primary/40" />
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60 italic">
+              <div className="w-1 h-3 bg-white/20" />
+              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-200/50">
                 {group.group}
               </h3>
             </div>
 
-            <ul className="space-y-2 font-medium">
+            <ul className="space-y-1 font-medium">
               {group.items.map((item) => {
                 const isActive = location.pathname.startsWith(item.path);
                 return (
                   <li key={item.name}>
                     <Link
                       to={item.path}
-                      className={`flex items-center p-3 rounded-xl group relative transition-all duration-300 overflow-hidden ${
-                        isActive
-                          ? "bg-primary/10 border border-primary/30 shadow-[0_0_15px_oklch(var(--primary)/0.05)]"
-                          : "text-slate-400 hover:text-white border border-transparent hover:border-white/5"
-                      }`}
+                      className={`flex items-center p-2.5 rounded-xl group relative transition-all duration-200 ${isActive
+                        ? "bg-[#2563eb] text-white shadow-sm"
+                        : "text-blue-100/70 hover:text-white hover:bg-white/5"
+                        }`}
                     >
-                      {/* Active Indicator Line (Neon Glow) */}
-                      <span
-                        className={`absolute left-0 top-1/2 -translate-y-1/2 w-0.75 h-3/5 rounded-r-full transition-all duration-500 
-                        ${isActive ? "bg-primary shadow-[0_0_8px_oklch(var(--primary))]" : "bg-transparent group-hover:bg-white/20"}`}
-                      />
-
-                      {/* Icon with subtle glow when active */}
-                      <div className="ml-2 relative">
-                        {isActive && (
-                          <div className="absolute inset-0 bg-primary/40 blur-md rounded-full" />
-                        )}
-                        <Icon
-                          iconName={item.icon}
-                          className={`relative z-10 transition-colors duration-300 ${
-                            isActive
-                              ? "text-primary"
-                              : "text-slate-500 group-hover:text-white"
+                      {/* Icon */}
+                      <Icon
+                        iconName={item.icon}
+                        className={`w-4 h-4 transition-colors duration-200 ${isActive
+                          ? "text-white"
+                          : "text-blue-200/60 group-hover:text-white"
                           }`}
-                        />
-                      </div>
+                      />
 
                       {/* Nav Text */}
                       <span
-                        className={`ml-3 text-xs tracking-wider transition-all duration-300 ${
-                          isActive
-                            ? "font-black uppercase text-white"
-                            : "font-semibold group-hover:translate-x-1"
-                        }`}
+                        className={`ml-3 text-xs font-semibold tracking-wide transition-colors ${isActive
+                          ? "text-white"
+                          : "text-blue-100/70"
+                          }`}
                       >
                         {item.name}
                       </span>
-
-                      {/* Active Notch Decoration */}
-                      {isActive && (
-                        <div className="absolute right-0 top-0 w-2 h-2 border-t-2 border-r-2 border-primary/40 rounded-tr-md" />
-                      )}
                     </Link>
                   </li>
                 );

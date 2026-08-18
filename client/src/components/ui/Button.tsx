@@ -36,16 +36,16 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ...props
   }, ref) => {
 
-    const baseStyles = `group relative inline-flex items-center justify-center font-bold border border-border-muted shadow uppercase cursor-pointer
+    const baseStyles = `group relative inline-flex items-center justify-center font-bold uppercase cursor-pointer
     tracking-tighter transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:active:scale-100 
     disabled:cursor-not-allowed rounded-2xl gap-2 overflow-visible`;
 
     const variants = {
-      primary: "bg-primary text-bg-dark hover:bg-primary/80",
-      secondary: "bg-secondary text-bg-dark hover:bg-secondary/80",
-      danger: "bg-danger text-bg-dark hover:bg-danger/80",
-      outline: "border-2 border-primary text-primary hover:bg-primary hover:text-bg-dark dark:hover:text-text",
-      ghost: "bg-transparent hover:bg-secondary/20 text-text border-2 border-secondary",
+      primary: "bg-primary text-bg-dark hover:bg-primary/80 border border-border-muted shadow",
+      secondary: "bg-secondary text-bg-dark hover:bg-secondary/80 border border-border-muted shadow",
+      danger: "bg-danger text-bg-dark hover:bg-danger/80 border border-border-muted shadow",
+      outline: "border-2 border-primary text-primary hover:bg-primary hover:text-bg-dark dark:hover:text-text shadow-sm",
+      ghost: "bg-transparent hover:bg-slate-100 dark:hover:bg-white/5 text-text border border-transparent shadow-none",
     };
 
     const sizes = {
@@ -79,8 +79,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       >
         {/* Tooltip */}
         {tooltip && !disabled && (
-          <span className={`absolute ${tooltipPositions[tooltipPosition]} z-50 px-2 py-1 text-[12px] font-bold uppercase tracking-widest text-text 
-            bg-bg-light border border-border-muted rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-300 shadow 
+          <span className={`absolute ${tooltipPositions[tooltipPosition]} z-50 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-widest
+            bg-slate-900 text-white dark:bg-black dark:text-slate-200 border border-slate-800 dark:border-white/10 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 shadow-none
             whitespace-nowrap`}>
             {tooltip}
           </span>

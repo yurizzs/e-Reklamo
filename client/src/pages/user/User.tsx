@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useDebounce, useDateFormatter } from '../../hooks/index';
 import { MainLayout } from '../../components/layouts';
 import {
   Table,
@@ -15,11 +15,10 @@ import CreateUserModal from './components/CreateUserModal';
 import EditUserModal from './components/EditUserModal';
 import DeleteUserModal from './components/DeleteUserModal';
 import RestoreUserModal from './components/RestoreUserModal';
+import ViewUserModal from './components/ViewUserModal';
 import UserService from '../../services/UserService';
 import type { User } from '../../interfaces/user';
 import { notify } from '../../util/notify';
-import { useDebounce } from '../../hooks/index';
-import { PATHS } from '../../routes/path';
 import { useAuth } from '../../contexts/AuthContext';
 
 /* =========================
@@ -38,7 +37,7 @@ type PaginationMeta = {
 };
 
 const Users = () => {
-  const navigate = useNavigate();
+  const dateFormat = useDateFormatter();
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -162,6 +161,18 @@ const Users = () => {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
   const [userToRestore, setUserToRestore] = useState<User | null>(null);
+  const [isViewUserModalOpen, setIsViewUserModalOpen] = useState(false);
+  const [selectedUserSlug, setSelectedUserSlug] = useState<string | null>(null);
+
+  const handleViewUser = (slug: string) => {
+    setSelectedUserSlug(slug);
+    setIsViewUserModalOpen(true);
+  };
+
+  const handleViewUserClose = () => {
+    setIsViewUserModalOpen(false);
+    setSelectedUserSlug(null);
+  };
 
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
@@ -219,7 +230,7 @@ const Users = () => {
   };
 
   const content = (
-    <div className="relative space-y-8 pb-12">
+    <div className="relative space-y-8 pb-12 text-slate-800 dark:text-slate-200 transition-colors duration-300">
       {/* Background Decorative Glows */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-[120px]" />
@@ -229,19 +240,19 @@ const Users = () => {
       {/* Header Section */}
       <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
-          <h1 className="text-3xl font-black uppercase tracking-tighter text-white">
+          <h1 className="text-3xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">
             User Personnel
           </h1>
-          <p className="text-sm text-emerald-500/60 font-mono uppercase tracking-[0.2em]">
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-mono uppercase tracking-[0.2em]">
             System Access Management
           </p>
         </div>
-        
-        <Button 
-          variant='primary' 
-          iconName='FaPlus' 
+
+        <Button
+          variant='primary'
+          iconName='FaPlus'
           size="lg"
-          className="bg-emerald-600 hover:bg-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+          className="bg-blue-950 hover:bg-blue-900 text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950 border border-slate-950 dark:border-transparent shadow-sm font-extrabold"
           onClick={() => setIsCreateModalOpen(true)}
         >
           Add User
@@ -249,7 +260,7 @@ const Users = () => {
       </div>
 
       {/* Search and Filter Bar */}
-      <div className="relative z-10 bg-white/2 border border-white/5 rounded-3xl p-6 backdrop-blur-md shadow-2xl space-y-6">
+      <div className="relative z-10 bg-white dark:bg-bg-light border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm space-y-6 transition-colors duration-300">
         <div className="flex flex-col lg:flex-row gap-6 items-end">
           <div className="flex-1 w-full">
             <InputField
@@ -258,7 +269,7 @@ const Users = () => {
               placeholder='Search by name, username, or email...'
               fullWidth
               iconName='FaMagnifyingGlass'
-              className="bg-black/20 border-white/5 focus:border-emerald-500/50"
+              className="bg-slate-50 dark:bg-black/20 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white focus:border-slate-400 dark:focus:border-white/20"
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -266,9 +277,9 @@ const Users = () => {
               }}
             />
           </div>
-          
+
           {/* Filter Tabs */}
-          <div className="bg-black/40 rounded-2xl p-1 flex items-center gap-1 border border-white/5 self-start lg:self-end">
+          <div className="bg-slate-100 dark:bg-black/40 rounded-xl p-1 flex items-center gap-1 border border-slate-200/50 dark:border-white/5 self-start lg:self-end">
             {(Object.keys(filters) as Array<keyof typeof filters>).map((f) => {
               const { icon, label } = filters[f];
               const isActive = filter === f;
@@ -277,10 +288,10 @@ const Users = () => {
                   key={f}
                   onClick={() => setFilter(f)}
                   className={`
-                    px-4 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all duration-300 flex items-center gap-2
-                    ${isActive 
-                      ? 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]' 
-                      : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}
+                    px-4 py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all duration-200 flex items-center gap-2
+                    ${isActive
+                      ? 'bg-blue-800 text-white dark:bg-white dark:text-slate-950 shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-white/5'}
                   `}
                 >
                   <Icon iconName={icon} size={12} />
@@ -293,24 +304,25 @@ const Users = () => {
       </div>
 
       {/* Table Container */}
-      <div className="relative z-10 bg-white/2 border border-white/5 rounded-3xl overflow-hidden backdrop-blur-md shadow-2xl">
-        <Table className="border-collapse">
-          <TableHeader className="bg-black/40 border-b border-white/5">
+      <div className="relative z-10 bg-white dark:bg-bg-light border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden transition-colors duration-300">
+        <Table className="border-collapse bg-white dark:bg-bg-light border-0 shadow-none transition-colors duration-300">
+          <TableHeader className="bg-slate-50 dark:bg-black/25 border-b border-slate-100 dark:border-white/5 text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider text-[11px]">
             <tr>
-              <TableCell isHeader align="center" className="text-emerald-500/50 font-mono text-[10px] uppercase tracking-widest py-5">Avatar</TableCell>
+              <TableCell isHeader align="center" className="text-slate-700 dark:text-slate-300 py-4 w-20">Avatar</TableCell>
               <TableCell
                 isHeader
                 sortKey="name"
                 currentSort={sort}
                 onSort={handleSort}
-                className="text-emerald-500/50 font-mono text-[10px] uppercase tracking-widest py-5"
+                className="text-slate-700 dark:text-slate-300 py-4"
               >
                 Full Name
               </TableCell>
 
-              <TableCell isHeader align="left" className="text-emerald-500/50 font-mono text-[10px] uppercase tracking-widest py-5">Email</TableCell>
+              <TableCell isHeader align="left" className="text-slate-700 dark:text-slate-300 py-4">Email</TableCell>
+              <TableCell isHeader align="left" className="text-slate-700 dark:text-slate-300 py-4">Provisioned</TableCell>
 
-              <TableCell isHeader align="left" className="text-emerald-500/50 font-mono text-[10px] uppercase tracking-widest py-5">Username</TableCell>
+              <TableCell isHeader align="left" className="text-slate-700 dark:text-slate-300 py-4">Username</TableCell>
 
               <TableCell isHeader align="left" className="text-emerald-500/50 font-mono text-[10px] uppercase tracking-widest py-5">Phone</TableCell>
 
@@ -321,11 +333,11 @@ const Users = () => {
                 sortKey="role"
                 currentSort={sort}
                 onSort={handleSort}
-                className="text-emerald-500/50 font-mono text-[10px] uppercase tracking-widest py-5"
+                className="text-slate-700 dark:text-slate-300 py-4"
               >
                 Role
               </TableCell>
-              <TableCell isHeader align="center" className="text-emerald-500/50 font-mono text-[10px] uppercase tracking-widest py-5 text-right pr-8 content-center">Command</TableCell>
+              <TableCell isHeader align="center" className="text-slate-700 dark:text-slate-300 py-4 text-right pr-8 content-center">Command</TableCell>
             </tr>
           </TableHeader>
 
@@ -340,19 +352,19 @@ const Users = () => {
               </TableRow>
             ) : users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="py-24">
+                <TableCell colSpan={10} align="center" className="py-24">
                   <div className="flex flex-col items-center justify-center text-center space-y-6">
-                    <div className="w-20 h-20 flex items-center justify-center rounded-3xl bg-emerald-500/5 border border-emerald-500/10">
-                      <Icon iconName="FaUsersSlash" className="text-4xl text-emerald-500/20" />
+                    <div className="w-20 h-20 flex items-center justify-center rounded-3xl bg-slate-100 border border-slate-200 dark:bg-white/10 dark:border-white/10">
+                      <Icon iconName="FaUsersSlash" className="text-4xl text-slate-400 dark:text-slate-500" />
                     </div>
                     <div className="space-y-2">
-                      <h2 className="text-xl font-bold text-white uppercase tracking-tighter">Zero Users Found</h2>
+                      <h2 className="text-xl font-bold text-slate-800 dark:text-white uppercase tracking-tighter">Zero Users Found</h2>
                       <p className="text-sm text-slate-500 max-w-xs mx-auto">The user query returned null. Verify filters or add a new system user.</p>
                     </div>
-                    <Button 
-                      variant='primary' 
-                      iconName='FaPlus' 
-                      className="bg-emerald-600"
+                    <Button
+                      variant='primary'
+                      iconName='FaPlus'
+                      className="bg-blue-950 hover:bg-blue-900 text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950 border border-slate-950 dark:border-transparent font-extrabold shadow-sm"
                       onClick={() => setIsCreateModalOpen(true)}
                     >
                       Add User
@@ -367,36 +379,37 @@ const Users = () => {
                 const displayName = user.name || `${user.first_name} ${user.last_name}`.trim();
 
                 return (
-                  <TableRow key={user.id} className="hover:bg-emerald-500/5 transition-colors border-b border-white/2 last:border-0 group">
+                  <TableRow key={user.id} className="border-b border-slate-100 dark:border-white/5 last:border-0 hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
                     <TableCell>
                       {user.avatar ? (
                         <div className="relative">
                           <img
                             src={`${import.meta.env.VITE_STORAGE_URL}/${user.avatar}`}
                             alt={displayName}
-                            className="w-10 h-10 rounded-xl object-cover border border-white/10 group-hover:border-emerald-500/50 transition-colors"
+                            className="w-10 h-10 rounded-xl object-cover border border-slate-200 dark:border-white/10"
                           />
-                          {!isDeleted && <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-[#0B0F1A] rounded-full" />}
+                          {!isDeleted && <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-emerald-500 border-2 border-white dark:border-[#0B0F1A] rounded-full" />}
                         </div>
                       ) : (
-                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 font-black">
+                        <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-black/20 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-700 dark:text-primary font-black">
                           {displayName.charAt(0).toUpperCase()}
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="font-bold text-slate-200">
+                    <TableCell className="font-extrabold text-sm text-slate-900 dark:text-white">
                       <div className="flex items-center gap-2">
                         <span>{displayName}</span>
                         {isDeleted && (
-                          <span className="px-2 py-1 rounded-md bg-red-500/10 text-red-400 font-mono text-[9px] uppercase border border-red-500/20">
+                          <span className="px-2 py-0.5 rounded-md bg-rose-100 dark:bg-red-500/15 text-rose-700 dark:text-red-400 font-mono text-[10px] uppercase border border-rose-300 dark:border-red-500/30">
                             Deleted
                           </span>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-slate-400 text-xs">{user.email}</TableCell>
+                    <TableCell className="text-slate-700 dark:text-slate-300 text-xs font-semibold">{user.email}</TableCell>
+                    <TableCell className="text-slate-700 dark:text-slate-300 font-mono text-xs font-semibold">{dateFormat.date(user.created_at)}</TableCell>
                     <TableCell>
-                      <span className="px-2 py-1 rounded-md bg-black/40 text-emerald-400 font-mono text-[10px] border border-emerald-500/20">
+                      <span className="px-2 py-1 rounded-md bg-slate-100 dark:bg-black/30 text-slate-900 dark:text-white font-mono text-xs font-extrabold border border-slate-200 dark:border-white/10">
                         @{user.username}
                       </span>
                     </TableCell>
@@ -404,10 +417,10 @@ const Users = () => {
                     <TableCell className="text-slate-300 text-xs max-w-xs truncate">{user.address || '-'}</TableCell>
                     <TableCell>
                       <span className={`
-                        px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border
-                        ${user.role === 'admin' 
-                          ? 'bg-red-500/10 text-red-400 border-red-500/20' 
-                          : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}
+                        px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border
+                        ${user.role === 'admin'
+                          ? 'bg-rose-100 border-rose-300 text-rose-700 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400'
+                          : 'bg-slate-100 border-slate-300 text-slate-800 dark:bg-white/10 dark:border-white/10 dark:text-white'}
                       `}>
                         {user.role}
                       </span>
@@ -418,8 +431,8 @@ const Users = () => {
                           size='sm'
                           variant='ghost'
                           iconName='FaEye'
-                          className='text-slate-500 hover:text-emerald-400 border-transparent hover:bg-emerald-500/10'
-                          onClick={() => navigate(PATHS.APP.USER_DETAIL.replace(':slug', user.slug))}
+                          className='text-slate-500 hover:text-emerald-600 border-transparent hover:bg-emerald-500/10'
+                          onClick={() => handleViewUser(user.slug)}
                           tooltip="View"
                         />
                         {isDeleted ? (
@@ -427,7 +440,7 @@ const Users = () => {
                             size='sm'
                             variant='ghost'
                             iconName='FaArrowRotateLeft'
-                            className='text-emerald-500 hover:bg-emerald-500/10 border-transparent'
+                            className='text-emerald-600 hover:bg-emerald-500/10 border-transparent'
                             onClick={() => handleRestoreUser(user)}
                             tooltip="Restore"
                           />
@@ -437,7 +450,7 @@ const Users = () => {
                               size='sm'
                               variant='ghost'
                               iconName='FaPencil'
-                              className='text-slate-500 hover:text-emerald-400 border-transparent hover:bg-emerald-500/10'
+                              className='text-slate-500 hover:text-emerald-600 border-transparent hover:bg-emerald-500/10'
                               onClick={() => handleEditUser(user)}
                               tooltip="Edit"
                             />
@@ -445,7 +458,7 @@ const Users = () => {
                               size='sm'
                               variant='ghost'
                               iconName='FaTrash'
-                              className='text-slate-500 hover:text-red-400 border-transparent hover:bg-red-500/10 disabled:hover:text-slate-500 disabled:hover:bg-transparent'
+                              className='text-slate-500 hover:text-red-650 border-transparent hover:bg-red-500/10 disabled:hover:text-slate-500 disabled:hover:bg-transparent'
                               onClick={() => handleDeleteUser(user)}
                               disabled={isCurrentUser}
                               tooltip={isCurrentUser ? "You cannot delete your own account" : "Delete"}
@@ -463,19 +476,19 @@ const Users = () => {
 
         {/* Pagination Section */}
         {!isLoading && users.length > 0 && (
-          <div className="bg-black/40 border-t border-white/5 p-6">
-             <TablePagination
-               currentPage={pagination.current_page}
-               totalPages={totalPages}
-               totalResults={pagination.total}
-               pageSize={pageSize}
-               onPageChange={setPage}
-               onPageSizeChange={(size) => {
-                 setPageSize(size);
-                 setPage(1);
-               }}
-               resourceLabel="Users"
-             />
+          <div className="bg-slate-50 dark:bg-black/20 border-t border-slate-100 dark:border-white/5 p-6">
+            <TablePagination
+              currentPage={pagination.current_page}
+              totalPages={totalPages}
+              totalResults={pagination.total}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
+              resourceLabel="Users"
+            />
           </div>
         )}
       </div>
@@ -485,7 +498,7 @@ const Users = () => {
         onClose={handleCreateUserClose}
         onSuccess={handleUserSuccess}
       />
-      
+
       <EditUserModal
         isOpen={isEditUserModalOpen}
         onClose={handleEditUserClose}
@@ -506,6 +519,13 @@ const Users = () => {
         onClose={handleCancelRestore}
         user={userToRestore}
         onSuccess={handleRestoreSuccess}
+      />
+
+      <ViewUserModal
+        isOpen={isViewUserModalOpen}
+        onClose={handleViewUserClose}
+        userSlug={selectedUserSlug}
+        onSuccess={handleUserSuccess}
       />
 
       <ToastProvider />

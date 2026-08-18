@@ -5,7 +5,7 @@ import { Icon } from "../../ui";
    TABLE
 ========================= */
 export const Table: FC<{ children: ReactNode; className?: string }> = ({ children, className = "" }) => (
-  <div className={`rounded-2xl border border-white/5 bg-white/2 backdrop-blur-md shadow-2xl overflow-hidden ${className}`}>
+  <div className={`rounded-2xl border border-slate-200 dark:border-white/5 bg-white/2 backdrop-blur-md shadow-2xl overflow-hidden ${className}`}>
     <div className="overflow-x-auto">
       <table className="w-full text-sm border-collapse">
         {children}
@@ -18,7 +18,7 @@ export const Table: FC<{ children: ReactNode; className?: string }> = ({ childre
    HEADER
 ========================= */
 export const TableHeader: FC<{ children: ReactNode; className?: string }> = ({ children, className = "" }) => (
-  <thead className={`text-xs uppercase tracking-wider text-emerald-500/50 bg-black/40 border-b border-white/5 ${className}`}>
+  <thead className={`text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-black/40 border-b border-slate-200 dark:border-white/5 ${className}`}>
     {children}
   </thead>
 );
@@ -95,7 +95,7 @@ export const TableCell = <T extends string = string>({
       onClick={() => isSortable && onSort!(sortKey!)}
       className={`
         px-4 py-4 whitespace-nowrap
-        ${isHeader ? "text-emerald-500/50 font-mono text-[10px] uppercase tracking-widest" : "text-slate-300"}
+        ${isHeader ? "text-slate-700 dark:text-slate-300 font-mono text-[10px] uppercase tracking-widest" : "text-slate-800 dark:text-slate-200"}
         ${isSortable ? "cursor-pointer group" : ""}
         ${alignClass}
         ${rowSpan && rowSpan > 1 ? "align-top" : ""}
@@ -180,24 +180,24 @@ export const TablePagination: FC<TablePaginationProps> = ({
       {/* LEFT: RESULTS INFO */}
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-3">
-          <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">Registry Range</span>
+          <span className="text-[10px] font-mono uppercase tracking-widest text-slate-700 dark:text-slate-400">Registry Range</span>
           <div className="w-16">
             <select
               value={pageSize.toString()}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              className="w-full bg-black/40 border border-white/5 rounded-lg px-2 py-1 text-[10px] font-mono text-emerald-400 focus:outline-none focus:border-emerald-500/50 transition-colors"
+              className="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-lg px-2 py-1 text-[10px] font-mono text-slate-800 dark:text-white focus:outline-none focus:border-slate-400 dark:focus:border-white/20 transition-colors"
             >
-              {pageSizeOptions.map(opt => <option key={opt.value} value={opt.value} className="bg-[#0B0F1A]">{opt.label}</option>)}
+              {pageSizeOptions.map(opt => <option key={opt.value} value={opt.value} className="bg-white dark:bg-bg-light text-slate-900 dark:text-white">{opt.label}</option>)}
             </select>
           </div>
         </div>
 
-        <div className="h-4 w-px bg-white/5" />
+        <div className="h-4 w-px bg-slate-200 dark:bg-white/5" />
 
-        <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-500">
-          Viewing <span className="text-emerald-500">{start}</span> -{" "}
-          <span className="text-emerald-500">{end}</span> of{" "}
-          <span className="text-emerald-500">{totalResults}</span>{" "}
+        <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-700 dark:text-slate-400">
+          Viewing <span className="font-extrabold text-slate-900 dark:text-white">{start}</span> -{" "}
+          <span className="font-extrabold text-slate-900 dark:text-white">{end}</span> of{" "}
+          <span className="font-extrabold text-slate-900 dark:text-white">{totalResults}</span>{" "}
           {resourceLabel}
         </span>
       </div>
@@ -209,13 +209,13 @@ export const TablePagination: FC<TablePaginationProps> = ({
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/40 border border-white/5 text-slate-500 hover:text-emerald-400 hover:border-emerald-500/30 disabled:opacity-20 transition-all duration-300"
+          className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 text-slate-550 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:border-slate-350 dark:hover:border-white/10 disabled:opacity-20 transition-all duration-300"
         >
           <Icon iconName="FaChevronLeft" size={10} />
         </button>
 
         {/* PAGES */}
-        <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/5">
+        <div className="flex items-center gap-1 bg-slate-50 dark:bg-black/40 p-1 rounded-xl border border-slate-200 dark:border-white/5">
           {pages.map((page) => (
             <button
               key={page}
@@ -223,8 +223,8 @@ export const TablePagination: FC<TablePaginationProps> = ({
               className={`
                 w-8 h-8 rounded-lg text-[10px] font-mono transition-all duration-300
                 ${currentPage === page
-                  ? "bg-emerald-600 text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]"
-                  : "text-slate-500 hover:text-emerald-400 hover:bg-white/5"
+                  ? "bg-slate-900/70 text-white dark:bg-slate-200/90 dark:text-slate-950 font-extrabold shadow-sm"
+                  : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-white/5"
                 }
               `}>
               {page}
@@ -236,7 +236,7 @@ export const TablePagination: FC<TablePaginationProps> = ({
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/40 border border-white/5 text-slate-500 hover:text-emerald-400 hover:border-emerald-500/30 disabled:opacity-20 transition-all duration-300"
+          className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 text-slate-550 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:border-slate-350 dark:hover:border-white/10 disabled:opacity-20 transition-all duration-300"
         >
           <Icon iconName="FaChevronRight" size={10} />
         </button>

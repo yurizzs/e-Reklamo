@@ -11,7 +11,6 @@ interface ThemeContextType {
 }
 
 const STORAGE_KEY = "app-theme";
-const CYCLE_ORDER: Theme[] = ["light", "dark", "system"];
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
@@ -37,30 +36,30 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, [theme]);
 
     useEffect(() => {
-        if (theme !== "system") return;
-
         const mql = window.matchMedia("(prefers-color-scheme: dark)");
         const handler = (e: MediaQueryListEvent) => {
-            setResolvedTheme(e.matches ? "dark" : "light");
+            setThemeState(e.matches ? "dark" : "light");
         };
 
         mql.addEventListener("change", handler);
         return () => mql.removeEventListener("change", handler);
-    }, [theme]);
+    }, []);
 
     useEffect(() => {
         const root = document.documentElement;
         if (resolvedTheme === "dark") {
             root.classList.add("dark");
+            root.classList.remove("light-mode");
         } else {
             root.classList.remove("dark");
+            root.classList.add("light-mode");
         }
     }, [resolvedTheme]);
 
     const toggleTheme = useCallback(() => {
         setThemeState((prev) => {
-            const idx = CYCLE_ORDER.indexOf(prev);
-            return CYCLE_ORDER[(idx + 1) % CYCLE_ORDER.length];
+            const currentResolved = resolveTheme(prev);
+            return currentResolved === "dark" ? "light" : "dark";
         });
     }, []);
 

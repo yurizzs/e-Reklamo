@@ -128,7 +128,11 @@ class AuthenticationController extends Controller
         $token = $account->createToken($deviceName)->plainTextToken;
 
         try {
-            Auth::guard('web')->login($account);
+            if ($account instanceof Employee) {
+                Auth::guard('employees')->login($account);
+            } else {
+                Auth::guard('web')->login($account);
+            }
             $request->session()->regenerate();
         } catch (\Throwable $e) {
             Log::warning('Session login notice: ' . $e->getMessage());
@@ -175,6 +179,7 @@ class AuthenticationController extends Controller
             $this->recordActivity($user->id, 'logout (session)');
         }
         Auth::guard('web')->logout();
+        Auth::guard('employees')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         return $this->success('Logged out successfully.', null, 200);

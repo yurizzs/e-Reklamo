@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ToastProvider } from "../../components/ui/index";
+import { ToastProvider, Icon } from "../../components/ui/index";
 import {
   InputField,
   PasswordInputField,
@@ -8,7 +8,6 @@ import {
 import { useAuth } from "../../contexts/AuthContext";
 import { notify } from "../../util/notify";
 import { PATHS } from "../../routes/path";
-// import Background from "../../assets/tmu.jpg";
 import type { AxiosError } from "axios";
 
 const Login: React.FC = () => {
@@ -74,7 +73,6 @@ const Login: React.FC = () => {
       const data = axiosErr.response?.data;
 
       if (status === 422 && data?.errors) {
-        // Validation errors — map to form fields
         setErrors({
           username: data.errors.username?.[0],
           password: data.errors.password?.[0],
@@ -101,144 +99,194 @@ const Login: React.FC = () => {
 
   return (
     <>
-      <div className="relative h-screen w-full overflow-hidden flex items-center justify-center bg-[#040c07] px-4 py-10">
-        {/* Grid background */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(16,185,129,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(16,185,129,0.04) 1px, transparent 1px)",
-            backgroundSize: "32px 32px",
-          }}
-        />
+      <div className="relative min-h-screen w-full overflow-hidden grid lg:grid-cols-12 bg-bg-dark transition-colors duration-300">
 
-        {/* Corner brackets */}
-        <span className="absolute top-4 left-4 w-14 h-14 border-t border-l border-emerald-500/30 rounded-tl pointer-events-none" />
-        <span className="absolute top-4 right-4 w-14 h-14 border-t border-r border-emerald-500/30 rounded-tr pointer-events-none" />
-        <span className="absolute bottom-4 left-4 w-14 h-14 border-b border-l border-emerald-500/30 rounded-bl pointer-events-none" />
-        <span className="absolute bottom-4 right-4 w-14 h-14 border-b border-r border-emerald-500/30 rounded-br pointer-events-none" />
+        {/* ─── LEFT PANEL: DESKTOP ONLY BRAND PREVIEW ─── */}
+        <div className="hidden lg:flex lg:col-span-7 xl:col-span-8 relative overflow-hidden bg-gradient-to-br from-slate-50 via-slate-100 to-blue-50 dark:from-slate-950 dark:via-[#0a0d18] dark:to-slate-900 p-12 flex-col justify-between border-r border-slate-200 dark:border-slate-800 transition-colors duration-300">
+          {/* Subtle Background Elements */}
+          <div className="absolute inset-0 pointer-events-none opacity-40 dark:opacity-40">
+            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_20%_20%,_rgba(37,99,235,0.06),_transparent_50%)]" />
+            <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_80%_80%,_rgba(99,102,241,0.04),_transparent_50%)]" />
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundImage:
+                  "linear-gradient(rgba(37,99,235,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(37,99,235,0.015) 1px, transparent 1px)",
+                backgroundSize: "24px 24px",
+              }}
+            />
+          </div>
 
-        {/* Card */}
-        <div className="relative overflow-hidden z-10 w-full max-w-sm bg-emerald-500/5 border border-emerald-500/20 rounded-2xl px-7 py-8 flex flex-col items-center gap-5">
-          {/* Logo & Branding */}
-          <div className="flex flex-col items-center gap-3.5">
-            <div className="w-14 h-14 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.07] flex items-center justify-center">
-              <svg className="w-7 h-7 fill-emerald-500" viewBox="0 0 24 24">
-                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.5h7c-.47 4.07-3.07 7.67-7 8.8v-8.8H5V6.3l7-3.11v8.31z" />
-              </svg>
+          {/* Logo & Subtitle */}
+          <div className="relative z-10 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-550/5 dark:bg-blue-500/10 border border-blue-550/15 dark:border-blue-500/20 flex items-center justify-center transition-colors">
+              <Icon iconName="FaShieldHalved" size={18} className="text-blue-600 dark:text-blue-505" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-lg font-black tracking-tight text-slate-900 dark:text-white uppercase leading-none transition-colors">
+                e-<span className="text-amber-500 dark:text-amber-400">Reklamo</span>
+              </span>
+              <span className="text-[9px] font-bold text-slate-500 dark:text-slate-500 uppercase tracking-widest leading-none mt-1 transition-colors">
+                Traffic Operations
+              </span>
+            </div>
+          </div>
+
+          {/* Abstract Operations Shield Graphic */}
+          <div className="relative z-10 max-w-md mx-auto w-full my-auto text-center space-y-8">
+            <div className="relative w-48 h-48 mx-auto flex items-center justify-center">
+              {/* Concentric Rotating Tech Rings */}
+              <div className="absolute inset-0 border border-blue-550/10 dark:border-blue-500/10 border-t-blue-600/30 dark:border-t-blue-500/30 animate-[spin_12s_linear_infinite]" />
+              <div className="absolute inset-4 border border-indigo-555/10 dark:border-indigo-500/10 border-b-indigo-600/30 dark:border-b-indigo-500/30 animate-[spin_8s_linear_infinite_reverse]" />
+
+              {/* Central Glowing Shield Icon */}
+              <div className="w-24 h-24 rounded-3xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 flex items-center justify-center shadow-2xl dark:shadow-none relative z-10 animate-pulse transition-colors">
+                <Icon iconName="FaShieldHalved" size={40} className="text-blue-600 dark:text-blue-505" />
+              </div>
             </div>
 
-            <div className="text-center flex flex-col gap-0.5">
-              <h1 className="text-[26px] font-bold tracking-tight text-white leading-tight">
-                e-<span className="text-emerald-400">Reklamo</span>
-              </h1>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-emerald-400/55">
+            <div className="space-y-3">
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 dark:text-slate-450 font-mono transition-colors">
+                Operations Console
+              </p>
+              <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900 dark:text-white transition-colors">
                 Traffic Management Unit
+              </h2>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-sm mx-auto transition-colors">
+                Authorized access to live incident dispatching, operator shift scheduling, and road violation compliance registers.
               </p>
             </div>
           </div>
 
-          {/* Status badge */}
-          <div className="inline-flex items-center gap-1.5 bg-emerald-500/8 border border-emerald-500/20 rounded-full px-3 py-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-emerald-300/85">
-              System Online
-            </span>
+          {/* Footer Info */}
+          <div className="relative z-10 flex items-center justify-between text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest transition-colors duration-300">
+            <span>© {new Date().getFullYear()} e-Reklamo Portal</span>
+            <span>Console V2.4.0</span>
+          </div>
+        </div>
+
+        {/* ─── RIGHT PANEL: LOGIN VIEW ─── */}
+        <div className="lg:col-span-5 xl:col-span-4 flex flex-col justify-center items-center px-6 py-12 relative z-15 bg-bg-dark transition-colors duration-300">
+
+          {/* Subtle Ambient Glow for Form */}
+          <div className="absolute inset-0 pointer-events-none opacity-20 overflow-hidden">
+            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-72 h-72 bg-blue-500/10 rounded-full blur-[100px]" />
           </div>
 
-          <div className="w-full h-px bg-emerald-500/10" />
+          {/* Form Card */}
+          <div className="w-full max-w-[360px] relative z-10 flex flex-col gap-6">
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
-            {/* Username */}
-            <InputField
-              label="Username"
-              iconName="FaUser"
-              type="text"
-              name="username"
-              placeholder="Enter your username"
-              value={username}
-              autoComplete="username"
-              onChange={(e) => {
-                setUsername(e.target.value);
-                if (errors.username)
-                  setErrors((prev) => ({ ...prev, username: undefined }));
-              }}
-              error={errors.username}
-              fullWidth
-              required
-            />
+            {/* Header Block (Logo & Greeting) */}
+            <div className="flex flex-col items-center gap-4 text-center">
+              <div className="w-14 h-14 rounded-2xl border border-blue-550/20 dark:border-blue-500/10 bg-white dark:bg-blue-500/10 flex items-center justify-center shadow-inner transition-colors">
+                <Icon iconName="FaShieldHalved" size={24} className="text-blue-600 dark:text-blue-500 transition-colors" />
+              </div>
 
-            {/* Password */}
-            <PasswordInputField
-              label="Password"
-              name="password"
-              placeholder="Enter your password"
-              iconName="FaLock"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                if (errors.password)
-                  setErrors((prev) => ({ ...prev, password: undefined }));
-              }}
-              error={errors.password}
-              fullWidth
-              required
-              autoComplete="current-password"
-            />
-            {/* Forgot password link */}
-            <div className="flex justify-end">
-              <Link
-                to="#"
-                className="text-[10px] font-semibold uppercase tracking-widest text-emerald-500/60 hover:text-emerald-400 transition-colors"
-                id="forgot-password-link"
-              >
-                Forgot Password?
-              </Link>
+              <div className="space-y-1">
+                <h1 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white leading-none">
+                  e-<span className="text-amber-500 dark:text-amber-400">Reklamo</span>
+                </h1>
+                <p className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400">
+                  Sign in to operations
+                </p>
+              </div>
             </div>
 
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={isLoading || lockoutSeconds > 0}
-              className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-60 disabled:cursor-not-allowed text-[#022c1a] font-bold text-sm rounded-lg py-2.5 flex items-center justify-center gap-2 transition-colors mt-1"
-            >
-              {isLoading ? (
-                <>
-                  <svg
-                    className="w-3.5 h-3.5 animate-spin"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                  </svg>
-                  Processing...
-                </>
-              ) : (
-                lockoutSeconds > 0 ? `Try again in ${lockoutSeconds}s` : "Sign In"
-              )}
-            </button>
-          </form>
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <InputField
+                label="Username"
+                iconName="FaUser"
+                type="text"
+                name="username"
+                placeholder="Enter your username"
+                value={username}
+                autoComplete="username"
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  if (errors.username)
+                    setErrors((prev) => ({ ...prev, username: undefined }));
+                }}
+                error={errors.username}
+                fullWidth
+                required
+              />
 
-          {/* Request access */}
-          <p className="text-[11px] text-emerald-200/30 text-center">
-            Don't have an account?{" "}
-            <Link
-              to="#"
-              id="register-link"
-              className="text-emerald-400 cursor-pointer hover:underline"
-            >
-              Sign Up
-            </Link>
-          </p>
+              <PasswordInputField
+                label="Password"
+                name="password"
+                placeholder="Enter your password"
+                iconName="FaLock"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (errors.password)
+                    setErrors((prev) => ({ ...prev, password: undefined }));
+                }}
+                error={errors.password}
+                fullWidth
+                required
+                autoComplete="current-password"
+              />
 
-          {/* Footer */}
-          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-500/15">
-            © {new Date().getFullYear()} e-Reklamo • V2.4.0
-          </p>
+              <div className="flex justify-end mt-0.5">
+                <Link
+                  to="#"
+                  className="text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white transition-colors"
+                  id="forgot-password-link"
+                >
+                  Forgot Password?
+                </Link>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading || lockoutSeconds > 0}
+                className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-extrabold text-xs uppercase tracking-widest rounded-xl py-3.5 flex items-center justify-center gap-2 transition-all mt-1 shadow-md hover:scale-[1.01] active:scale-95 duration-200"
+              >
+                {isLoading ? (
+                  <>
+                    <svg
+                      className="w-3.5 h-3.5 animate-spin"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                    </svg>
+                    Processing...
+                  </>
+                ) : (
+                  lockoutSeconds > 0 ? `Try again in ${lockoutSeconds}s` : "Sign In"
+                )}
+              </button>
+            </form>
+
+            {/* Request access footer */}
+            <div className="flex flex-col items-center gap-4 text-center mt-2">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Don't have an account?{" "}
+                <Link
+                  to="#"
+                  id="register-link"
+                  className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline font-bold"
+                >
+                  Request Access
+                </Link>
+              </p>
+
+              <div className="w-16 h-px bg-slate-200 dark:bg-white/5" />
+
+              <span className="text-[8px] font-black uppercase tracking-[0.25em] text-slate-300 dark:text-white/10">
+                Authorized Access Only
+              </span>
+            </div>
+
+          </div>
+
         </div>
+
       </div>
 
       <ToastProvider />
