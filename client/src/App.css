@@ -120,4 +120,9 @@
     width: 100vw;
     background: oklch(var(--bg-dark));
   }
+
+  input:focus, input:hover, input:active, textarea:focus, textarea:hover, textarea:active {
+    outline: none !important;
+    box-shadow: none !important;
+  }
 }

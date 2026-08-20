@@ -6,6 +6,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { SymbolView } from 'expo-symbols';
 
 const { width, height } = Dimensions.get('window');
 
@@ -76,30 +77,30 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
       <Animated.View style={[styles.content, { transform: [{ scale: scaleAnim }] }]}>
         {/* Logo Container */}
         <View style={styles.logoBadge}>
-          <Animated.Image
-            source={require('../../assets/images/react-logo.png')}
-            style={[styles.logoImage, { transform: [{ rotate: spin }] }]}
-            resizeMode="contain"
-          />
+          <Animated.View style={{ transform: [{ rotate: spin }] }}>
+            <SymbolView
+              name={{ ios: 'shield.fill', android: 'shield', web: 'shield' }}
+              tintColor="#ffffff"
+              size={44}
+            />
+          </Animated.View>
         </View>
 
         {/* Brand Text */}
         <View style={styles.textContainer}>
-          <Text style={styles.brandTitle}>
-            e-<Text style={styles.brandAccent}>Reklamo</Text>
-          </Text>
+          <Text style={styles.brandTitle}>TMU Portal</Text>
           <Text style={styles.brandSubtitle}>TRAFFIC MANAGEMENT UNIT</Text>
         </View>
 
         {/* Status Badge */}
         <View style={styles.statusBadge}>
           <View style={styles.pulseDot} />
-          <Text style={styles.statusText}>SYSTEM INITIALIZING</Text>
+          <Text style={styles.statusText}>SYSTEM ONLINE</Text>
         </View>
       </Animated.View>
 
       {/* Footer Version */}
-      <Text style={styles.footerText}>© {new Date().getFullYear()} e-Reklamo • Mobile V1.0</Text>
+      <Text style={styles.footerText}>© {new Date().getFullYear()} e-Reklamo • Mobile V2.4.0</Text>
     </Animated.View>
   );
 };
@@ -107,7 +108,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: '#040c07',
+    backgroundColor: '#F8F9FC',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 99999,
@@ -115,13 +116,13 @@ const styles = StyleSheet.create({
   gridOverlay: {
     ...StyleSheet.absoluteFill,
     backgroundColor: 'transparent',
-    opacity: 0.15,
+    opacity: 0.05,
   },
   cornerBracket: {
     position: 'absolute',
     width: 36,
     height: 36,
-    borderColor: 'rgba(16, 185, 129, 0.35)',
+    borderColor: 'rgba(37, 99, 235, 0.2)',
   },
   bracketTopLeft: {
     top: 24,
@@ -161,48 +162,43 @@ const styles = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+    backgroundColor: '#2563eb',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#10b981',
+    shadowColor: '#2563eb',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.2,
     shadowRadius: 12,
     elevation: 8,
   },
   logoImage: {
     width: 54,
     height: 54,
-    tintColor: '#10b981',
   },
   textContainer: {
     alignItems: 'center',
+    gap: 4,
   },
   brandTitle: {
     fontSize: 32,
     fontWeight: '800',
-    color: '#ffffff',
+    color: '#1e3a8a',
     letterSpacing: -0.5,
-  },
-  brandAccent: {
-    color: '#10b981',
   },
   brandSubtitle: {
     fontSize: 11,
     fontWeight: '700',
-    color: 'rgba(16, 185, 129, 0.65)',
-    letterSpacing: 3,
+    color: '#64748b',
+    letterSpacing: 2,
     marginTop: 4,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    backgroundColor: '#eff6ff',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
+    borderColor: '#bfdbfe',
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 6,
@@ -211,20 +207,20 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: '#34d399',
+    backgroundColor: '#22c55e',
   },
   statusText: {
     fontSize: 10,
-    fontWeight: '700',
-    color: '#6ee7b7',
+    fontWeight: '800',
+    color: '#64748b',
     letterSpacing: 1.5,
   },
   footerText: {
     position: 'absolute',
     bottom: 30,
     fontSize: 11,
-    fontWeight: '600',
-    color: 'rgba(16, 185, 129, 0.3)',
+    fontWeight: '700',
+    color: '#cbd5e1',
     letterSpacing: 1.5,
   },
 });

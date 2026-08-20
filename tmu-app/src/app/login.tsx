@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { apiService } from '@/services/api';
 import { authStore } from '@/services/auth-store';
 
@@ -44,9 +44,8 @@ export default function LoginScreen() {
 
     if (!username.trim()) {
       newErrors.username = 'Username is required.';
-    } else if (!/^[a-zA-Z0-9._]{3,30}$/.test(username.trim())) {
-      newErrors.username =
-        'Username must be 3-30 characters (letters, numbers, dots, underscores).';
+    } else if (!/^[a-zA-Z0-9._@]{3,40}$/.test(username.trim())) {
+      newErrors.username = 'Please enter a valid username or email.';
     }
 
     if (!password.trim()) {
@@ -101,45 +100,31 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Decorative Corner Brackets */}
-          <View style={[styles.cornerBracket, styles.bracketTopLeft]} />
-          <View style={[styles.cornerBracket, styles.bracketTopRight]} />
-          <View style={[styles.cornerBracket, styles.bracketBottomLeft]} />
-          <View style={[styles.cornerBracket, styles.bracketBottomRight]} />
+          {/* Header Shield & Branding */}
+          <View style={styles.brandContainer}>
+            <View style={styles.logoBadge}>
+              <SymbolView
+                name={{ ios: 'shield.fill', android: 'shield', web: 'shield' }}
+                tintColor="#ffffff"
+                size={34}
+              />
+            </View>
 
-          {/* Login Glass Card */}
+            <View style={styles.brandTitleWrapper}>
+              <Text style={styles.brandTitle}>TMU Portal</Text>
+              <Text style={styles.brandSubtitle}>Traffic Management Unit Citizen Center</Text>
+            </View>
+          </View>
+
+          {/* Login Card */}
           <View style={styles.card}>
-            {/* Logo & Branding */}
-            <View style={styles.header}>
-              <View style={styles.logoBadge}>
-                <Image
-                  source={require('@/assets/images/react-logo.png')}
-                  style={styles.logoImage}
-                  resizeMode="contain"
-                />
-              </View>
-
-              <View style={styles.brandTitleWrapper}>
-                <Text style={styles.brandTitle}>
-                  e-<Text style={styles.brandAccent}>Reklamo</Text>
-                </Text>
-                <Text style={styles.brandSubtitle}>TRAFFIC MANAGEMENT UNIT</Text>
-              </View>
-            </View>
-
-            {/* System Status Badge */}
-            <View style={styles.statusBadge}>
-              <View style={styles.pulseDot} />
-              <Text style={styles.statusText}>SYSTEM ONLINE</Text>
-            </View>
-
-            <View style={styles.divider} />
+            <Text style={styles.cardHeader}>Welcome back</Text>
 
             {/* Form */}
             <View style={styles.form}>
               {/* Username Field */}
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>USERNAME</Text>
+                <Text style={styles.label}>Username or Email</Text>
                 <View
                   style={[
                     styles.inputContainer,
@@ -148,8 +133,8 @@ export default function LoginScreen() {
                 >
                   <TextInput
                     style={styles.input}
-                    placeholder="Enter your username"
-                    placeholderTextColor="rgba(255, 255, 255, 0.35)"
+                    placeholder="Enter your username or email"
+                    placeholderTextColor="#94a3b8"
                     value={username}
                     onChangeText={(text) => {
                       setUsername(text);
@@ -167,7 +152,7 @@ export default function LoginScreen() {
 
               {/* Password Field */}
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>PASSWORD</Text>
+                <Text style={styles.label}>Password</Text>
                 <View
                   style={[
                     styles.inputContainer,
@@ -176,8 +161,8 @@ export default function LoginScreen() {
                 >
                   <TextInput
                     style={styles.input}
-                    placeholder="Enter your password"
-                    placeholderTextColor="rgba(255, 255, 255, 0.35)"
+                    placeholder="••••••••"
+                    placeholderTextColor="#94a3b8"
                     secureTextEntry={!showPassword}
                     value={password}
                     onChangeText={(text) => {
@@ -191,9 +176,11 @@ export default function LoginScreen() {
                     onPress={() => setShowPassword(!showPassword)}
                     style={styles.togglePasswordBtn}
                   >
-                    <Text style={styles.togglePasswordText}>
-                      {showPassword ? 'HIDE' : 'SHOW'}
-                    </Text>
+                    <SymbolView
+                      name={{ ios: showPassword ? 'eye.slash.fill' : 'eye.fill', android: showPassword ? 'visibility_off' : 'visibility', web: showPassword ? 'visibility_off' : 'visibility' }}
+                      tintColor="#64748b"
+                      size={18}
+                    />
                   </Pressable>
                 </View>
                 {errors.password && (
@@ -208,7 +195,7 @@ export default function LoginScreen() {
                 }
                 style={styles.forgotBtn}
               >
-                <Text style={styles.forgotText}>FORGOT PASSWORD?</Text>
+                <Text style={styles.forgotText}>Forgot Password?</Text>
               </Pressable>
 
               {/* Submit Button */}
@@ -222,12 +209,12 @@ export default function LoginScreen() {
                 ]}
               >
                 {isLoading ? (
-                  <ActivityIndicator color="#022c1a" size="small" />
+                  <ActivityIndicator color="#ffffff" size="small" />
                 ) : (
                   <Text style={styles.submitBtnText}>
                     {lockoutSeconds > 0
-                      ? `RETRY IN ${lockoutSeconds}S`
-                      : 'SIGN IN'}
+                      ? `Retry in ${lockoutSeconds}s`
+                      : 'Login'}
                   </Text>
                 )}
               </Pressable>
@@ -235,16 +222,11 @@ export default function LoginScreen() {
 
             {/* Sign Up Link */}
             <View style={styles.signupPrompt}>
-              <Text style={styles.signupPromptText}>Don't have an account? </Text>
+              <Text style={styles.signupPromptText}>New to TMU Portal? </Text>
               <Pressable onPress={() => router.push('/register')}>
-                <Text style={styles.signupLinkText}>Sign Up</Text>
+                <Text style={styles.signupLinkText}>Register here</Text>
               </Pressable>
             </View>
-
-            {/* Footer */}
-            <Text style={styles.footerText}>
-              © {new Date().getFullYear()} e-Reklamo • V2.4.0
-            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -255,7 +237,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#040c07',
+    backgroundColor: '#F8F9FC',
   },
   keyboardView: {
     flex: 1,
@@ -265,194 +247,138 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 30,
+    paddingVertical: 40,
   },
-  cornerBracket: {
-    position: 'absolute',
-    width: 32,
-    height: 32,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
+  brandContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
+    gap: 16,
   },
-  bracketTopLeft: {
-    top: 16,
-    left: 16,
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-    borderTopLeftRadius: 6,
+  logoBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    backgroundColor: '#2563eb',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  bracketTopRight: {
-    top: 16,
-    right: 16,
-    borderTopWidth: 2,
-    borderRightWidth: 2,
-    borderTopRightRadius: 6,
+  brandTitleWrapper: {
+    alignItems: 'center',
+    gap: 4,
   },
-  bracketBottomLeft: {
-    bottom: 16,
-    left: 16,
-    borderBottomWidth: 2,
-    borderLeftWidth: 2,
-    borderBottomLeftRadius: 6,
+  brandTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#1e3a8a',
+    letterSpacing: -0.5,
   },
-  bracketBottomRight: {
-    bottom: 16,
-    right: 16,
-    borderBottomWidth: 2,
-    borderRightWidth: 2,
-    borderBottomRightRadius: 6,
+  brandSubtitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748b',
+    textAlign: 'center',
   },
   card: {
     width: '100%',
     maxWidth: 380,
-    backgroundColor: 'rgba(16, 185, 129, 0.04)',
+    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.2)',
-    borderRadius: 20,
+    borderColor: '#e2e8f0',
+    borderRadius: 24,
     padding: 24,
     alignItems: 'center',
-    gap: 16,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 3,
+    gap: 20,
   },
-  header: {
-    alignItems: 'center',
-    gap: 12,
-  },
-  logoBadge: {
-    width: 58,
-    height: 58,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-    backgroundColor: 'rgba(16, 185, 129, 0.07)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoImage: {
-    width: 34,
-    height: 34,
-    tintColor: '#10b981',
-  },
-  brandTitleWrapper: {
-    alignItems: 'center',
-  },
-  brandTitle: {
-    fontSize: 26,
+  cardHeader: {
+    fontSize: 22,
     fontWeight: '800',
-    color: '#ffffff',
+    color: '#0f172a',
+    alignSelf: 'flex-start',
     letterSpacing: -0.5,
-  },
-  brandAccent: {
-    color: '#10b981',
-  },
-  brandSubtitle: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: 'rgba(16, 185, 129, 0.55)',
-    letterSpacing: 3,
-    marginTop: 2,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.2)',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-  },
-  pulseDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#34d399',
-  },
-  statusText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: 'rgba(110, 231, 183, 0.9)',
-    letterSpacing: 1.5,
-  },
-  divider: {
-    width: '100%',
-    height: 1,
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
   },
   form: {
     width: '100%',
-    gap: 14,
+    gap: 16,
   },
   inputGroup: {
     width: '100%',
-    gap: 6,
+    gap: 8,
   },
   label: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '700',
-    color: 'rgba(16, 185, 129, 0.75)',
-    letterSpacing: 1,
+    color: '#334155',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 46,
+    borderColor: '#cbd5e1',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 48,
   },
   inputError: {
     borderColor: '#ef4444',
   },
   input: {
     flex: 1,
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 14,
+    fontWeight: '500',
+    outlineStyle: 'none' as any,
   },
   errorText: {
-    color: '#f87171',
+    color: '#ef4444',
     fontSize: 11,
-    marginTop: 2,
+    fontWeight: '600',
   },
   togglePasswordBtn: {
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
     paddingVertical: 4,
-  },
-  togglePasswordText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#10b981',
-    letterSpacing: 1,
   },
   forgotBtn: {
     alignSelf: 'flex-end',
   },
   forgotText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '700',
-    color: 'rgba(16, 185, 129, 0.6)',
-    letterSpacing: 1,
+    color: '#2563eb',
   },
   submitBtn: {
-    backgroundColor: '#10b981',
-    borderRadius: 10,
-    height: 46,
+    backgroundColor: '#2563eb',
+    borderRadius: 12,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
+    marginTop: 8,
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
   },
   submitBtnPressed: {
-    backgroundColor: '#059669',
+    backgroundColor: '#1d4ed8',
   },
   submitBtnDisabled: {
     opacity: 0.5,
   },
   submitBtnText: {
-    color: '#022c1a',
-    fontSize: 13,
+    color: '#ffffff',
+    fontSize: 14,
     fontWeight: '800',
-    letterSpacing: 1,
   },
   signupPrompt: {
     flexDirection: 'row',
@@ -461,19 +387,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   signupPromptText: {
-    fontSize: 12,
-    color: 'rgba(167, 243, 208, 0.4)',
+    fontSize: 13,
+    color: '#64748b',
+    fontWeight: '500',
   },
   signupLinkText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#34d399',
-  },
-  footerText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: 'rgba(16, 185, 129, 0.2)',
-    letterSpacing: 1,
-    marginTop: 6,
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#2563eb',
   },
 });

@@ -29,10 +29,10 @@ interface CategoryOption {
 }
 
 const VIOLATION_CATEGORIES: CategoryOption[] = [
-  { id: '1', name: 'Speeding', code: 'SPEEDING' },
-  { id: '2', name: 'Overcharging Fare', code: 'OVERCHARGE' },
-  { id: '3', name: 'Route Deviation', code: 'DEVIATION' },
-  { id: '4', name: 'Reckless Driving', code: 'RECKLESS' },
+  { id: '1', name: 'Reckless Driving (Aggressive lane splitting)', code: 'RECKLESS' },
+  { id: '2', name: 'Speeding', code: 'SPEEDING' },
+  { id: '3', name: 'Overcharging Fare', code: 'OVERCHARGE' },
+  { id: '4', name: 'Route Deviation', code: 'DEVIATION' },
 ];
 
 interface EvidenceItem {
@@ -43,7 +43,6 @@ interface EvidenceItem {
 
 export default function ComplaintFormScreen() {
   const router = useRouter();
-
   const currentUser = authStore.getUser();
 
   const [title, setTitle] = useState('');
@@ -68,17 +67,6 @@ export default function ComplaintFormScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const formatDateTimeDisplay = (date: Date): string => {
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    });
-  };
-
   const handleDateChange = (event: any, selectedDate?: Date) => {
     if (event.type === 'dismissed') {
       setShowDatePicker(false);
@@ -88,7 +76,6 @@ export default function ComplaintFormScreen() {
     if (selectedDate) {
       setIncidentDate(selectedDate);
       if (Platform.OS === 'android' && datePickerMode === 'date') {
-        // Switch to time mode on Android after date selection
         setDatePickerMode('time');
       } else {
         setShowDatePicker(false);
@@ -155,19 +142,19 @@ export default function ComplaintFormScreen() {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission Required', 'Permission to access media library is required.');
+        Alert.alert('Permission Required', 'Library permission is required to select files.');
         return;
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.All,
-        quality: 0.8,
         allowsMultipleSelection: false,
+        quality: 0.8,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
-        const isVideo = asset.type === 'video' || asset.uri.endsWith('.mp4') || asset.uri.endsWith('.mov');
+        const isVideo = asset.type === 'video';
         const newMedia: EvidenceItem = {
           uri: asset.uri,
           type: isVideo ? 'video' : 'image',
@@ -176,13 +163,13 @@ export default function ComplaintFormScreen() {
 
         setEvidenceList((prev) => [...prev, newMedia].slice(0, 3));
       }
-    } catch (err: any) {
-      console.warn('Gallery picker error:', err);
+    } catch (err) {
+      console.warn('Gallery selection error:', err);
     }
   };
 
   const handleRemoveMedia = (index: number) => {
-    setEvidenceList((prev) => prev.filter((_, i) => i !== index));
+    setEvidenceList((prev) => prev.filter((_, idx) => idx !== index));
   };
 
   const validate = () => {
@@ -193,7 +180,7 @@ export default function ComplaintFormScreen() {
     }
 
     if (!complainantAddress.trim()) {
-      newErrors.complainantAddress = 'Complainant address is required.';
+      newErrors.complainantAddress = 'Address is required.';
     }
 
     if (!contactNumber.trim()) {
@@ -272,6 +259,8 @@ export default function ComplaintFormScreen() {
     }
   };
 
+  const displayName = currentUser ? `${currentUser.first_name} ${currentUser.last_name}` : 'John Doe';
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
@@ -282,13 +271,15 @@ export default function ComplaintFormScreen() {
         <View style={styles.topBar}>
           <Pressable onPress={handleGoBack} style={styles.backBtn}>
             <SymbolView
-              name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }}
-              tintColor="#10b981"
+              name={{ ios: 'arrow.left', android: 'arrow_back', web: 'arrow_back' }}
+              tintColor="#2563eb"
               size={22}
             />
           </Pressable>
-          <Text style={styles.topBarTitle}>File a Complaint</Text>
-          <View style={{ width: 32 }} />
+          <Text style={styles.topBarTitle}>File Traffic Complaint</Text>
+          <View style={styles.civicBadge}>
+            <Text style={styles.civicBadgeText}>CIVIC</Text>
+          </View>
         </View>
 
         <ScrollView
@@ -297,267 +288,244 @@ export default function ComplaintFormScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.card}>
-            <Text style={styles.sectionHeader}>COMPLAINT DETAILS</Text>
+            {/* Section 1: Complainant Info */}
+            <View style={styles.section}>
+              <Text style={styles.sectionHeader}>1. COMPLAINANT INFO</Text>
 
-            {/* Title */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>COMPLAINT SUBJECT / TITLE *</Text>
-              <View style={[styles.inputContainer, errors.title && styles.inputError]}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. Overcharged on tricycle fare"
-                  placeholderTextColor="rgba(255, 255, 255, 0.35)"
-                  value={title}
-                  onChangeText={(t) => {
-                    setTitle(t);
-                    if (errors.title) setErrors((prev) => ({ ...prev, title: '' }));
-                  }}
-                />
-              </View>
-              {!!errors.title && <Text style={styles.errorText}>{errors.title}</Text>}
-            </View>
-
-            {/* Complainant Address */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>COMPLAINANT ADDRESS *</Text>
-              <View style={[styles.inputContainer, errors.complainantAddress && styles.inputError]}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. Brgy. San Jose, Pasig City"
-                  placeholderTextColor="rgba(255, 255, 255, 0.35)"
-                  value={complainantAddress}
-                  onChangeText={(t) => {
-                    setComplainantAddress(t);
-                    if (errors.complainantAddress) setErrors((prev) => ({ ...prev, complainantAddress: '' }));
-                  }}
-                />
-              </View>
-              {!!errors.complainantAddress && <Text style={styles.errorText}>{errors.complainantAddress}</Text>}
-            </View>
-
-            {/* Contact Number */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>CONTACT NUMBER *</Text>
-              <View style={[styles.inputContainer, errors.contactNumber && styles.inputError]}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. 09123456789"
-                  placeholderTextColor="rgba(255, 255, 255, 0.35)"
-                  keyboardType="phone-pad"
-                  value={contactNumber}
-                  onChangeText={(t) => {
-                    setContactNumber(t);
-                    if (errors.contactNumber) setErrors((prev) => ({ ...prev, contactNumber: '' }));
-                  }}
-                />
-              </View>
-              {!!errors.contactNumber && <Text style={styles.errorText}>{errors.contactNumber}</Text>}
-            </View>
-
-            {/* Violation Category Dropdown Menu */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>VIOLATION CATEGORY *</Text>
-              <Pressable
-                onPress={() => setIsCategoryModalVisible(true)}
-                style={styles.dropdownContainer}
-              >
-                <Text style={styles.dropdownSelectedText}>{selectedCategory.name}</Text>
-                <SymbolView
-                  name={{ ios: 'chevron.down', android: 'arrow_drop_down', web: 'arrow_drop_down' }}
-                  tintColor="#10b981"
-                  size={20}
-                />
-              </Pressable>
-            </View>
-
-            {/* Driver First Name */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>DRIVER FIRST NAME</Text>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. Juan (optional)"
-                  placeholderTextColor="rgba(255, 255, 255, 0.35)"
-                  value={driverFirstName}
-                  onChangeText={setDriverFirstName}
-                />
-              </View>
-            </View>
-
-            {/* Driver Last Name */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>DRIVER LAST NAME</Text>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. Dela Cruz (optional)"
-                  placeholderTextColor="rgba(255, 255, 255, 0.35)"
-                  value={driverLastName}
-                  onChangeText={setDriverLastName}
-                />
-              </View>
-            </View>
-
-            {/* Plate / Vehicle Number */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>DRIVER PLATE / BODY NUMBER *</Text>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. ABC-123 or Body #45"
-                  placeholderTextColor="rgba(255, 255, 255, 0.35)"
-                  autoCapitalize="characters"
-                  value={plateNumber}
-                  onChangeText={setPlateNumber}
-                />
-              </View>
-            </View>
-
-            {/* Incident Location & Date */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>INCIDENT LOCATION *</Text>
-              <View style={[styles.inputContainer, errors.incidentLocation && styles.inputError]}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Street name, landmark, city"
-                  placeholderTextColor="rgba(255, 255, 255, 0.35)"
-                  value={incidentLocation}
-                  onChangeText={(t) => {
-                    setIncidentLocation(t);
-                    if (errors.incidentLocation) setErrors((prev) => ({ ...prev, incidentLocation: '' }));
-                  }}
-                />
-              </View>
-              {!!errors.incidentLocation && <Text style={styles.errorText}>{errors.incidentLocation}</Text>}
-            </View>
-
-            {/* Date & Time Picker */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>DATE & TIME OF INCIDENT *</Text>
-              <View style={styles.pickerRow}>
-                <Pressable
-                  onPress={() => openDateTimePicker('date')}
-                  style={styles.datePickerBtn}
-                >
-                  <SymbolView
-                    name={{ ios: 'calendar', android: 'calendar_today', web: 'calendar_today' }}
-                    tintColor="#10b981"
-                    size={18}
+              {/* Full Name (Prefilled/Disabled Look) */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Full Name</Text>
+                <View style={[styles.inputContainer, styles.disabledInput]}>
+                  <TextInput
+                    style={[styles.input, styles.disabledInputText]}
+                    value={displayName}
+                    editable={false}
                   />
-                  <Text style={styles.pickerBtnText}>
-                    {incidentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </Text>
-                </Pressable>
-
-                <Pressable
-                  onPress={() => openDateTimePicker('time')}
-                  style={styles.timePickerBtn}
-                >
-                  <SymbolView
-                    name={{ ios: 'clock.fill', android: 'access_time', web: 'access_time' }}
-                    tintColor="#10b981"
-                    size={18}
-                  />
-                  <Text style={styles.pickerBtnText}>
-                    {incidentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
-                  </Text>
-                </Pressable>
-              </View>
-
-              {/* DateTimePicker Dialog / Popup */}
-              {showDatePicker && (
-                <DateTimePicker
-                  value={incidentDate}
-                  mode={datePickerMode}
-                  is24Hour={false}
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={handleDateChange}
-                />
-              )}
-            </View>
-
-            {/* Description */}
-            <View style={styles.inputGroup}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={styles.label}>INCIDENT DESCRIPTION *</Text>
-                <Text style={{ fontSize: 9, color: 'rgba(16, 185, 129, 0.7)', fontWeight: '600' }}>
-                  Preset: "Color: Red"
-                </Text>
-              </View>
-
-              <View style={[styles.textAreaContainer, errors.description && styles.inputError]}>
-                <TextInput
-                  style={styles.textArea}
-                  placeholder="Color: Red&#10;"
-                  placeholderTextColor="rgba(255, 255, 255, 0.35)"
-                  multiline
-                  numberOfLines={5}
-                  textAlignVertical="top"
-                  value={description}
-                  onChangeText={(t) => {
-                    setDescription(t);
-                    if (errors.description) setErrors((prev) => ({ ...prev, description: '' }));
-                  }}
-                />
-              </View>
-              {!!errors.description && <Text style={styles.errorText}>{errors.description}</Text>}
-            </View>
-
-            {/* Evidence Media Upload (Limited to 3) */}
-            <View style={styles.inputGroup}>
-              <View style={styles.evidenceHeaderRow}>
-                <Text style={styles.label}>EVIDENCE (IMAGE / VIDEO)</Text>
-                <Text style={styles.evidenceCounterText}>{evidenceList.length} / 3 Max</Text>
-              </View>
-
-              {/* Media Thumbnails Grid */}
-              {evidenceList.length > 0 && (
-                <View style={styles.mediaGrid}>
-                  {evidenceList.map((item, idx) => (
-                    <View key={idx} style={styles.mediaItem}>
-                      {item.type === 'image' ? (
-                        <Image source={{ uri: item.uri }} style={styles.mediaThumbnail} />
-                      ) : (
-                        <View style={styles.videoPlaceholder}>
-                          <SymbolView
-                            name={{ ios: 'video.fill', android: 'videocam', web: 'videocam' }}
-                            tintColor="#10b981"
-                            size={24}
-                          />
-                          <Text style={styles.videoTag}>VIDEO</Text>
-                        </View>
-                      )}
-
-                      <Pressable
-                        onPress={() => handleRemoveMedia(idx)}
-                        style={styles.removeMediaBtn}
-                      >
-                        <Text style={styles.removeMediaText}>✕</Text>
-                      </Pressable>
-                    </View>
-                  ))}
                 </View>
-              )}
+              </View>
 
-              {/* Add Media Button */}
-              {evidenceList.length < 3 && (
+              {/* Address */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Address *</Text>
+                <View style={[styles.inputContainer, errors.complainantAddress && styles.inputError]}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter complete home address"
+                    placeholderTextColor="#94a3b8"
+                    value={complainantAddress}
+                    onChangeText={(t) => {
+                      setComplainantAddress(t);
+                      if (errors.complainantAddress) setErrors((prev) => ({ ...prev, complainantAddress: '' }));
+                    }}
+                  />
+                </View>
+                {!!errors.complainantAddress && <Text style={styles.errorText}>{errors.complainantAddress}</Text>}
+              </View>
+
+              {/* Contact Number */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Contact Number *</Text>
+                <View style={[styles.inputContainer, errors.contactNumber && styles.inputError]}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="+63 917 123 4567"
+                    placeholderTextColor="#94a3b8"
+                    keyboardType="phone-pad"
+                    value={contactNumber}
+                    onChangeText={(t) => {
+                      setContactNumber(t);
+                      if (errors.contactNumber) setErrors((prev) => ({ ...prev, contactNumber: '' }));
+                    }}
+                  />
+                </View>
+                {!!errors.contactNumber && <Text style={styles.errorText}>{errors.contactNumber}</Text>}
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            {/* Section 2: Incident Details */}
+            <View style={styles.section}>
+              <Text style={styles.sectionHeader}>2. INCIDENT DETAILS</Text>
+
+              {/* Subject Title */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Subject Title *</Text>
+                <View style={[styles.inputContainer, errors.title && styles.inputError]}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g. Dangerous Overtaking near Highway"
+                    placeholderTextColor="#94a3b8"
+                    value={title}
+                    onChangeText={(t) => {
+                      setTitle(t);
+                      if (errors.title) setErrors((prev) => ({ ...prev, title: '' }));
+                    }}
+                  />
+                </View>
+                {!!errors.title && <Text style={styles.errorText}>{errors.title}</Text>}
+              </View>
+
+              {/* Violation Category Dropdown Menu */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Violation Category *</Text>
                 <Pressable
-                  onPress={handleOpenMediaSourcePicker}
-                  style={({ pressed }) => [
-                    styles.addMediaBtn,
-                    pressed && styles.addMediaBtnPressed,
-                  ]}
+                  onPress={() => setIsCategoryModalVisible(true)}
+                  style={styles.dropdownContainer}
                 >
+                  <Text style={styles.dropdownSelectedText}>{selectedCategory.name}</Text>
                   <SymbolView
-                    name={{ ios: 'photo.badge.plus', android: 'add_photo_alternate', web: 'add_photo_alternate' }}
-                    tintColor="#10b981"
+                    name={{ ios: 'chevron.down', android: 'arrow_drop_down', web: 'arrow_drop_down' }}
+                    tintColor="#64748b"
                     size={20}
                   />
-                  <Text style={styles.addMediaBtnText}>
-                    + Add Photo or Video ({3 - evidenceList.length} remaining)
-                  </Text>
                 </Pressable>
-              )}
+              </View>
+
+              {/* Driver Plate / Body Number */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Driver Plate / Body Number</Text>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g. ABC 1234"
+                    placeholderTextColor="#94a3b8"
+                    autoCapitalize="characters"
+                    value={plateNumber}
+                    onChangeText={setPlateNumber}
+                  />
+                </View>
+              </View>
+
+              {/* Incident Location */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Incident Location *</Text>
+                <View style={[styles.inputContainer, errors.incidentLocation && styles.inputError]}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g. Ayala Avenue corner Makati Ave"
+                    placeholderTextColor="#94a3b8"
+                    value={incidentLocation}
+                    onChangeText={(t) => {
+                      setIncidentLocation(t);
+                      if (errors.incidentLocation) setErrors((prev) => ({ ...prev, incidentLocation: '' }));
+                    }}
+                  />
+                </View>
+                {!!errors.incidentLocation && <Text style={styles.errorText}>{errors.incidentLocation}</Text>}
+              </View>
+
+              {/* Date & Time Picker */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Date & Time *</Text>
+                <View style={styles.pickerRow}>
+                  <Pressable
+                    onPress={() => openDateTimePicker('date')}
+                    style={styles.datePickerBtn}
+                  >
+                    <SymbolView
+                      name={{ ios: 'calendar', android: 'calendar_today', web: 'calendar_today' }}
+                      tintColor="#2563eb"
+                      size={18}
+                    />
+                    <Text style={styles.pickerBtnText}>
+                      {incidentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    onPress={() => openDateTimePicker('time')}
+                    style={styles.timePickerBtn}
+                  >
+                    <SymbolView
+                      name={{ ios: 'clock.fill', android: 'access_time', web: 'access_time' }}
+                      tintColor="#2563eb"
+                      size={18}
+                    />
+                    <Text style={styles.pickerBtnText}>
+                      {incidentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                    </Text>
+                  </Pressable>
+                </View>
+
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={incidentDate}
+                    mode={datePickerMode}
+                    is24Hour={false}
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={handleDateChange}
+                  />
+                )}
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            {/* Section 3: Evidence Upload */}
+            <View style={styles.section}>
+              <Text style={styles.sectionHeader}>3. EVIDENCE UPLOAD</Text>
+              <Text style={styles.evidenceSubtitle}>
+                Upload clear photos or video footage showing vehicle plates/violations. Maximum 3 files.
+              </Text>
+
+              {/* Horizontal Upload Row */}
+              <View style={styles.uploadRow}>
+                {evidenceList.map((item, idx) => (
+                  <View key={idx} style={styles.mediaItem}>
+                    {item.type === 'image' ? (
+                      <Image source={{ uri: item.uri }} style={styles.mediaThumbnail} />
+                    ) : (
+                      <View style={styles.videoPlaceholder}>
+                        <SymbolView
+                          name={{ ios: 'video.fill', android: 'videocam', web: 'videocam' }}
+                          tintColor="#2563eb"
+                          size={24}
+                        />
+                        <Text style={styles.videoTag}>VIDEO</Text>
+                      </View>
+                    )}
+                    <Pressable
+                      onPress={() => handleRemoveMedia(idx)}
+                      style={styles.removeMediaBtn}
+                    >
+                      <SymbolView
+                        name={{ ios: 'xmark.circle.fill', android: 'cancel', web: 'cancel' }}
+                        tintColor="#ef4444"
+                        size={18}
+                      />
+                    </Pressable>
+                  </View>
+                ))}
+
+                {evidenceList.length < 3 && (
+                  <Pressable
+                    onPress={() => handleLaunchCamera('photo')}
+                    style={styles.addMediaSlotBtn}
+                  >
+                    <SymbolView
+                      name={{ ios: 'camera.fill', android: 'photo_camera', web: 'photo_camera' }}
+                      tintColor="#2563eb"
+                      size={20}
+                    />
+                    <Text style={styles.addMediaSlotText}>Upload</Text>
+                  </Pressable>
+                )}
+
+                {evidenceList.length < 3 && (
+                  <Pressable
+                    onPress={() => handleLaunchCamera('video')}
+                    style={styles.addMediaSlotBtn}
+                  >
+                    <SymbolView
+                      name={{ ios: 'video.fill', android: 'videocam', web: 'videocam' }}
+                      tintColor="#2563eb"
+                      size={20}
+                    />
+                    <Text style={styles.addMediaSlotText}>Video</Text>
+                  </Pressable>
+                )}
+              </View>
             </View>
 
             {/* Submit Button */}
@@ -571,9 +539,9 @@ export default function ComplaintFormScreen() {
               ]}
             >
               {isSubmitting ? (
-                <ActivityIndicator color="#022c1a" size="small" />
+                <ActivityIndicator color="#ffffff" size="small" />
               ) : (
-                <Text style={styles.submitBtnText}>SUBMIT COMPLAINT</Text>
+                <Text style={styles.submitBtnText}>Submit Complaint</Text>
               )}
             </Pressable>
           </View>
@@ -594,7 +562,7 @@ export default function ComplaintFormScreen() {
           <View style={styles.categoryDropdownModal}>
             <Text style={styles.dropdownModalTitle}>Select Violation Category</Text>
 
-            <ScrollView style={{ maxHeight: 320 }}>
+            <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
               {VIOLATION_CATEGORIES.map((cat) => (
                 <Pressable
                   key={cat.id}
@@ -618,7 +586,7 @@ export default function ComplaintFormScreen() {
                   {selectedCategory.id === cat.id && (
                     <SymbolView
                       name={{ ios: 'checkmark', android: 'check', web: 'check' }}
-                      tintColor="#10b981"
+                      tintColor="#2563eb"
                       size={18}
                     />
                   )}
@@ -653,7 +621,7 @@ export default function ComplaintFormScreen() {
             >
               <SymbolView
                 name={{ ios: 'camera.fill', android: 'photo_camera', web: 'photo_camera' }}
-                tintColor="#10b981"
+                tintColor="#2563eb"
                 size={22}
               />
               <View>
@@ -671,7 +639,7 @@ export default function ComplaintFormScreen() {
             >
               <SymbolView
                 name={{ ios: 'video.fill', android: 'videocam', web: 'videocam' }}
-                tintColor="#10b981"
+                tintColor="#2563eb"
                 size={22}
               />
               <View>
@@ -689,7 +657,7 @@ export default function ComplaintFormScreen() {
             >
               <SymbolView
                 name={{ ios: 'photo.on.rectangle.angled', android: 'collections', web: 'collections' }}
-                tintColor="#10b981"
+                tintColor="#2563eb"
                 size={22}
               />
               <View>
@@ -714,183 +682,200 @@ export default function ComplaintFormScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#040c07',
+    backgroundColor: '#F8F9FC',
   },
   keyboardView: {
     flex: 1,
   },
   topBar: {
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(16, 185, 129, 0.15)',
+    borderBottomColor: '#e2e8f0',
   },
   backBtn: {
-    padding: 6,
+    padding: 4,
   },
   topBarTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '800',
-    color: '#ffffff',
+    color: '#0f172a',
+    letterSpacing: -0.5,
+  },
+  civicBadge: {
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  civicBadgeText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#d97706',
+    letterSpacing: 1,
   },
   scrollContent: {
     paddingHorizontal: 16,
     paddingVertical: 20,
+    paddingBottom: 40,
   },
   card: {
-    backgroundColor: 'rgba(16, 185, 129, 0.04)',
+    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.2)',
-    borderRadius: 20,
+    borderColor: '#e2e8f0',
+    borderRadius: 24,
     padding: 20,
-    gap: 16,
+    gap: 20,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  divider: {
+    width: '100%',
+    height: 1,
+    backgroundColor: '#e2e8f0',
+  },
+  section: {
+    gap: 14,
   },
   sectionHeader: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#10b981',
-    letterSpacing: 1.5,
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#1e3a8a',
+    letterSpacing: 1,
   },
   inputGroup: {
     gap: 6,
   },
   label: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '700',
-    color: 'rgba(16, 185, 129, 0.75)',
-    letterSpacing: 1,
+    color: '#334155',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 46,
+    borderColor: '#cbd5e1',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 48,
+  },
+  disabledInput: {
+    backgroundColor: '#f1f5f9',
+    borderColor: '#e2e8f0',
+  },
+  disabledInputText: {
+    color: '#64748b',
+    fontWeight: '600',
   },
   dropdownContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 46,
+    borderColor: '#cbd5e1',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 48,
   },
   dropdownSelectedText: {
-    fontSize: 13,
-    color: '#ffffff',
+    fontSize: 14,
+    color: '#0f172a',
     fontWeight: '600',
   },
   pickerRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
   },
   datePickerBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-    borderRadius: 10,
+    borderColor: '#cbd5e1',
+    borderRadius: 12,
     paddingHorizontal: 12,
-    height: 46,
+    height: 48,
   },
   timePickerBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-    borderRadius: 10,
+    borderColor: '#cbd5e1',
+    borderRadius: 12,
     paddingHorizontal: 12,
-    height: 46,
+    height: 48,
   },
   pickerBtnText: {
-    fontSize: 12,
-    color: '#ffffff',
+    fontSize: 13,
+    color: '#334155',
     fontWeight: '600',
-  },
-  textAreaContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    height: 96,
   },
   inputError: {
     borderColor: '#ef4444',
   },
   input: {
     flex: 1,
-    color: '#ffffff',
-    fontSize: 13,
-  },
-  textArea: {
-    flex: 1,
-    color: '#ffffff',
-    fontSize: 13,
+    color: '#0f172a',
+    fontSize: 14,
+    fontWeight: '500',
+    outlineStyle: 'none' as any,
   },
   errorText: {
-    color: '#f87171',
-    fontSize: 10,
+    color: '#ef4444',
+    fontSize: 11,
+    fontWeight: '600',
   },
-  evidenceHeaderRow: {
+  evidenceSubtitle: {
+    fontSize: 12,
+    color: '#64748b',
+    lineHeight: 16,
+    fontWeight: '500',
+  },
+  uploadRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    gap: 12,
+    paddingTop: 4,
   },
-  evidenceCounterText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#34d399',
-  },
-  addMediaBtn: {
-    flexDirection: 'row',
+  addMediaSlotBtn: {
+    flex: 1,
+    aspectRatio: 1.1,
+    borderWidth: 1.5,
+    borderColor: '#2563eb',
+    borderStyle: 'dashed',
+    borderRadius: 16,
+    backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-    borderStyle: 'dashed',
-    borderRadius: 12,
-    height: 46,
+    gap: 6,
   },
-  addMediaBtnPressed: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-  },
-  addMediaBtnText: {
+  addMediaSlotText: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#34d399',
-  },
-  mediaGrid: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 6,
+    fontWeight: '800',
+    color: '#2563eb',
   },
   mediaItem: {
     position: 'relative',
-    width: 80,
-    height: 80,
-    borderRadius: 12,
+    flex: 1,
+    aspectRatio: 1.1,
+    borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderColor: '#cbd5e1',
   },
   mediaThumbnail: {
     width: '100%',
@@ -898,55 +883,49 @@ const styles = StyleSheet.create({
   },
   videoPlaceholder: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: '#f1f5f9',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
+    gap: 4,
   },
   videoTag: {
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: '800',
-    color: '#34d399',
+    color: '#2563eb',
   },
   removeMediaBtn: {
     position: 'absolute',
     top: 4,
     right: 4,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: 'rgba(239, 68, 68, 0.85)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  removeMediaText: {
-    color: '#ffffff',
-    fontSize: 10,
-    fontWeight: '800',
+    zIndex: 99,
   },
   submitBtn: {
-    backgroundColor: '#10b981',
+    backgroundColor: '#d97706',
     borderRadius: 12,
     height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    marginTop: 10,
+    shadowColor: '#d97706',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
   },
   submitBtnPressed: {
-    backgroundColor: '#059669',
+    opacity: 0.9,
   },
   submitBtnDisabled: {
     opacity: 0.5,
   },
   submitBtnText: {
-    color: '#022c1a',
-    fontSize: 13,
+    color: '#ffffff',
+    fontSize: 14,
     fontWeight: '800',
-    letterSpacing: 1,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
@@ -954,20 +933,26 @@ const styles = StyleSheet.create({
   categoryDropdownModal: {
     width: '100%',
     maxWidth: 360,
-    backgroundColor: '#07160d',
+    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
-    borderRadius: 20,
+    borderColor: '#e2e8f0',
+    borderRadius: 24,
     padding: 20,
     gap: 12,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 6,
   },
   dropdownModalTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '800',
-    color: '#ffffff',
-    paddingBottom: 8,
+    color: '#0f172a',
+    paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(16, 185, 129, 0.15)',
+    borderBottomColor: '#f1f5f9',
+    letterSpacing: -0.2,
   },
   dropdownOption: {
     flexDirection: 'row',
@@ -976,61 +961,68 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 8,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(16, 185, 129, 0.08)',
+    borderBottomColor: '#f8fafc',
   },
   dropdownOptionSelected: {
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+    backgroundColor: '#f1f5f9',
     borderRadius: 8,
   },
   dropdownOptionText: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.75)',
+    fontSize: 14,
+    color: '#334155',
+    fontWeight: '500',
+    maxWidth: '85%',
   },
   dropdownOptionTextSelected: {
-    color: '#10b981',
-    fontWeight: '800',
+    color: '#2563eb',
+    fontWeight: '700',
   },
   mediaSourceModal: {
     width: '100%',
     maxWidth: 360,
-    backgroundColor: '#07160d',
+    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
-    borderRadius: 20,
+    borderColor: '#e2e8f0',
+    borderRadius: 24,
     padding: 20,
     gap: 12,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 6,
   },
   mediaSourceTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#ffffff',
+    color: '#0f172a',
   },
   mediaSourceSub: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: 12,
+    color: '#64748b',
     marginBottom: 4,
   },
   sourceOptionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: 'rgba(16, 185, 129, 0.06)',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-    borderRadius: 14,
+    borderColor: '#e2e8f0',
+    borderRadius: 16,
     padding: 14,
   },
   sourceOptionBtnPressed: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: '#f1f5f9',
   },
   sourceOptionTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#ffffff',
+    color: '#0f172a',
   },
   sourceOptionSub: {
-    fontSize: 10,
-    color: 'rgba(16, 185, 129, 0.7)',
+    fontSize: 11,
+    color: '#64748b',
     marginTop: 2,
   },
   cancelSourceBtn: {
@@ -1040,8 +1032,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   cancelSourceText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: '#64748b',
   },
 });

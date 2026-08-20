@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { apiService } from '@/services/api';
 
 export default function RegisterScreen() {
@@ -30,6 +30,7 @@ export default function RegisterScreen() {
   const [address, setAddress] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isCertified, setIsCertified] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,15 +48,21 @@ export default function RegisterScreen() {
       newErrors.lastName = 'Last name is required.';
     }
 
+    if (!phone.trim()) {
+      newErrors.phone = 'Phone number is required.';
+    }
+
+    if (!email.trim()) {
+      newErrors.email = 'Email address is required.';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      newErrors.email = 'Please enter a valid email address.';
+    }
+
     if (!username.trim()) {
       newErrors.username = 'Username is required.';
     } else if (!/^[a-zA-Z0-9._]{3,30}$/.test(username.trim())) {
       newErrors.username =
         'Username must be 3-30 characters (letters, numbers, dots, underscores).';
-    }
-
-    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      newErrors.email = 'Please enter a valid email address.';
     }
 
     if (!password) {
@@ -66,6 +73,11 @@ export default function RegisterScreen() {
 
     if (password !== confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match.';
+    }
+
+    if (!isCertified) {
+      Alert.alert('Verification Required', 'Please certify that all submitted information is true, complete, and legally valid.');
+      return false;
     }
 
     setErrors(newErrors);
@@ -107,6 +119,21 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* Custom Mockup Navigation Header */}
+      <View style={styles.navHeader}>
+        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+          <SymbolView
+            name={{ ios: 'arrow.left', android: 'arrow_back', web: 'arrow_back' }}
+            tintColor="#2563eb"
+            size={22}
+          />
+        </Pressable>
+        <Text style={styles.navTitle}>Create Civic Account</Text>
+        <View style={styles.civicBadge}>
+          <Text style={styles.civicBadgeText}>CIVIC</Text>
+        </View>
+      </View>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -116,38 +143,28 @@ export default function RegisterScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Main Card */}
+          <View style={styles.bodyHeader}>
+            <Text style={styles.bodyTitle}>Complainant Verification Profile</Text>
+            <Text style={styles.bodySubtitle}>
+              Provide accurate credentials. To ensure lawful prosecution of traffic incidents, TMU mandates citizen identity verification.
+            </Text>
+          </View>
+
+          {/* Form Scroll Container */}
           <View style={styles.card}>
-            {/* Header */}
-            <View style={styles.header}>
-              <View style={styles.logoBadge}>
-                <Image
-                  source={require('@/assets/images/react-logo.png')}
-                  style={styles.logoImage}
-                  resizeMode="contain"
-                />
-              </View>
-              <View style={styles.headerTextContainer}>
-                <Text style={styles.title}>Citizen Registration</Text>
-                <Text style={styles.subtitle}>Create your e-Reklamo TMU account</Text>
-              </View>
-            </View>
-
-            <View style={styles.divider} />
-
             {/* Section 1: Personal Details */}
             <View style={styles.section}>
-              <Text style={styles.sectionHeader}>PERSONAL DETAILS</Text>
+              <Text style={styles.sectionHeader}>1. PERSONAL DETAILS</Text>
 
               {/* First Name & Middle Name */}
               <View style={styles.row}>
-                <View style={[styles.inputGroup, styles.flex1]}>
-                  <Text style={styles.label}>FIRST NAME *</Text>
+                <View style={[styles.inputGroup, styles.flex2]}>
+                  <Text style={styles.label}>First Name *</Text>
                   <View style={[styles.inputContainer, errors.firstName && styles.inputError]}>
                     <TextInput
                       style={styles.input}
                       placeholder="John"
-                      placeholderTextColor="rgba(255, 255, 255, 0.35)"
+                      placeholderTextColor="#94a3b8"
                       value={firstName}
                       onChangeText={(t) => {
                         setFirstName(t);
@@ -159,12 +176,12 @@ export default function RegisterScreen() {
                 </View>
 
                 <View style={[styles.inputGroup, styles.flex1]}>
-                  <Text style={styles.label}>MIDDLE NAME</Text>
+                  <Text style={styles.label}>Middle Name</Text>
                   <View style={styles.inputContainer}>
                     <TextInput
                       style={styles.input}
                       placeholder="D."
-                      placeholderTextColor="rgba(255, 255, 255, 0.35)"
+                      placeholderTextColor="#94a3b8"
                       value={middleName}
                       onChangeText={setMiddleName}
                     />
@@ -175,12 +192,12 @@ export default function RegisterScreen() {
               {/* Last Name & Suffix */}
               <View style={styles.row}>
                 <View style={[styles.inputGroup, styles.flex2]}>
-                  <Text style={styles.label}>LAST NAME *</Text>
+                  <Text style={styles.label}>Last Name *</Text>
                   <View style={[styles.inputContainer, errors.lastName && styles.inputError]}>
                     <TextInput
                       style={styles.input}
                       placeholder="Doe"
-                      placeholderTextColor="rgba(255, 255, 255, 0.35)"
+                      placeholderTextColor="#94a3b8"
                       value={lastName}
                       onChangeText={(t) => {
                         setLastName(t);
@@ -192,12 +209,12 @@ export default function RegisterScreen() {
                 </View>
 
                 <View style={[styles.inputGroup, styles.flex1]}>
-                  <Text style={styles.label}>SUFFIX</Text>
+                  <Text style={styles.label}>Suffix</Text>
                   <View style={styles.inputContainer}>
                     <TextInput
                       style={styles.input}
                       placeholder="Jr."
-                      placeholderTextColor="rgba(255, 255, 255, 0.35)"
+                      placeholderTextColor="#94a3b8"
                       value={suffix}
                       onChangeText={setSuffix}
                     />
@@ -205,14 +222,33 @@ export default function RegisterScreen() {
                 </View>
               </View>
 
-              {/* Email & Phone */}
+              {/* Phone Number */}
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>EMAIL ADDRESS</Text>
+                <Text style={styles.label}>Phone Number *</Text>
+                <View style={[styles.inputContainer, errors.phone && styles.inputError]}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="+63 917 123 4567"
+                    placeholderTextColor="#94a3b8"
+                    keyboardType="phone-pad"
+                    value={phone}
+                    onChangeText={(t) => {
+                      setPhone(t);
+                      if (errors.phone) setErrors((prev) => ({ ...prev, phone: '' }));
+                    }}
+                  />
+                </View>
+                {!!errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
+              </View>
+
+              {/* Email Address */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Email Address *</Text>
                 <View style={[styles.inputContainer, errors.email && styles.inputError]}>
                   <TextInput
                     style={styles.input}
-                    placeholder="john.doe@example.com"
-                    placeholderTextColor="rgba(255, 255, 255, 0.35)"
+                    placeholder="john.doe@civic.gov"
+                    placeholderTextColor="#94a3b8"
                     keyboardType="email-address"
                     autoCapitalize="none"
                     value={email}
@@ -225,27 +261,14 @@ export default function RegisterScreen() {
                 {!!errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
               </View>
 
+              {/* Address */}
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>PHONE NUMBER</Text>
+                <Text style={styles.label}>Address</Text>
                 <View style={styles.inputContainer}>
                   <TextInput
                     style={styles.input}
-                    placeholder="09123456789"
-                    placeholderTextColor="rgba(255, 255, 255, 0.35)"
-                    keyboardType="phone-pad"
-                    value={phone}
-                    onChangeText={setPhone}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>ADDRESS</Text>
-                <View style={styles.inputContainer}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Brgy. San Jose, Pasig City"
-                    placeholderTextColor="rgba(255, 255, 255, 0.35)"
+                    placeholder="Enter complete home address"
+                    placeholderTextColor="#94a3b8"
                     value={address}
                     onChangeText={setAddress}
                   />
@@ -253,18 +276,20 @@ export default function RegisterScreen() {
               </View>
             </View>
 
+            <View style={styles.divider} />
+
             {/* Section 2: Account Credentials */}
             <View style={styles.section}>
-              <Text style={styles.sectionHeader}>ACCOUNT CREDENTIALS</Text>
+              <Text style={styles.sectionHeader}>2. ACCOUNT CREDENTIALS</Text>
 
               {/* Username */}
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>USERNAME *</Text>
+                <Text style={styles.label}>Username *</Text>
                 <View style={[styles.inputContainer, errors.username && styles.inputError]}>
                   <TextInput
                     style={styles.input}
                     placeholder="Choose a username"
-                    placeholderTextColor="rgba(255, 255, 255, 0.35)"
+                    placeholderTextColor="#94a3b8"
                     autoCapitalize="none"
                     autoCorrect={false}
                     value={username}
@@ -279,12 +304,12 @@ export default function RegisterScreen() {
 
               {/* Password */}
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>PASSWORD *</Text>
+                <Text style={styles.label}>Password *</Text>
                 <View style={[styles.inputContainer, errors.password && styles.inputError]}>
                   <TextInput
                     style={styles.input}
                     placeholder="Create a strong password"
-                    placeholderTextColor="rgba(255, 255, 255, 0.35)"
+                    placeholderTextColor="#94a3b8"
                     secureTextEntry={!showPassword}
                     value={password}
                     onChangeText={(t) => {
@@ -301,12 +326,12 @@ export default function RegisterScreen() {
 
               {/* Confirm Password */}
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>CONFIRM PASSWORD *</Text>
+                <Text style={styles.label}>Confirm Password *</Text>
                 <View style={[styles.inputContainer, errors.confirmPassword && styles.inputError]}>
                   <TextInput
                     style={styles.input}
                     placeholder="Re-enter your password"
-                    placeholderTextColor="rgba(255, 255, 255, 0.35)"
+                    placeholderTextColor="#94a3b8"
                     secureTextEntry={!showPassword}
                     value={confirmPassword}
                     onChangeText={(t) => {
@@ -321,6 +346,22 @@ export default function RegisterScreen() {
               </View>
             </View>
 
+            {/* Checkbox Statement */}
+            <Pressable onPress={() => setIsCertified(!isCertified)} style={styles.checkboxContainer}>
+              <View style={[styles.checkbox, isCertified && styles.checkboxActive]}>
+                {isCertified && (
+                  <SymbolView
+                    name={{ ios: 'checkmark', android: 'check', web: 'check' }}
+                    tintColor="#ffffff"
+                    size={12}
+                  />
+                )}
+              </View>
+              <Text style={styles.checkboxLabel}>
+                I certify that all information submitted is true, complete, and legally valid.
+              </Text>
+            </Pressable>
+
             {/* Submit Button */}
             <Pressable
               onPress={handleRegister}
@@ -332,13 +373,13 @@ export default function RegisterScreen() {
               ]}
             >
               {isLoading ? (
-                <ActivityIndicator color="#022c1a" size="small" />
+                <ActivityIndicator color="#ffffff" size="small" />
               ) : (
-                <Text style={styles.submitBtnText}>CREATE ACCOUNT</Text>
+                <Text style={styles.submitBtnText}>Register</Text>
               )}
             </Pressable>
 
-            {/* Back to Login */}
+            {/* Back to Login Link */}
             <View style={styles.loginPrompt}>
               <Text style={styles.loginPromptText}>Already have an account? </Text>
               <Pressable onPress={() => router.push('/login')}>
@@ -355,78 +396,94 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#040c07',
+    backgroundColor: '#F8F9FC',
+  },
+  navHeader: {
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  backBtn: {
+    padding: 4,
+  },
+  navTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0f172a',
+    letterSpacing: -0.5,
+  },
+  civicBadge: {
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  civicBadgeText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#d97706',
+    letterSpacing: 1,
   },
   keyboardView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
     paddingHorizontal: 16,
     paddingVertical: 24,
+    gap: 20,
   },
-  card: {
-    width: '100%',
-    maxWidth: 420,
-    backgroundColor: 'rgba(16, 185, 129, 0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.2)',
-    borderRadius: 20,
-    padding: 20,
-    gap: 16,
+  bodyHeader: {
+    gap: 8,
+    paddingHorizontal: 4,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  logoBadge: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoImage: {
-    width: 28,
-    height: 28,
-    tintColor: '#10b981',
-  },
-  headerTextContainer: {
-    flex: 1,
-  },
-  title: {
+  bodyTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#ffffff',
+    color: '#0f172a',
+    letterSpacing: -0.5,
   },
-  subtitle: {
-    fontSize: 11,
-    color: 'rgba(16, 185, 129, 0.7)',
-    marginTop: 1,
+  bodySubtitle: {
+    fontSize: 13,
+    color: '#64748b',
+    lineHeight: 18,
+    fontWeight: '500',
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 24,
+    padding: 20,
+    gap: 20,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    elevation: 2,
   },
   divider: {
     width: '100%',
     height: 1,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    backgroundColor: '#e2e8f0',
   },
   section: {
-    gap: 10,
+    gap: 14,
   },
   sectionHeader: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#10b981',
-    letterSpacing: 1.5,
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#2563eb',
+    letterSpacing: 1,
   },
   row: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
   },
   flex1: {
     flex: 1,
@@ -435,74 +492,110 @@ const styles = StyleSheet.create({
     flex: 2,
   },
   inputGroup: {
-    gap: 5,
+    gap: 6,
   },
   label: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '700',
-    color: 'rgba(16, 185, 129, 0.75)',
-    letterSpacing: 1,
+    color: '#334155',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 44,
+    borderColor: '#cbd5e1',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 48,
   },
   inputError: {
     borderColor: '#ef4444',
   },
   input: {
     flex: 1,
-    color: '#ffffff',
-    fontSize: 13,
+    color: '#0f172a',
+    fontSize: 14,
+    fontWeight: '500',
+    outlineStyle: 'none' as any,
   },
   toggleText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#10b981',
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#2563eb',
     letterSpacing: 1,
   },
   errorText: {
-    color: '#f87171',
-    fontSize: 10,
+    color: '#ef4444',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginTop: 4,
+    paddingHorizontal: 4,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#cbd5e1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+  },
+  checkboxActive: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  checkboxLabel: {
+    flex: 1,
+    fontSize: 13,
+    color: '#475569',
+    lineHeight: 18,
+    fontWeight: '500',
   },
   submitBtn: {
-    backgroundColor: '#10b981',
-    borderRadius: 10,
-    height: 46,
+    backgroundColor: '#2563eb',
+    borderRadius: 12,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
   },
   submitBtnPressed: {
-    backgroundColor: '#059669',
+    backgroundColor: '#1d4ed8',
   },
   submitBtnDisabled: {
     opacity: 0.5,
   },
   submitBtnText: {
-    color: '#022c1a',
-    fontSize: 13,
+    color: '#ffffff',
+    fontSize: 14,
     fontWeight: '800',
-    letterSpacing: 1,
   },
   loginPrompt: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 4,
   },
   loginPromptText: {
-    fontSize: 12,
-    color: 'rgba(167, 243, 208, 0.4)',
+    fontSize: 13,
+    color: '#64748b',
+    fontWeight: '500',
   },
   loginLinkText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#34d399',
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#2563eb',
   },
 });
