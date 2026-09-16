@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -23,17 +23,17 @@ import { authStore } from '@/services/auth-store';
 import { apiService } from '@/services/api';
 
 interface CategoryOption {
-  id: string;
+  id: string | number;
   name: string;
-  code: string;
+  code?: string;
+  penalty: number;
 }
 
-const VIOLATION_CATEGORIES: CategoryOption[] = [
-  { id: '1', name: 'Reckless Driving (Aggressive lane splitting)', code: 'RECKLESS' },
-  { id: '2', name: 'Speeding', code: 'SPEEDING' },
-  { id: '3', name: 'Overcharging Fare', code: 'OVERCHARGE' },
-  { id: '4', name: 'Route Deviation', code: 'DEVIATION' },
-];
+export const formatPenalty = (amount: number | string): string => {
+  const num = typeof amount === 'string' ? parseFloat(amount) : (amount || 0);
+  if (isNaN(num)) return '₱0.00';
+  return `₱${num.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
 
 interface EvidenceItem {
   uri: string;
@@ -41,13 +41,24 @@ interface EvidenceItem {
   name?: string;
 }
 
+interface VehicleTypeOption {
+  id: number;
+  vehicle_name: string;
+}
+
 export default function ComplaintFormScreen() {
   const router = useRouter();
   const currentUser = authStore.getUser();
 
   const [title, setTitle] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<CategoryOption>(VIOLATION_CATEGORIES[0]);
+  const [violationCategories, setViolationCategories] = useState<CategoryOption[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryOption | null>(null);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isCategoryModalVisible, setIsCategoryModalVisible] = useState(false);
+  const [vehicleTypes, setVehicleTypes] = useState<VehicleTypeOption[]>([]);
+  const [selectedVehicleType, setSelectedVehicleType] = useState<VehicleTypeOption | null>(null);
+  const [isLoadingVehicleTypes, setIsLoadingVehicleTypes] = useState(true);
+  const [isVehicleModalVisible, setIsVehicleModalVisible] = useState(false);
   const [isMediaSourceModalVisible, setIsMediaSourceModalVisible] = useState(false);
   const [driverFirstName, setDriverFirstName] = useState('');
   const [driverLastName, setDriverLastName] = useState('');
@@ -61,11 +72,58 @@ export default function ComplaintFormScreen() {
   const [datePickerMode, setDatePickerMode] = useState<'date' | 'time'>('date');
 
   const [incidentLocation, setIncidentLocation] = useState('');
-  const [description, setDescription] = useState('Color: Red');
+  const [vehicleColor, setVehicleColor] = useState('');
+  const [description, setDescription] = useState('');
   const [evidenceList, setEvidenceList] = useState<EvidenceItem[]>([]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const loadOptions = async () => {
+      setIsLoadingVehicleTypes(true);
+      setIsLoadingCategories(true);
+      try {
+        const token = authStore.getToken() || undefined;
+        const res = await apiService.fetchOptions(token);
+        if (res.success && res.data) {
+          if (res.data.vehicle_types && Array.isArray(res.data.vehicle_types)) {
+            const mappedVt = res.data.vehicle_types.map((v: any) => ({
+              id: v.id,
+              vehicle_name: v.vehicle_name,
+            }));
+            setVehicleTypes(mappedVt);
+            if (mappedVt.length > 0) {
+              setSelectedVehicleType(mappedVt[0]);
+            } else {
+              setSelectedVehicleType(null);
+            }
+          }
+
+          if (res.data.categories && Array.isArray(res.data.categories)) {
+            const mappedCat: CategoryOption[] = res.data.categories.map((c: any) => ({
+              id: c.id,
+              name: c.category_name,
+              code: c.code || '',
+              penalty: typeof c.penalty_amount === 'number' ? c.penalty_amount : parseFloat(c.penalty_amount || '0'),
+            }));
+            setViolationCategories(mappedCat);
+            if (mappedCat.length > 0) {
+              setSelectedCategory(mappedCat[0]);
+            } else {
+              setSelectedCategory(null);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Error loading options:', err);
+      } finally {
+        setIsLoadingVehicleTypes(false);
+        setIsLoadingCategories(false);
+      }
+    };
+    loadOptions();
+  }, []);
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
     if (event.type === 'dismissed') {
@@ -191,6 +249,10 @@ export default function ComplaintFormScreen() {
       newErrors.incidentLocation = 'Incident location is required.';
     }
 
+    if (!selectedCategory) {
+      newErrors.category = 'Violation category is required.';
+    }
+
     if (!description.trim()) {
       newErrors.description = 'Please provide a detailed description.';
     }
@@ -215,12 +277,20 @@ export default function ComplaintFormScreen() {
       if (driverFirstName.trim()) formData.append('driver_first_name', driverFirstName.trim());
       if (driverLastName.trim()) formData.append('driver_last_name', driverLastName.trim());
       if (plateNumber.trim()) formData.append('plate_number', plateNumber.trim());
-      formData.append('category_id', selectedCategory.id);
+      if (selectedCategory) {
+        formData.append('category_id', String(selectedCategory.id));
+      }
+      if (selectedVehicleType) {
+        formData.append('vehicle_id', String(selectedVehicleType.id));
+      }
       formData.append('title', title.trim());
-      formData.append('description', description.trim());
+      const fullDescription = vehicleColor.trim()
+        ? `Vehicle Color: ${vehicleColor.trim()}\n${description.trim()}`
+        : description.trim();
+      formData.append('description', fullDescription);
       formData.append('incident_date_time', incidentDate.toISOString().slice(0, 19).replace('T', ' '));
       formData.append('incident_location', incidentLocation.trim());
-      formData.append('status', 'new');
+      formData.append('status', 'unsettled');
 
       evidenceList.forEach((item, index) => {
         const fileExtension = item.uri.split('.').pop() || (item.type === 'video' ? 'mp4' : 'jpg');
@@ -373,7 +443,36 @@ export default function ComplaintFormScreen() {
                   onPress={() => setIsCategoryModalVisible(true)}
                   style={styles.dropdownContainer}
                 >
-                  <Text style={styles.dropdownSelectedText}>{selectedCategory.name}</Text>
+                  <Text style={styles.dropdownSelectedText}>
+                    {isLoadingCategories
+                      ? 'Loading violation categories...'
+                      : selectedCategory
+                      ? `${selectedCategory.name} • ${formatPenalty(selectedCategory.penalty)}`
+                      : 'No Violation Category Available'}
+                  </Text>
+                  <SymbolView
+                    name={{ ios: 'chevron.down', android: 'arrow_drop_down', web: 'arrow_drop_down' }}
+                    tintColor="#64748b"
+                    size={20}
+                  />
+                </Pressable>
+                {!!errors.category && <Text style={styles.errorText}>{errors.category}</Text>}
+              </View>
+
+              {/* Vehicle Category Dropdown Menu */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Vehicle Category *</Text>
+                <Pressable
+                  onPress={() => setIsVehicleModalVisible(true)}
+                  style={styles.dropdownContainer}
+                >
+                  <Text style={styles.dropdownSelectedText}>
+                    {isLoadingVehicleTypes
+                      ? 'Loading vehicle categories...'
+                      : selectedVehicleType
+                      ? selectedVehicleType.vehicle_name
+                      : 'No Vehicle Category Available'}
+                  </Text>
                   <SymbolView
                     name={{ ios: 'chevron.down', android: 'arrow_drop_down', web: 'arrow_drop_down' }}
                     tintColor="#64748b"
@@ -397,6 +496,20 @@ export default function ComplaintFormScreen() {
                 </View>
               </View>
 
+              {/* Vehicle Color */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Vehicle Color</Text>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g. Red, Silver, Black"
+                    placeholderTextColor="#94a3b8"
+                    value={vehicleColor}
+                    onChangeText={setVehicleColor}
+                  />
+                </View>
+              </View>
+
               {/* Incident Location */}
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Incident Location *</Text>
@@ -413,6 +526,27 @@ export default function ComplaintFormScreen() {
                   />
                 </View>
                 {!!errors.incidentLocation && <Text style={styles.errorText}>{errors.incidentLocation}</Text>}
+              </View>
+
+              {/* Incident Description */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Incident Description *</Text>
+                <View style={[styles.inputContainer, styles.textAreaContainer, errors.description && styles.inputError]}>
+                  <TextInput
+                    style={[styles.input, styles.textAreaInput]}
+                    placeholder="Provide specific details of what occurred..."
+                    placeholderTextColor="#94a3b8"
+                    multiline
+                    numberOfLines={4}
+                    textAlignVertical="top"
+                    value={description}
+                    onChangeText={(t) => {
+                      setDescription(t);
+                      if (errors.description) setErrors((prev) => ({ ...prev, description: '' }));
+                    }}
+                  />
+                </View>
+                {!!errors.description && <Text style={styles.errorText}>{errors.description}</Text>}
               </View>
 
               {/* Date & Time Picker */}
@@ -563,35 +697,126 @@ export default function ComplaintFormScreen() {
             <Text style={styles.dropdownModalTitle}>Select Violation Category</Text>
 
             <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
-              {VIOLATION_CATEGORIES.map((cat) => (
-                <Pressable
-                  key={cat.id}
-                  onPress={() => {
-                    setSelectedCategory(cat);
-                    setIsCategoryModalVisible(false);
-                  }}
-                  style={[
-                    styles.dropdownOption,
-                    selectedCategory.id === cat.id && styles.dropdownOptionSelected,
-                  ]}
-                >
-                  <Text
+              {isLoadingCategories ? (
+                <View style={{ padding: 20, alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color="#2563eb" />
+                  <Text style={{ fontSize: 13, color: '#64748b', marginTop: 8 }}>
+                    Loading violation categories...
+                  </Text>
+                </View>
+              ) : violationCategories.length === 0 ? (
+                <View style={{ padding: 20, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 13, color: '#64748b', textAlign: 'center' }}>
+                    No violation categories configured by admin yet.
+                  </Text>
+                </View>
+              ) : (
+                violationCategories.map((cat) => (
+                  <Pressable
+                    key={cat.id}
+                    onPress={() => {
+                      setSelectedCategory(cat);
+                      setIsCategoryModalVisible(false);
+                    }}
                     style={[
-                      styles.dropdownOptionText,
-                      selectedCategory.id === cat.id && styles.dropdownOptionTextSelected,
+                      styles.dropdownOption,
+                      selectedCategory?.id === cat.id && styles.dropdownOptionSelected,
                     ]}
                   >
-                    {cat.name}
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={[
+                          styles.dropdownOptionText,
+                          selectedCategory?.id === cat.id && styles.dropdownOptionTextSelected,
+                        ]}
+                      >
+                        {cat.name}
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          fontWeight: '600',
+                          color: selectedCategory?.id === cat.id ? '#2563eb' : '#64748b',
+                          marginTop: 2,
+                        }}
+                      >
+                        Penalty: {formatPenalty(cat.penalty)}
+                      </Text>
+                    </View>
+                    {selectedCategory?.id === cat.id && (
+                      <SymbolView
+                        name={{ ios: 'checkmark', android: 'check', web: 'check' }}
+                        tintColor="#2563eb"
+                        size={18}
+                      />
+                    )}
+                  </Pressable>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* Vehicle Category Dropdown Modal */}
+      <Modal
+        visible={isVehicleModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsVehicleModalVisible(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setIsVehicleModalVisible(false)}
+        >
+          <View style={styles.categoryDropdownModal}>
+            <Text style={styles.dropdownModalTitle}>Select Vehicle Category</Text>
+
+            <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
+              {isLoadingVehicleTypes ? (
+                <View style={{ padding: 20, alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color="#2563eb" />
+                  <Text style={{ fontSize: 13, color: '#64748b', marginTop: 8 }}>
+                    Loading vehicle categories...
                   </Text>
-                  {selectedCategory.id === cat.id && (
-                    <SymbolView
-                      name={{ ios: 'checkmark', android: 'check', web: 'check' }}
-                      tintColor="#2563eb"
-                      size={18}
-                    />
-                  )}
-                </Pressable>
-              ))}
+                </View>
+              ) : vehicleTypes.length === 0 ? (
+                <View style={{ padding: 20, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 13, color: '#64748b', textAlign: 'center' }}>
+                    No vehicle categories configured by admin yet.
+                  </Text>
+                </View>
+              ) : (
+                vehicleTypes.map((vt) => (
+                  <Pressable
+                    key={vt.id}
+                    onPress={() => {
+                      setSelectedVehicleType(vt);
+                      setIsVehicleModalVisible(false);
+                    }}
+                    style={[
+                      styles.dropdownOption,
+                      selectedVehicleType?.id === vt.id && styles.dropdownOptionSelected,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.dropdownOptionText,
+                        selectedVehicleType?.id === vt.id && styles.dropdownOptionTextSelected,
+                      ]}
+                    >
+                      {vt.vehicle_name}
+                    </Text>
+                    {selectedVehicleType?.id === vt.id && (
+                      <SymbolView
+                        name={{ ios: 'checkmark', android: 'check', web: 'check' }}
+                        tintColor="#2563eb"
+                        size={18}
+                      />
+                    )}
+                  </Pressable>
+                ))
+              )}
             </ScrollView>
           </View>
         </Pressable>
@@ -767,6 +992,15 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 48,
+  },
+  textAreaContainer: {
+    height: 100,
+    paddingVertical: 10,
+    alignItems: 'flex-start',
+  },
+  textAreaInput: {
+    height: '100%',
+    textAlignVertical: 'top',
   },
   disabledInput: {
     backgroundColor: '#f1f5f9',

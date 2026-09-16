@@ -17,6 +17,7 @@ export const PATHS = {
     ANALYTICS: `${APP_ROOT}/analytics`,
     CHAT: `${APP_ROOT}/chat`,
     VIOLATION_CATEGORIES: `${APP_ROOT}/violation-categories`,
+    VEHICLE_TYPES: `${APP_ROOT}/vehicle-types`,
     STAFF_SCHEDULES: `${APP_ROOT}/staff-schedules`,
   },
 };

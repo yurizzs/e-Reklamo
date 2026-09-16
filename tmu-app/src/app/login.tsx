@@ -17,6 +17,13 @@ import { SymbolView } from 'expo-symbols';
 import { apiService } from '@/services/api';
 import { authStore } from '@/services/auth-store';
 
+interface ToastMessage {
+  type: 'success' | 'error' | 'info';
+  title: string;
+  message: string;
+  details?: string;
+}
+
 export default function LoginScreen() {
   const router = useRouter();
   const [username, setUsername] = useState('');
@@ -24,6 +31,7 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [lockoutSeconds, setLockoutSeconds] = useState(0);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
 
   const [errors, setErrors] = useState<{
     username?: string;
@@ -56,34 +64,52 @@ export default function LoginScreen() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleLogin = async () => {
+  const showToast = (type: 'success' | 'error' | 'info', title: string, message: string, details?: string) => {
+    setToast({ type, title, message, details });
+  };
+
+  const handleLogin = async (userOverride?: string, passOverride?: string) => {
+    setToast(null);
+    const targetUser = (userOverride || username).trim();
+    const targetPass = (passOverride || password).trim();
+
     if (lockoutSeconds > 0) {
-      Alert.alert('Too Many Attempts', `Please wait ${lockoutSeconds}s before trying again.`);
+      showToast('error', 'Lockout Active', `Please wait ${lockoutSeconds}s before trying again.`);
       return;
     }
 
-    if (!validate()) return;
+    if (!userOverride && !validate()) return;
 
     setIsLoading(true);
     try {
       const res = await apiService.login({
-        username: username.trim(),
-        password: password.trim(),
+        username: targetUser,
+        password: targetPass,
       });
 
       if (res.success) {
         if (res.user) {
           authStore.setUser(res.user, res.token);
         }
-        Alert.alert('Success', res.message || 'Logged in successfully!', [
-          {
-            text: 'OK',
-            onPress: () => router.replace('/(tabs)' as any),
-          },
-        ]);
+        showToast(
+          'success',
+          'Login Successful',
+          `Welcome back, ${res.user?.first_name || targetUser}!`,
+          `API Server: ${apiService.getBaseUrl()}`
+        );
+        setTimeout(() => {
+          router.replace('/(tabs)' as any);
+        }, 1200);
       }
     } catch (err: any) {
-      Alert.alert('Authentication Error', err.message || 'Invalid username or password.');
+      const errMsg = err.message || 'Invalid username or password.';
+      const currentHost = apiService.getBaseUrl();
+      showToast(
+        'error',
+        'Authentication Failed',
+        errMsg,
+        `Attempted API Endpoint: ${currentHost}/auth/login`
+      );
     } finally {
       setIsLoading(false);
     }
@@ -115,6 +141,32 @@ export default function LoginScreen() {
               <Text style={styles.brandSubtitle}>Traffic Management Unit Citizen Center</Text>
             </View>
           </View>
+
+          {/* Diagnostic Toast Notification Banner */}
+          {toast && (
+            <View
+              style={[
+                styles.toastContainer,
+                toast.type === 'error' && styles.toastError,
+                toast.type === 'success' && styles.toastSuccess,
+                toast.type === 'info' && styles.toastInfo,
+              ]}
+            >
+              <View style={styles.toastHeaderRow}>
+                <Text style={styles.toastTitle}>
+                  {toast.type === 'error' ? '❌ ' : toast.type === 'success' ? '✅ ' : 'ℹ️ '}
+                  {toast.title}
+                </Text>
+                <Pressable onPress={() => setToast(null)} style={styles.toastCloseBtn}>
+                  <Text style={styles.toastCloseText}>✕</Text>
+                </Pressable>
+              </View>
+              <Text style={styles.toastMessage}>{toast.message}</Text>
+              {!!toast.details && (
+                <Text style={styles.toastDetails}>{toast.details}</Text>
+              )}
+            </View>
+          )}
 
           {/* Login Card */}
           <View style={styles.card}>
@@ -200,7 +252,7 @@ export default function LoginScreen() {
 
               {/* Submit Button */}
               <Pressable
-                onPress={handleLogin}
+                onPress={() => handleLogin()}
                 disabled={isLoading || lockoutSeconds > 0}
                 style={({ pressed }) => [
                   styles.submitBtn,
@@ -251,7 +303,7 @@ const styles = StyleSheet.create({
   },
   brandContainer: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
     gap: 16,
   },
   logoBadge: {
@@ -283,6 +335,66 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textAlign: 'center',
   },
+
+  /* Diagnostic Toast Notification Styling */
+  toastContainer: {
+    width: '100%',
+    maxWidth: 380,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+    gap: 6,
+  },
+  toastError: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#fca5a5',
+  },
+  toastSuccess: {
+    backgroundColor: '#f0fdf4',
+    borderColor: '#86efac',
+  },
+  toastInfo: {
+    backgroundColor: '#eff6ff',
+    borderColor: '#93c5fd',
+  },
+  toastHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  toastTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  toastCloseBtn: {
+    padding: 4,
+  },
+  toastCloseText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748b',
+  },
+  toastMessage: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1e293b',
+    lineHeight: 16,
+  },
+  toastDetails: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748b',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    marginTop: 2,
+  },
+
   card: {
     width: '100%',
     maxWidth: 380,
@@ -356,13 +468,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#2563eb',
   },
+
   submitBtn: {
     backgroundColor: '#2563eb',
     borderRadius: 12,
     height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    marginTop: 4,
     shadowColor: '#2563eb',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,

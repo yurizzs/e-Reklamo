@@ -25,7 +25,7 @@ export default function ChatScreen() {
       id: 1,
       sender_type: 'employee',
       sender_name: 'TMU Agent #304',
-      text: 'Hello John! How can I assist you with your report update today?',
+      text: `Hello ${currentUser?.first_name || 'Citizen'}! How can I assist you with your report update today?`,
       time: '10:02 AM',
     },
   ]);

@@ -10,6 +10,7 @@ const RoleDashboard = React.lazy(() => import("../pages/RoleDashboard"));
 const Users = React.lazy(() => import("../pages/user/User"));
 const ActivityLogs = React.lazy(() => import("../pages/logs/ActivityLogs"));
 const ViolationCategories = React.lazy(() => import("../pages/violation-categories/ViolationCategories"));
+const VehicleTypes = React.lazy(() => import("../pages/vehicle-types/VehicleTypes"));
 const StaffSchedules = React.lazy(() => import("../pages/schedules/StaffSchedulePage"));
 const ComplaintsList = React.lazy(() => import("../pages/staff/ComplaintsList"));
 const DriverRecords = React.lazy(() => import("../pages/drivers/DriverRecords"));
@@ -60,12 +61,19 @@ export const Routes = createBrowserRouter([
                     element: <ComplaintsList />,
                   },
                   {
-                    path: PATHS.APP.DRIVER_RECORDS,
-                    element: <DriverRecords />,
-                  },
-                  {
                     path: PATHS.APP.ANALYTICS,
                     element: <AnalyticsReport />,
+                  },
+                ],
+              },
+
+              // Staff & Operator Only (Staff Centralized Dashboard)
+              {
+                element: <RoleRoute allowedRoles={['staff', 'operator']} />,
+                children: [
+                  {
+                    path: PATHS.APP.DRIVER_RECORDS,
+                    element: <DriverRecords />,
                   },
                   {
                     path: PATHS.APP.STAFF_SCHEDULES,
@@ -93,6 +101,10 @@ export const Routes = createBrowserRouter([
                   {
                     path: PATHS.APP.VIOLATION_CATEGORIES,
                     element: <ViolationCategories />,
+                  },
+                  {
+                    path: PATHS.APP.VEHICLE_TYPES,
+                    element: <VehicleTypes />,
                   },
                 ],
               },

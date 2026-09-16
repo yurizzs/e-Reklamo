@@ -58,7 +58,7 @@ export default function TrackScreen() {
       id: 1,
       sender_type: 'employee',
       sender_name: 'TMU Agent #304',
-      text: 'Hello John! How can I assist you with your report update today?',
+      text: `Hello ${currentUser?.first_name || 'Citizen'}! How can I assist you with your report update today?`,
       time: '10:02 AM',
     },
   ]);
@@ -72,7 +72,7 @@ export default function TrackScreen() {
       title: 'Speeding Bus EDSA Corner',
       category: 'Over-speeding Sign',
       location: 'EDSA Corner, Pasay',
-      status: 'RESOLVED',
+      status: 'SETTLED',
       statusColor: '#10b981',
       date: 'Nov 01, 2026',
     },
@@ -81,7 +81,7 @@ export default function TrackScreen() {
       title: 'Illegal U-turn on Makati Ave',
       category: 'Reckless Turn',
       location: 'Makati Ave, Makati',
-      status: 'PENDING',
+      status: 'UNSETTLED',
       statusColor: '#f59e0b',
       date: 'Nov 05, 2026',
     },
@@ -90,8 +90,8 @@ export default function TrackScreen() {
       title: 'Blocked Pedestrian Crossing',
       category: 'Obstruction',
       location: 'Ayala Ave, Makati',
-      status: 'NEW',
-      statusColor: '#2563eb',
+      status: 'UNSETTLED',
+      statusColor: '#f59e0b',
       date: 'Today',
     },
   ];
@@ -272,16 +272,16 @@ export default function TrackScreen() {
                   <View
                     style={[
                       styles.statusBadge,
-                      report.status === 'RESOLVED' && styles.statusResolved,
-                      report.status === 'PENDING' && styles.statusPending,
+                      (report.status === 'SETTLED' || report.status === 'RESOLVED') && styles.statusResolved,
+                      (report.status === 'UNSETTLED' || report.status === 'PENDING') && styles.statusPending,
                       report.status === 'NEW' && styles.statusNew,
                     ]}
                   >
                     <Text
                       style={[
                         styles.statusText,
-                        report.status === 'RESOLVED' && styles.statusTextResolved,
-                        report.status === 'PENDING' && styles.statusTextPending,
+                        (report.status === 'SETTLED' || report.status === 'RESOLVED') && styles.statusTextResolved,
+                        (report.status === 'UNSETTLED' || report.status === 'PENDING') && styles.statusTextPending,
                         report.status === 'NEW' && styles.statusTextNew,
                       ]}
                     >
@@ -347,7 +347,7 @@ export default function TrackScreen() {
               <View style={styles.unpaidPenaltyCard}>
                 <View style={styles.unpaidInfo}>
                   <Text style={styles.unpaidLabel}>Total Unpaid Penalty Fees</Text>
-                  <Text style={styles.unpaidAmount}>${totalUnpaid.toFixed(2)}</Text>
+                  <Text style={styles.unpaidAmount}>₱{totalUnpaid.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
                 </View>
                 <Pressable
                   style={styles.payDuesBtn}
@@ -405,7 +405,7 @@ export default function TrackScreen() {
                           <View style={styles.fineRow}>
                             <Text style={styles.fineLabel}>Fine Amount:</Text>
                             <Text style={styles.fineAmount}>
-                              ${parseFloat(item.category?.penalty_amount || '0.00').toFixed(2)}
+                              ₱{parseFloat(item.category?.penalty_amount || '0.00').toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </Text>
                           </View>
                         )}

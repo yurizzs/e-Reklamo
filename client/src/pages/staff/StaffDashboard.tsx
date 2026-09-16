@@ -1,8 +1,11 @@
+import { useNavigate } from "react-router-dom";
 import { MainLayout } from "../../components/layouts";
 import { Icon } from "../../components/ui";
 import { useAuth } from "../../contexts/AuthContext";
+import { PATHS } from "../../routes/path";
 
 const StaffDashboard = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
 
   const content = (
@@ -21,7 +24,7 @@ const StaffDashboard = () => {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <div className="rounded-3xl border border-slate-200 dark:border-white/5 bg-white dark:bg-bg-light p-5 shadow-sm transition-colors duration-300">
           <div className="flex items-center justify-between">
             <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-3 text-amber-400">
@@ -59,6 +62,22 @@ const StaffDashboard = () => {
           </div>
           <div className="mt-5 text-3xl font-black text-slate-900 dark:text-white">03</div>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">High-priority follow-ups</p>
+        </div>
+
+        <div 
+          onClick={() => navigate(PATHS.APP.CHAT)}
+          className="cursor-pointer rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-5 shadow-sm hover:bg-emerald-500/15 transition-all duration-300"
+        >
+          <div className="flex items-center justify-between">
+            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/20 p-3 text-emerald-400">
+              <Icon iconName="FaComments" />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400">
+              Dispatch Chat
+            </span>
+          </div>
+          <div className="mt-5 text-3xl font-black text-white">Live</div>
+          <p className="mt-1 text-sm text-emerald-300/80">Citizen & Operator Messaging</p>
         </div>
       </div>
 

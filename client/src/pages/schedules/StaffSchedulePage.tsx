@@ -11,7 +11,6 @@ import {
 } from "../../components/ui/table/Table";
 import OperatorScheduleService from "../../services/OperatorScheduleService";
 import { notify } from "../../util/notify";
-import { useAuth } from "../../contexts/AuthContext";
 
 interface EmployeeOption {
   id: number;
@@ -38,8 +37,7 @@ interface ScheduleItem {
 const dayLabels = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 const StaffSchedulePage = () => {
-  const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const canAssign = true; // Staff Centralized Dashboard can assign schedules
 
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
   const [selectedMember, setSelectedMember] = useState<ScheduleItem | null>(null);
@@ -192,18 +190,16 @@ const StaffSchedulePage = () => {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-2">
             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 dark:text-slate-400">
-              {isAdmin ? "Admin Operations" : "Staff Roster"}
+              Staff Operations
             </p>
             <h1 className="text-3xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">
-              {isAdmin ? "Staff Work Schedule" : "Final Staff Schedule"}
+              Staff Work Schedule & Roster
             </h1>
             <p className="max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-              {isAdmin
-                ? "Manage recurring staff shifts in a weekly roster view so allocation stays clear and easy to update."
-                : "View your official published weekly work roster and assigned duty shifts."}
+              Manage recurring staff shifts in a weekly roster view so shift allocation stays clear and easy to update.
             </p>
           </div>
-          {isAdmin && (
+          {canAssign && (
             <Button
               variant="primary"
               iconName="FaPlus"
@@ -236,11 +232,11 @@ const StaffSchedulePage = () => {
           <div className="flex items-center gap-2">
             <Icon iconName="FaCalendarDays" className="text-slate-900 dark:text-white" />
             <h2 className="text-lg font-bold uppercase tracking-tight text-slate-800 dark:text-white/90">
-              {isAdmin ? "Weekly roster" : "Official Weekly Schedule"}
+              Weekly Roster
             </h2>
           </div>
           <div className="rounded-full border border-slate-250 dark:border-white/10 bg-slate-100 dark:bg-white/10 px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.3em] text-slate-850 dark:text-white">
-            {isAdmin ? "Weekly View" : "Final Roster"}
+            Active Roster
           </div>
         </div>
 
@@ -252,7 +248,7 @@ const StaffSchedulePage = () => {
                 {dayLabels.map((day) => (
                   <TableCell key={day} isHeader className="text-slate-500 dark:text-slate-400 py-4">{day}</TableCell>
                 ))}
-                {isAdmin && (
+                {canAssign && (
                   <TableCell isHeader className="text-slate-500 dark:text-slate-400 py-4 w-32">Action</TableCell>
                 )}
               </tr>
@@ -278,7 +274,7 @@ const StaffSchedulePage = () => {
                       </TableCell>
                     );
                   })}
-                  {isAdmin && (
+                  {canAssign && (
                     <TableCell>
                       <div className="flex flex-wrap gap-2">
                         <Button

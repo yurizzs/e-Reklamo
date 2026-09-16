@@ -4,6 +4,7 @@ import {
   Alert,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,6 +19,9 @@ import { authStore } from '@/services/auth-store';
 
 export default function HistoryScreen() {
   const [activeFilter, setActiveFilter] = useState<'all' | 'pending' | 'resolved'>('all');
+  const [reports, setReports] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const currentUser = authStore.getUser();
   const token = authStore.getToken() || undefined;
 
@@ -29,7 +33,7 @@ export default function HistoryScreen() {
       id: 1,
       sender_type: 'employee',
       sender_name: 'TMU Agent #304',
-      text: 'Hello John! How can I assist you with your report update today?',
+      text: 'Hello! How can I assist you with your report update today?',
       time: '10:02 AM',
     },
   ]);
@@ -37,34 +41,62 @@ export default function HistoryScreen() {
   const [isSendingChat, setIsSendingChat] = useState(false);
   const chatScrollRef = useRef<ScrollView>(null);
 
-  const historyReports = [
-    {
-      ticketNo: '#TMU-48291',
-      title: 'Speeding Bus EDSA Corner',
-      category: 'Over-speeding Sign',
-      status: 'RESOLVED',
-      date: 'Filed: Nov 01, 2026',
-    },
-    {
-      ticketNo: '#TMU-49122',
-      title: 'Illegal U-turn on Makati Ave',
-      category: 'Reckless Turn',
-      status: 'PENDING',
-      date: 'Filed: Nov 05, 2026',
-    },
-    {
-      ticketNo: '#TMU-50119',
-      title: 'Blocked Pedestrian Crossing',
-      category: 'Obstruction',
-      status: 'NEW',
-      date: 'Filed: Today',
-    },
-  ];
+  const loadComplaints = async () => {
+    try {
+      const res = await apiService.fetchComplaints(token, activeFilter);
+      if (res.success && Array.isArray(res.data)) {
+        const mapped = res.data.map((item: any) => {
+          const rawStatus = (item.status || 'unsettled').toLowerCase();
+          let displayStatus = 'UNSETTLED';
+          if (rawStatus === 'settled' || rawStatus === 'resolved') {
+            displayStatus = 'SETTLED';
+          } else if (rawStatus === 'new') {
+            displayStatus = 'NEW';
+          } else {
+            displayStatus = 'UNSETTLED';
+          }
+
+          const rawDate = item.incident_date_time || item.created_at || '';
+          let formattedDate = 'Filed: Recently';
+          if (rawDate) {
+            try {
+              const d = new Date(rawDate);
+              formattedDate = `Filed: ${d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}`;
+            } catch {}
+          }
+
+          return {
+            id: item.id,
+            ticketNo: `#TMU-${String(item.id).padStart(5, '0')}`,
+            title: item.title || 'Traffic Complaint',
+            category: item.category?.category_name || item.category_name || 'Traffic Violation',
+            status: displayStatus,
+            rawStatus: rawStatus,
+            date: formattedDate,
+            description: item.description,
+            incidentLocation: item.incident_location,
+          };
+        });
+        setReports(mapped);
+      } else {
+        setReports([]);
+      }
+    } catch (err) {
+      console.warn('Error fetching complaints for history:', err);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadComplaints();
+  }, [activeFilter, token]);
 
   // Filtering reports
-  const filteredReports = historyReports.filter((report) => {
-    if (activeFilter === 'pending') return report.status === 'PENDING' || report.status === 'NEW';
-    if (activeFilter === 'resolved') return report.status === 'RESOLVED';
+  const filteredReports = reports.filter((report) => {
+    if (activeFilter === 'pending') return report.status === 'UNSETTLED' || report.status === 'PENDING' || report.status === 'NEW';
+    if (activeFilter === 'resolved') return report.status === 'SETTLED' || report.status === 'RESOLVED';
     return true;
   });
 
@@ -214,50 +246,76 @@ export default function HistoryScreen() {
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {filteredReports.map((report) => {
-          const isResolved = report.status === 'RESOLVED';
-          const isPending = report.status === 'PENDING';
-          const isNew = report.status === 'NEW';
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => {
+              setIsRefreshing(true);
+              loadComplaints();
+            }}
+          />
+        }
+      >
+        {isLoading ? (
+          <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#2563eb" />
+            <Text style={{ marginTop: 10, color: '#64748b', fontSize: 14 }}>Loading complaints...</Text>
+          </View>
+        ) : filteredReports.length === 0 ? (
+          <View style={{ paddingVertical: 40, alignItems: 'center', backgroundColor: '#ffffff', borderRadius: 12, padding: 20 }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#1e293b' }}>No Reports Found</Text>
+            <Text style={{ fontSize: 13, color: '#64748b', marginTop: 4, textAlign: 'center' }}>
+              You have no {activeFilter !== 'all' ? activeFilter : ''} complaint submissions recorded.
+            </Text>
+          </View>
+        ) : (
+          filteredReports.map((report) => {
+            const isResolved = report.status === 'SETTLED' || report.status === 'RESOLVED';
+            const isPending = report.status === 'UNSETTLED' || report.status === 'PENDING';
+            const isNew = report.status === 'NEW';
 
-          return (
-            <View key={report.ticketNo} style={styles.card}>
-              <View style={styles.cardHeader}>
-                <View style={styles.titleWrapper}>
-                  <Text style={styles.ticketTitle}>{report.title}</Text>
-                  <Text style={styles.ticketNo}>Case ID: {report.ticketNo}</Text>
-                </View>
+            return (
+              <View key={report.ticketNo} style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.titleWrapper}>
+                    <Text style={styles.ticketTitle}>{report.title}</Text>
+                    <Text style={styles.ticketNo}>Case ID: {report.ticketNo}</Text>
+                  </View>
 
-                <View
-                  style={[
-                    styles.statusBadge,
-                    isResolved && styles.statusResolved,
-                    isPending && styles.statusPending,
-                    isNew && styles.statusNew,
-                  ]}
-                >
-                  <Text
+                  <View
                     style={[
-                      styles.statusText,
-                      isResolved && styles.statusTextResolved,
-                      isPending && styles.statusTextPending,
-                      isNew && styles.statusTextNew,
+                      styles.statusBadge,
+                      isResolved && styles.statusResolved,
+                      isPending && styles.statusPending,
+                      isNew && styles.statusNew,
                     ]}
                   >
-                    {report.status}
-                  </Text>
+                    <Text
+                      style={[
+                        styles.statusText,
+                        isResolved && styles.statusTextResolved,
+                        isPending && styles.statusTextPending,
+                        isNew && styles.statusTextNew,
+                      ]}
+                    >
+                      {report.status}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaText}>Category: {report.category}</Text>
+                  <Text style={styles.metaText}>{report.date}</Text>
                 </View>
               </View>
-
-              <View style={styles.divider} />
-
-              <View style={styles.metaRow}>
-                <Text style={styles.metaText}>Category: {report.category}</Text>
-                <Text style={styles.metaText}>{report.date}</Text>
-              </View>
-            </View>
-          );
-        })}
+            );
+          })
+        )}
       </ScrollView>
 
       {/* Floating Action Button (FAB) */}

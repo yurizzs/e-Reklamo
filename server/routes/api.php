@@ -8,13 +8,15 @@ use App\Http\Controllers\API\v1\ViolationCategoryController;
 use App\Http\Controllers\API\v1\DriverController;
 use App\Http\Controllers\API\v1\OperatorScheduleController;
 use App\Http\Controllers\API\v1\ChatController;
+use App\Http\Controllers\API\v1\VehicleTypeController;
 use Illuminate\Support\Facades\Route;
 
 // Public Auth Endpoints
 Route::post('auth/login', [AuthenticationController::class, 'login']);
 Route::post('auth/register', [AuthenticationController::class, 'register']);
 
-// Public / Mobile Accessible Chat Endpoints
+// Public / Mobile Accessible Endpoints
+Route::get('complaints/options', [ComplaintController::class, 'options']);
 Route::get('chat/conversations', [ChatController::class, 'conversations']);
 Route::get('chat/conversations/{id}/messages', [ChatController::class, 'messages']);
 Route::post('chat/messages', [ChatController::class, 'sendMessage']);
@@ -26,23 +28,25 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('auth/logout', [AuthenticationController::class, 'logout']);
 
     // Accessible to all authenticated users (Citizen, Operator, Admin)
-    Route::get('complaints/options', [ComplaintController::class, 'options']);
     Route::get('complaints/check-violation', [ComplaintController::class, 'checkViolation']);
+    Route::get('complaints', [ComplaintController::class, 'index']);
     Route::post('complaints', [ComplaintController::class, 'store']);
+    Route::get('vehicle-types', [VehicleTypeController::class, 'index']);
 
     // Admin, Operator & Staff Access
     Route::middleware('role:admin,operator,staff')->group(function () {
         Route::get('complaints/analytics', [ComplaintController::class, 'analytics']);
-        Route::get('complaints', [ComplaintController::class, 'index']);
         Route::patch('complaints/{id}/status', [ComplaintController::class, 'updateStatus'])->where('id', '[0-9]+');
 
         // Driver Violation Records Access
         Route::get('drivers/records', [DriverController::class, 'records']);
         Route::get('drivers/{id}/history', [DriverController::class, 'history'])->where('id', '[0-9]+');
 
-        // Schedules View Access
+        // Schedules Access (View & Assign)
         Route::get('operator-schedules/employees', [OperatorScheduleController::class, 'employees']);
         Route::get('operator-schedules', [OperatorScheduleController::class, 'index']);
+        Route::post('operator-schedules', [OperatorScheduleController::class, 'store']);
+        Route::put('operator-schedules/{id}', [OperatorScheduleController::class, 'update']);
     });
 
     // Detail view accessible to authenticated users
@@ -66,8 +70,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('violation-categories', ViolationCategoryController::class);
         Route::post('violation-categories/{id}/restore', [ViolationCategoryController::class, 'restore']);
 
-        // Operator Schedules Management (Create/Update)
-        Route::post('operator-schedules', [OperatorScheduleController::class, 'store']);
-        Route::put('operator-schedules/{id}', [OperatorScheduleController::class, 'update']);
+        // Vehicle Categories (Vehicle Types)
+        Route::apiResource('vehicle-types', VehicleTypeController::class);
+        Route::post('vehicle-types/{id}/restore', [VehicleTypeController::class, 'restore']);
     });
 });

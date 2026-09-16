@@ -47,7 +47,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
           name: "Driver Records",
           icon: "FaIdCard",
           path: PATHS.APP.DRIVER_RECORDS,
-          roles: ["staff", "operator", "admin"],
+          roles: ["staff", "operator"],
         },
         {
           name: "Analytics Report",
@@ -56,16 +56,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
           roles: ["staff", "operator"],
         },
         {
-          name: "Final Schedule",
+          name: "Staff Schedules",
           icon: "FaCalendarDays",
           path: PATHS.APP.STAFF_SCHEDULES,
           roles: ["staff", "operator"],
         },
         {
-          name: "Staff Schedules",
-          icon: "FaCalendarDays",
-          path: PATHS.APP.STAFF_SCHEDULES,
-          roles: ["admin"],
+          name: "Dispatch Chat",
+          icon: "FaComments",
+          path: PATHS.APP.CHAT,
+          roles: ["staff", "operator"],
         },
         {
           name: "Users",
@@ -83,6 +83,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
           name: "Violation Categories",
           icon: "FaListUl",
           path: PATHS.APP.VIOLATION_CATEGORIES,
+          roles: ["admin"],
+        },
+        {
+          name: "Vehicle Categories",
+          icon: "FaTruck",
+          path: PATHS.APP.VEHICLE_TYPES,
           roles: ["admin"],
         },
       ],

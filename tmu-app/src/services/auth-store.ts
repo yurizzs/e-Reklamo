@@ -30,12 +30,12 @@ class AuthStore {
     // Default fallback session for unauthenticated preview
     return {
       id: 1,
-      first_name: 'Juan',
-      last_name: 'Dela Cruz',
-      username: 'juandelacruz',
-      email: 'juan.delacruz@example.com',
+      first_name: 'Citizen',
+      last_name: 'User',
+      username: 'citizenuser',
+      email: 'citizen@example.com',
       phone: '+63 912 345 6789',
-      address: 'Brgy. San Jose, Pasig City',
+      address: 'Pasig City',
       role: 'citizen',
     };
   }

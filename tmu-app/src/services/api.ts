@@ -1,13 +1,19 @@
 import { Platform } from 'react-native';
 
-// Local Wi-Fi IP address for physical mobile phones: http://192.168.254.112:8000/api/v1
-// Android Emulator fallback: 10.0.2.2:8000
-const DEV_LAN_IP = '192.168.254.112';
+// Local network candidate URLs for high resilience across Web, Emulator, and Physical Devices
+const DEV_LAN_IP = '192.168.1.5';
+
+const CANDIDATE_BASE_URLS = [
+  'http://localhost:8000/api',
+  'http://127.0.0.1:8000/api',
+  'http://10.0.2.2:8000/api',
+  `http://${DEV_LAN_IP}:8000/api`,
+];
 
 const DEFAULT_API_BASE_URL = Platform.select({
-  android: `http://${DEV_LAN_IP}:8000/api/v1`,
-  ios: `http://${DEV_LAN_IP}:8000/api/v1`,
-  default: `http://${DEV_LAN_IP}:8000/api/v1`,
+  android: `http://10.0.2.2:8000/api`,
+  ios: `http://localhost:8000/api`,
+  default: `http://localhost:8000/api`,
 });
 
 export interface LoginPayload {
@@ -79,12 +85,44 @@ class ApiService {
     );
   }
 
-  public async login(payload: LoginPayload): Promise<AuthResponse> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s fast timeout
+  private async fetchWithDiscovery(
+    endpointPath: string,
+    options: RequestInit,
+    timeoutMs: number = 4000
+  ): Promise<Response> {
+    const urlsToTry = [
+      this.baseUrl,
+      ...CANDIDATE_BASE_URLS.filter((u) => u !== this.baseUrl),
+    ];
 
+    let lastError: any = null;
+
+    for (const baseUrlCandidate of urlsToTry) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        const response = await fetch(`${baseUrlCandidate}${endpointPath}`, {
+          ...options,
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        // If response was received (even 4xx/5xx), host is reachable! Update baseUrl
+        this.baseUrl = baseUrlCandidate;
+        return response;
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        lastError = err;
+      }
+    }
+
+    throw lastError || new Error('Unable to connect to any backend API server.');
+  }
+
+  public async login(payload: LoginPayload): Promise<AuthResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/auth/login`, {
+      const response = await this.fetchWithDiscovery('/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -94,10 +132,7 @@ class ApiService {
           ...payload,
           device_name: payload.device_name || `Mobile (${Platform.OS})`,
         }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
+      }, 4000);
 
       const data = await response.json();
       if (!response.ok) {
@@ -111,8 +146,6 @@ class ApiService {
         token: data.data?.token || data.token,
       };
     } catch (error: any) {
-      clearTimeout(timeoutId);
-
       if (this.isNetworkException(error)) {
         console.warn(`API Unreachable at ${this.baseUrl}: Falling back to local offline session.`);
         return {
@@ -133,11 +166,8 @@ class ApiService {
   }
 
   public async registerCitizen(payload: RegisterCitizenPayload): Promise<AuthResponse> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s fast timeout
-
     try {
-      const response = await fetch(`${this.baseUrl}/auth/register`, {
+      const response = await this.fetchWithDiscovery('/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -147,10 +177,7 @@ class ApiService {
           ...payload,
           role: 'citizen',
         }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
+      }, 4000);
 
       const data = await response.json();
       if (!response.ok) {
@@ -171,33 +198,61 @@ class ApiService {
         token: data.data?.token || data.token,
       };
     } catch (error: any) {
-      clearTimeout(timeoutId);
-
       if (this.isNetworkException(error)) {
-        console.warn(`API Unreachable at ${this.baseUrl}: Falling back to local offline registration.`);
-        return {
-          success: true,
-          message: 'Account registered! (Local Offline Mode)',
-          user: {
-            id: Date.now(),
-            username: payload.username,
-            first_name: payload.first_name,
-            last_name: payload.last_name,
-            email: payload.email,
-            phone: payload.phone,
-            role: 'citizen',
-          },
-          token: 'mock-dev-token-67890',
-        };
+        throw new Error('Registration server unreachable. Please check your connection and try again.');
       }
       throw error;
     }
   }
 
-  public async checkViolations(searchQuery: string, token?: string): Promise<{ success: boolean; data?: any; message?: string }> {
+  public async fetchComplaints(token?: string, status?: string): Promise<{ success: boolean; data?: any[]; message?: string }> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    try {
+      const headers: Record<string, string> = { 'Accept': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      let url = `${this.baseUrl}/complaints`;
+      if (status && status !== 'all') {
+        url += `?status=${encodeURIComponent(status)}`;
+      }
+
+      const res = await fetch(url, { headers, signal: controller.signal });
+      clearTimeout(timeoutId);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to fetch complaints.');
+      return {
+        success: true,
+        data: data?.data?.complaints || (Array.isArray(data?.data) ? data.data : []),
+        message: data.message,
+      };
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (this.isNetworkException(error)) {
+        return { success: false, data: [], message: 'Server connection failed.' };
+      }
+      return { success: false, data: [], message: error.message || 'Error fetching complaints.' };
+    }
+  }
+
+  public async fetchOptions(token?: string): Promise<{ success: boolean; data?: any; message?: string }> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
+    try {
+      const headers: Record<string, string> = { 'Accept': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
 
+      const res = await fetch(`${this.baseUrl}/complaints/options`, { headers, signal: controller.signal });
+      clearTimeout(timeoutId);
+      const data = await res.json();
+      return { success: res.ok, data: data?.data, message: data?.message };
+    } catch {
+      clearTimeout(timeoutId);
+      return { success: false };
+    }
+  }
+
+  public async checkViolations(searchQuery: string, token?: string): Promise<{ success: boolean; data?: any; message?: string }> {
     try {
       const headers: Record<string, string> = {
         'Accept': 'application/json',
@@ -206,16 +261,15 @@ class ApiService {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(
-        `${this.baseUrl}/complaints/check-violation?search=${encodeURIComponent(searchQuery)}`,
+      const response = await this.fetchWithDiscovery(
+        `/complaints/check-violation?search=${encodeURIComponent(searchQuery)}`,
         {
           method: 'GET',
           headers,
-          signal: controller.signal,
-        }
+        },
+        5000
       );
 
-      clearTimeout(timeoutId);
       const resData = await response.json();
 
       if (!response.ok) {
@@ -228,7 +282,6 @@ class ApiService {
         message: resData.message,
       };
     } catch (error: any) {
-      clearTimeout(timeoutId);
       if (this.isNetworkException(error)) {
         return {
           success: true,
@@ -363,10 +416,7 @@ class ApiService {
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (this.isNetworkException(error)) {
-        return {
-          success: true,
-          message: 'Complaint submitted in local offline mode.',
-        };
+        throw new Error('Unable to connect to the TMU server. Please check your network connection and server URL.');
       }
       throw error;
     }

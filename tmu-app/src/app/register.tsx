@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { apiService } from '@/services/api';
+import { authStore } from '@/services/auth-store';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -103,6 +104,20 @@ export default function RegisterScreen() {
       });
 
       if (res.success) {
+        const registeredUser = res.user || {
+          id: Date.now(),
+          first_name: firstName.trim(),
+          middle_name: middleName.trim() || undefined,
+          last_name: lastName.trim(),
+          suffix_1name: suffix.trim() || undefined,
+          username: username.trim(),
+          email: email.trim() || undefined,
+          phone: phone.trim() || undefined,
+          address: address.trim() || undefined,
+          role: 'citizen',
+        };
+        authStore.setUser(registeredUser, res.token);
+
         Alert.alert('Registration Successful', res.message, [
           {
             text: 'Sign In Now',

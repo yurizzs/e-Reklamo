@@ -38,8 +38,13 @@ class ComplaintController extends Controller
                         'plate_number' => $driver->plate_number,
                     ]),
                 'categories' => ViolationCategory::query()
-                    ->select('id', 'category_name')
+                    ->select('id', 'category_name', 'penalty_amount', 'description')
                     ->orderBy('category_name')
+                    ->get(),
+                'vehicle_types' => \App\Models\VehicleType::query()
+                    ->select('id', 'vehicle_name', 'description', 'status')
+                    ->where('status', 'active')
+                    ->orderBy('vehicle_name')
                     ->get(),
             ],
             200
@@ -156,14 +161,20 @@ class ComplaintController extends Controller
 
     public function index(Request $request)
     {
+        $authUser = $request->user();
+
         $query = Complaint::query()
             ->with([
                 'user:id,first_name,last_name,phone,address',
                 'driver:id,first_name,last_name,plate_number',
-                'category:id,category_name',
+                'category:id,category_name,penalty_amount',
                 'evidence',
                 'statusHistories',
             ]);
+
+        if ($authUser && get_class($authUser) === \App\Models\User::class && ($authUser->role ?? 'citizen') === 'citizen') {
+            $query->where('user_id', $authUser->id);
+        }
 
         if ($request->filled('search')) {
             $search = (string) $request->input('search');
