@@ -19,37 +19,7 @@ class ChatController extends Controller
     {
         $authUser = $request->user() ?? auth('sanctum')->user();
 
-        // Ensure all complaints have a corresponding conversation record
-        $allComplaints = Complaint::with('user')->get();
-        foreach ($allComplaints as $c) {
-            $conv = Conversation::firstOrCreate(
-                ['complaint_id' => $c->id],
-                ['user_id' => $c->user_id ?? null]
-            );
-
-            // Ensure an initial message exists if conversation has no messages yet
-            if ($conv->messages()->count() === 0) {
-                $citizenName = $c->user 
-                    ? trim("{$c->user->first_name} {$c->user->last_name}") 
-                    : trim("{$c->complainant_first_name} {$c->complainant_last_name}");
-                
-                if (empty($citizenName)) {
-                    $citizenName = "Citizen Inquiry";
-                }
-
-                Message::create([
-                    'conversation_id' => $conv->id,
-                    'sender_type' => 'user',
-                    'sender_id' => $c->user_id ?? null,
-                    'sender_name' => $citizenName,
-                    'sender_role' => 'citizen',
-                    'message_text' => "Hello TMU support, regarding complaint report '{$c->title}' at {$c->incident_location}.",
-                    'created_at' => $c->created_at ?? now(),
-                ]);
-            }
-        }
-
-        $query = Conversation::with(['complaint.user', 'messages' => function ($q) {
+        $query = Conversation::with(['user', 'complaint.user', 'messages' => function ($q) {
             $q->orderBy('created_at', 'asc');
         }]);
 
@@ -64,6 +34,13 @@ class ChatController extends Controller
                       $mq->where('sender_id', $authUser->id)->where('sender_type', 'user');
                   });
             });
+        } elseif ($request->header('X-Sender-Name') || $request->query('sender_name')) {
+            $sName = $request->header('X-Sender-Name') ?? $request->query('sender_name');
+            $query->where(function ($q) use ($sName) {
+                $q->whereHas('messages', function ($mq) use ($sName) {
+                    $mq->where('sender_name', $sName);
+                });
+            });
         }
 
         $conversations = $query->orderBy('updated_at', 'desc')->get();
@@ -73,21 +50,31 @@ class ChatController extends Controller
             $complaint = $conv->complaint;
             
             // Find non-staff message to get citizen/operator participant details
-            $participantMsg = $conv->messages->whereNotIn('sender_role', ['staff', 'admin', 'operator'])->last() 
+            $userMsg = $conv->messages->where('sender_type', 'user')->last()
+                ?? $conv->messages->where('sender_role', 'citizen')->last()
                 ?? $conv->messages->first();
 
-            $participantName = 'Citizen Inquiry';
+            $participantName = '';
             $participantRole = 'citizen';
             $avatar = null;
 
-            if ($complaint && $complaint->user) {
+            if ($conv->user && !empty(trim("{$conv->user->first_name} {$conv->user->last_name}"))) {
+                $participantName = trim("{$conv->user->first_name} {$conv->user->last_name}");
+                $avatar = $conv->user->avatar;
+            } elseif ($complaint && $complaint->user && !empty(trim("{$complaint->user->first_name} {$complaint->user->last_name}"))) {
                 $participantName = trim("{$complaint->user->first_name} {$complaint->user->last_name}");
                 $avatar = $complaint->user->avatar;
             } elseif ($complaint && ($complaint->complainant_first_name || $complaint->complainant_last_name)) {
                 $participantName = trim("{$complaint->complainant_first_name} {$complaint->complainant_last_name}");
-            } elseif ($participantMsg && $participantMsg->sender_name) {
-                $participantName = $participantMsg->sender_name;
-                $participantRole = $participantMsg->sender_role ?? 'citizen';
+            } elseif ($userMsg && !empty($userMsg->sender_name)) {
+                $participantName = $userMsg->sender_name;
+                $participantRole = $userMsg->sender_role ?? 'citizen';
+            }
+
+            if (empty($participantName) || strtolower($participantName) === 'citizen') {
+                $participantName = ($userMsg && !empty($userMsg->sender_name) && strtolower($userMsg->sender_name) !== 'citizen') 
+                    ? $userMsg->sender_name 
+                    : 'Juan Dela Cruz';
             }
 
             return [
@@ -95,7 +82,7 @@ class ChatController extends Controller
                 'complaint_id' => $conv->complaint_id,
                 'complaint_title' => $complaint?->title ?? 'Direct Mobile Inquiry',
                 'complaint_status' => $complaint?->status ?? 'new',
-                'participant_name' => $participantName ?: 'Citizen Inquiry',
+                'participant_name' => $participantName,
                 'participant_role' => $participantRole,
                 'avatar' => $avatar,
                 'last_message' => $lastMsg?->message_text ?? 'No messages yet.',
@@ -174,24 +161,28 @@ class ChatController extends Controller
         $complaintId = $validated['complaint_id'] ?? null;
 
         $conv = null;
-        if ($convId && $convId > 0) {
-            $conv = Conversation::find($convId);
+
+        if ($authUser && get_class($authUser) === User::class) {
+            $conv = Conversation::where('user_id', $authUser->id)->first();
+        } elseif (!empty($senderName) && $senderName !== 'Citizen User') {
+            $conv = Conversation::whereHas('messages', function ($q) use ($senderName) {
+                $q->where('sender_name', $senderName);
+            })->first();
         }
 
-        if (!$conv && $complaintId && $complaintId > 0) {
-            $conv = Conversation::firstOrCreate(
-                ['complaint_id' => $complaintId],
-                ['user_id' => $authUser?->id]
-            );
-        }
-
-        if (!$conv) {
-            if ($authUser && get_class($authUser) === User::class) {
-                $conv = Conversation::where('user_id', $authUser->id)->first();
-            } elseif (!empty($senderName)) {
-                $conv = Conversation::whereHas('messages', function ($q) use ($senderName) {
-                    $q->where('sender_name', $senderName);
-                })->first();
+        if (!$conv && $convId && $convId > 0) {
+            $existing = Conversation::find($convId);
+            if ($existing) {
+                if ($authUser && get_class($authUser) === User::class) {
+                    if ($existing->user_id === $authUser->id) {
+                        $conv = $existing;
+                    }
+                } elseif (!empty($senderName)) {
+                    $hasSenderMsg = $existing->messages()->where('sender_name', $senderName)->exists();
+                    if ($hasSenderMsg || is_null($existing->user_id)) {
+                        $conv = $existing;
+                    }
+                }
             }
         }
 

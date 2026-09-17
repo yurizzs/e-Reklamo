@@ -32,7 +32,7 @@ export default function HistoryScreen() {
     {
       id: 1,
       sender_type: 'employee',
-      sender_name: 'TMU Agent #304',
+      sender_name: 'TMU Agent',
       text: 'Hello! How can I assist you with your report update today?',
       time: '10:02 AM',
     },
@@ -47,13 +47,11 @@ export default function HistoryScreen() {
       if (res.success && Array.isArray(res.data)) {
         const mapped = res.data.map((item: any) => {
           const rawStatus = (item.status || 'unsettled').toLowerCase();
-          let displayStatus = 'UNSETTLED';
-          if (rawStatus === 'settled' || rawStatus === 'resolved') {
-            displayStatus = 'SETTLED';
-          } else if (rawStatus === 'new') {
-            displayStatus = 'NEW';
+          let displayStatus = 'PENDING';
+          if (rawStatus === 'settled' || rawStatus === 'resolved' || rawStatus === 'closed') {
+            displayStatus = 'RESOLVED';
           } else {
-            displayStatus = 'UNSETTLED';
+            displayStatus = 'PENDING';
           }
 
           const rawDate = item.incident_date_time || item.created_at || '';
@@ -95,8 +93,8 @@ export default function HistoryScreen() {
 
   // Filtering reports
   const filteredReports = reports.filter((report) => {
-    if (activeFilter === 'pending') return report.status === 'UNSETTLED' || report.status === 'PENDING' || report.status === 'NEW';
-    if (activeFilter === 'resolved') return report.status === 'SETTLED' || report.status === 'RESOLVED';
+    if (activeFilter === 'pending') return report.status === 'PENDING' || report.rawStatus === 'unsettled' || report.rawStatus === 'new';
+    if (activeFilter === 'resolved') return report.status === 'RESOLVED' || report.rawStatus === 'settled';
     return true;
   });
 
@@ -108,7 +106,7 @@ export default function HistoryScreen() {
         const mapped = res.data.map((m: any) => ({
           id: m.id,
           sender_type: m.sender_type || (m.sender_role === 'citizen' ? 'user' : 'employee'),
-          sender_name: m.sender_name || 'TMU Agent #304',
+          sender_name: m.sender_name || 'TMU Agent',
           text: m.message_text,
           time: m.time_formatted || 'Just now',
         }));
@@ -187,7 +185,7 @@ export default function HistoryScreen() {
           {
             id: Date.now() + 1,
             sender_type: 'employee',
-            sender_name: 'TMU Agent #304',
+            sender_name: 'TMU Agent',
             text: "Sure thing. Please attach the photo here and I'll merge it right away.",
             time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
           },
@@ -233,7 +231,7 @@ export default function HistoryScreen() {
           onPress={() => setActiveFilter('pending')}
         >
           <Text style={[styles.tabText, activeFilter === 'pending' && styles.tabTextActive]}>
-            Pending Approval
+            Pending
           </Text>
         </Pressable>
         <Pressable
@@ -352,7 +350,7 @@ export default function HistoryScreen() {
                   <Text style={styles.chatAvatarText}>OP</Text>
                 </View>
                 <View>
-                  <Text style={styles.chatHeaderTitle}>TMU Agent #304</Text>
+                  <Text style={styles.chatHeaderTitle}>TMU Agent</Text>
                   <View style={styles.onlineBadgeRow}>
                     <View style={styles.pulseDot} />
                     <Text style={styles.onlineText}>Online</Text>

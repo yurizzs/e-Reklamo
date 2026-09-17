@@ -20,8 +20,6 @@ function getCookie(name: string): string | null {
 
 // REQUEST
 AxiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  config.headers = config.headers ?? {};
-
   const authToken = localStorage.getItem("auth_token");
   if (authToken) config.headers["Authorization"] = `Bearer ${authToken}`;
 

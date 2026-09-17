@@ -37,6 +37,7 @@ const OperatorChat: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isScrolledUp, setIsScrolledUp] = useState(false);
   const [roleFilter, setRoleFilter] = useState<"all" | "citizen" | "operator">("all");
   const [isLoadingConv, setIsLoadingConv] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
@@ -50,7 +51,7 @@ const OperatorChat: React.FC = () => {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const isUserAtBottomRef = useRef<boolean>(true);
 
-  // Auto-scroll chat window to bottom conditionally (only if user is already near bottom)
+  // Auto-scroll chat window to bottom conditionally (only if user is already at bottom)
   const scrollToBottom = (force = false) => {
     if (force || isUserAtBottomRef.current) {
       chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -59,8 +60,10 @@ const OperatorChat: React.FC = () => {
 
   const handleChatScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
-    const atBottom = target.scrollHeight - target.scrollTop - target.clientHeight < 120;
-    isUserAtBottomRef.current = atBottom;
+    const distanceFromBottom = target.scrollHeight - target.scrollTop - target.clientHeight;
+    const isAtBottom = distanceFromBottom < 80;
+    isUserAtBottomRef.current = isAtBottom;
+    setIsScrolledUp(!isAtBottom);
   };
 
   useEffect(() => {
@@ -72,56 +75,26 @@ const OperatorChat: React.FC = () => {
     if (isInitial) setIsLoadingConv(true);
     try {
       const res = await AxiosInstance.get("/chat/conversations");
-      const list = res?.data?.data?.conversations || [];
-      setConversations(list);
-      if (list.length > 0 && selectedConvId === null) {
-        setSelectedConvId(list[0].id);
+      const list: ConversationItem[] = res?.data?.data?.conversations || [];
+      if (list.length > 0) {
+        setConversations((prev) => {
+          if (prev.length === list.length) {
+            const isSame = prev.every(
+              (c, idx) =>
+                c.id === list[idx]?.id &&
+                c.last_message === list[idx]?.last_message &&
+                c.last_message_time === list[idx]?.last_message_time
+            );
+            if (isSame) return prev;
+          }
+          return list;
+        });
+        if (selectedConvId === null) {
+          setSelectedConvId(list[0].id);
+        }
       }
     } catch (err) {
-      console.warn("Using fallback local conversation data:", err);
-      // Fallback local mock data for seamless demo
-      const fallbackConvs: ConversationItem[] = [
-        {
-          id: 1,
-          complaint_id: 101,
-          complaint_title: "Overcharged fare on Tricycle ABC-123",
-          complaint_status: "pending",
-          participant_name: "Juan Dela Cruz",
-          participant_role: "citizen",
-          avatar: null,
-          last_message: "Good day! Has there been any progress on my fare complaint?",
-          last_message_time: "10 mins ago",
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: 2,
-          complaint_id: 102,
-          complaint_title: "Jeepney Route Deviation near Espana",
-          complaint_status: "new",
-          participant_name: "Maria Clara",
-          participant_role: "citizen",
-          avatar: null,
-          last_message: "I have attached video evidence of the jeepney skipping route stops.",
-          last_message_time: "45 mins ago",
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: 3,
-          complaint_id: null,
-          complaint_title: "Duty Shift Coordination & Dispatch",
-          complaint_status: "resolved",
-          participant_name: "Duty Officer Santos",
-          participant_role: "operator",
-          avatar: null,
-          last_message: "Sector 4 patrol unit is now deployed on Quezon Avenue.",
-          last_message_time: "2 hours ago",
-          updated_at: new Date().toISOString(),
-        },
-      ];
-      setConversations(fallbackConvs);
-      if (selectedConvId === null) {
-        setSelectedConvId(1);
-      }
+      console.warn("Failed to fetch conversation list:", err);
     } finally {
       if (isInitial) setIsLoadingConv(false);
     }
@@ -132,75 +105,18 @@ const OperatorChat: React.FC = () => {
     if (isInitial) setIsLoadingMessages(true);
     try {
       const res = await AxiosInstance.get(`/chat/conversations/${convId}/messages`);
-      const msgList = res?.data?.data?.messages || [];
-      setMessages(msgList);
+      const msgList: ChatMessage[] = res?.data?.data?.messages || [];
+      setMessages((prev) => {
+        if (prev.length === msgList.length) {
+          const isSame = prev.every(
+            (m, idx) => m.id === msgList[idx]?.id && m.message_text === msgList[idx]?.message_text
+          );
+          if (isSame) return prev;
+        }
+        return msgList;
+      });
     } catch (err) {
-      console.warn("Using fallback messages for conversation:", convId);
-      const mockMessages: Record<number, ChatMessage[]> = {
-        1: [
-          {
-            id: 1001,
-            conversation_id: 1,
-            sender_type: "user",
-            sender_id: 2,
-            sender_name: "Juan Dela Cruz",
-            sender_role: "citizen",
-            message_text: "Hello TMU support. I filed a report regarding tricycle fare overcharging on Espana Blvd.",
-            created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-            time_formatted: "10:15 AM",
-          },
-          {
-            id: 1002,
-            conversation_id: 1,
-            sender_type: "employee",
-            sender_id: user?.id || 1,
-            sender_name: "TMU Duty Operator",
-            sender_role: "operator",
-            message_text: "Good day Mr. Dela Cruz! We have received your complaint and issued ticket #TMU-2026-0042. Our field inspectors are reviewing driver plate ABC-123.",
-            created_at: new Date(Date.now() - 1000 * 60 * 20).toISOString(),
-            time_formatted: "10:25 AM",
-          },
-          {
-            id: 1003,
-            conversation_id: 1,
-            sender_type: "user",
-            sender_id: 2,
-            sender_name: "Juan Dela Cruz",
-            sender_role: "citizen",
-            message_text: "Good day! Has there been any progress on my fare complaint?",
-            created_at: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
-            time_formatted: "10:35 AM",
-          },
-        ],
-        2: [
-          {
-            id: 2001,
-            conversation_id: 2,
-            sender_type: "user",
-            sender_id: 3,
-            sender_name: "Maria Clara",
-            sender_role: "citizen",
-            message_text: "I have attached video evidence of the jeepney skipping route stops.",
-            created_at: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-            time_formatted: "09:50 AM",
-          },
-        ],
-        3: [
-          {
-            id: 3001,
-            conversation_id: 3,
-            sender_type: "employee",
-            sender_id: 10,
-            sender_name: "Duty Officer Santos",
-            sender_role: "operator",
-            message_text: "Sector 4 patrol unit is now deployed on Quezon Avenue.",
-            created_at: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-            time_formatted: "08:30 AM",
-          },
-        ],
-      };
-
-      setMessages(mockMessages[convId] || []);
+      console.warn("Failed to fetch messages for conversation:", convId);
     } finally {
       if (isInitial) setIsLoadingMessages(false);
     }
@@ -217,6 +133,7 @@ const OperatorChat: React.FC = () => {
   useEffect(() => {
     if (selectedConvId !== null) {
       isUserAtBottomRef.current = true;
+      setIsScrolledUp(false);
       fetchMessages(selectedConvId, true).then(() => {
         setTimeout(() => scrollToBottom(true), 100);
       });
@@ -507,58 +424,75 @@ const OperatorChat: React.FC = () => {
                   </div>
 
                   {/* Messages Exchange Thread Container */}
-                  <div
-                    ref={messagesContainerRef}
-                    onScroll={handleChatScroll}
-                    className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"
-                  >
-                    {isLoadingMessages ? (
-                      <div className="p-8 text-center text-xs text-emerald-400/60 font-semibold">
-                        Loading message exchange...
-                      </div>
-                    ) : messages.length === 0 ? (
-                      <div className="p-8 text-center text-xs text-emerald-400/40 italic">
-                        No messages yet. Send a message to start conversation.
-                      </div>
-                    ) : (
-                      messages.map((msg) => {
-                        const isMe =
-                          msg.sender_type === "employee" ||
-                          msg.sender_role === "staff" ||
-                          msg.sender_role === "admin" ||
-                          msg.sender_role === "operator" ||
-                          (user && String(msg.sender_id) === String(user.id));
+                  <div className="relative flex-1 flex flex-col min-h-0">
+                    <div
+                      ref={messagesContainerRef}
+                      onScroll={handleChatScroll}
+                      className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"
+                    >
+                      {isLoadingMessages ? (
+                        <div className="p-8 text-center text-xs text-emerald-400/60 font-semibold">
+                          Loading message exchange...
+                        </div>
+                      ) : messages.length === 0 ? (
+                        <div className="p-8 text-center text-xs text-emerald-400/40 italic">
+                          No messages yet. Send a message to start conversation.
+                        </div>
+                      ) : (
+                        messages.map((msg) => {
+                          const isMe =
+                            msg.sender_type === "employee" ||
+                            msg.sender_role === "staff" ||
+                            msg.sender_role === "admin" ||
+                            msg.sender_role === "operator" ||
+                            (user && String(msg.sender_id) === String(user.id));
 
-                        return (
-                          <div
-                            key={msg.id}
-                            className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
-                          >
-                            {/* Sender Label */}
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-400/50 mb-1 px-1">
-                              {isMe ? "You (TMU Staff)" : `${msg.sender_name} (${msg.sender_role.toUpperCase()})`}
-                            </span>
-
-                            {/* Message Bubble */}
+                          return (
                             <div
-                              className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-xs leading-relaxed border shadow-md ${
-                                isMe
-                                  ? "bg-emerald-500 text-[#022c1a] font-semibold border-emerald-400 rounded-tr-none"
-                                  : "bg-emerald-500/[0.08] text-white border-emerald-500/25 rounded-tl-none"
-                              }`}
+                              key={msg.id}
+                              className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
                             >
-                              <p>{msg.message_text}</p>
-                            </div>
+                              {/* Sender Label */}
+                              <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-400/50 mb-1 px-1">
+                                {isMe ? "You (TMU Staff)" : `${msg.sender_name} (${msg.sender_role.toUpperCase()})`}
+                              </span>
 
-                            {/* Timestamp */}
-                            <span className="text-[8px] font-semibold text-slate-400/50 mt-1 px-1">
-                              {msg.time_formatted || "Just now"}
-                            </span>
-                          </div>
-                        );
-                      })
+                              {/* Message Bubble */}
+                              <div
+                                className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-xs leading-relaxed border shadow-md ${
+                                  isMe
+                                    ? "bg-emerald-500 text-[#022c1a] font-semibold border-emerald-400 rounded-tr-none"
+                                    : "bg-emerald-500/[0.08] text-white border-emerald-500/25 rounded-tl-none"
+                                }`}
+                              >
+                                <p>{msg.message_text}</p>
+                              </div>
+
+                              {/* Timestamp */}
+                              <span className="text-[8px] font-semibold text-slate-400/50 mt-1 px-1">
+                                {msg.time_formatted || "Just now"}
+                              </span>
+                            </div>
+                          );
+                        })
+                      )}
+                      <div ref={chatEndRef} />
+                    </div>
+
+                    {/* Floating Jump to Bottom Button when backreading */}
+                    {isScrolledUp && (
+                      <button
+                        onClick={() => {
+                          isUserAtBottomRef.current = true;
+                          setIsScrolledUp(false);
+                          scrollToBottom(true);
+                        }}
+                        className="absolute bottom-4 right-6 px-3.5 py-2 rounded-full bg-emerald-500 text-[#022c1a] font-bold text-xs flex items-center gap-2 shadow-xl border border-emerald-300 hover:bg-emerald-400 transition-all z-30 animate-bounce"
+                      >
+                        <FaIcons.FaArrowDown className="w-3 h-3" />
+                        <span>Jump to Latest Messages</span>
+                      </button>
                     )}
-                    <div ref={chatEndRef} />
                   </div>
 
                   {/* Quick Operator Response Presets */}

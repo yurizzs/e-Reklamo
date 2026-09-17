@@ -32,8 +32,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="chat"
         options={{
-          href: null,
-          title: 'Chat',
+          title: 'TMU Agent',
           tabBarIcon: ({ color, size }: { color: string; size?: number }) => (
             <SymbolView
               name={{ ios: 'message.fill', android: 'chat', web: 'chat' }}
@@ -47,6 +46,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="track"
         options={{
+          href: null,
           title: 'Track',
           tabBarIcon: ({ color, size }: { color: string; size?: number }) => (
             <SymbolView

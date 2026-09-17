@@ -17,39 +17,43 @@ import { authStore } from '@/services/auth-store';
 
 export default function ChatScreen() {
   const currentUser = authStore.getUser();
-  const isOperator = currentUser.role === 'operator' || currentUser.role === 'admin';
+  const isOperator = currentUser?.role === 'operator' || currentUser?.role === 'admin';
+  const fullName = `${currentUser?.first_name || 'Citizen'} ${currentUser?.last_name || ''}`.trim();
 
-  const [conversationId, setConversationId] = useState<number>(1);
-  const [messages, setMessages] = useState<Array<{ id: number; sender_type: string; sender_name: string; text: string; time: string }>>([
-    {
-      id: 1,
-      sender_type: 'employee',
-      sender_name: 'TMU Agent #304',
-      text: `Hello ${currentUser?.first_name || 'Citizen'}! How can I assist you with your report update today?`,
-      time: '10:02 AM',
-    },
-  ]);
+  const [conversationId, setConversationId] = useState<number>(0);
+  const [messages, setMessages] = useState<Array<{ id: number; sender_type: string; sender_name: string; text: string; time: string }>>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   const token = authStore.getToken() || undefined;
 
+  const getWelcomeMessage = (name: string) => ({
+    id: 99999,
+    sender_type: 'employee',
+    sender_name: 'TMU Agent',
+    text: `Hello ${name || 'Citizen'}! 👋 Welcome to TMU Agent Support. How can we assist you with traffic inquiries or report follow-ups today?`,
+    time: 'Just now',
+  });
+
   const loadBackendMessages = async (convId: number) => {
+    if (!convId || convId <= 0) return;
     try {
       const res = await apiService.fetchMessages(convId, token);
       if (res.success && Array.isArray(res.data) && res.data.length > 0) {
         const mapped = res.data.map((m: any) => ({
           id: m.id,
           sender_type: m.sender_type || (m.sender_role === 'citizen' ? 'user' : 'employee'),
-          sender_name: m.sender_name || 'TMU Agent #304',
+          sender_name: m.sender_name || 'TMU Agent',
           text: m.message_text,
           time: m.time_formatted || 'Just now',
         }));
         setMessages(mapped);
+      } else {
+        setMessages([getWelcomeMessage(currentUser?.first_name || 'Citizen')]);
       }
     } catch {
-      // Offline fallback
+      setMessages([getWelcomeMessage(currentUser?.first_name || 'Citizen')]);
     }
   };
 
@@ -57,26 +61,37 @@ export default function ChatScreen() {
     let isMounted = true;
     let pollInterval: any = null;
 
+    // Reset messages for the newly logged-in account
+    setConversationId(0);
+    setMessages([getWelcomeMessage(currentUser?.first_name || 'Citizen')]);
+
     const initChat = async () => {
       try {
-        const convRes = await apiService.fetchConversations(token);
-        let targetConvId = 1;
+        const convRes = await apiService.fetchConversations(token, fullName);
         if (convRes.success && Array.isArray(convRes.data) && convRes.data.length > 0) {
-          targetConvId = convRes.data[0].id;
+          const userConv = convRes.data[0];
+          if (isMounted && userConv?.id) {
+            setConversationId(userConv.id);
+            await loadBackendMessages(userConv.id);
+            return;
+          }
         }
         if (isMounted) {
-          setConversationId(targetConvId);
-          await loadBackendMessages(targetConvId);
+          setConversationId(0);
+          setMessages([getWelcomeMessage(currentUser?.first_name || 'Citizen')]);
         }
       } catch (err) {
-        console.warn("Silent chat init:", err);
+        if (isMounted) {
+          setConversationId(0);
+          setMessages([getWelcomeMessage(currentUser?.first_name || 'Citizen')]);
+        }
       }
     };
 
     initChat();
 
     pollInterval = setInterval(() => {
-      if (isMounted) {
+      if (isMounted && conversationId > 0) {
         loadBackendMessages(conversationId);
       }
     }, 3000);
@@ -85,7 +100,7 @@ export default function ChatScreen() {
       isMounted = false;
       if (pollInterval) clearInterval(pollInterval);
     };
-  }, [conversationId]);
+  }, [currentUser?.username, currentUser?.id, token]);
 
   const handleSend = async () => {
     const textToSend = inputText.trim();
@@ -94,7 +109,7 @@ export default function ChatScreen() {
     const userMsg = {
       id: Date.now(),
       sender_type: isOperator ? 'employee' : 'user',
-      sender_name: `${currentUser.first_name} ${currentUser.last_name}`,
+      sender_name: fullName,
       text: textToSend,
       time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
     };
@@ -103,27 +118,26 @@ export default function ChatScreen() {
     setInputText('');
 
     try {
-      const senderName = `${currentUser.first_name} ${currentUser.last_name}`;
-      const senderRole = currentUser.role || (isOperator ? 'operator' : 'citizen');
-      const sendRes = await apiService.sendChatMessage(conversationId, textToSend, token, senderName, senderRole);
+      const senderRole = currentUser?.role || (isOperator ? 'operator' : 'citizen');
+      const sendRes = await apiService.sendChatMessage(conversationId, textToSend, token, fullName, senderRole);
 
-      if (sendRes?.data?.conversation_id && sendRes.data.conversation_id !== conversationId) {
-        setConversationId(sendRes.data.conversation_id);
+      const returnedConvId = sendRes?.data?.message?.conversation_id || sendRes?.data?.conversation_id;
+      if (returnedConvId && returnedConvId !== conversationId) {
+        setConversationId(returnedConvId);
+        setTimeout(() => loadBackendMessages(returnedConvId), 600);
+      } else if (conversationId > 0) {
+        setTimeout(() => loadBackendMessages(conversationId), 600);
       }
-      
-      setTimeout(() => {
-        loadBackendMessages(sendRes?.data?.conversation_id || conversationId);
-      }, 800);
     } catch {
-      // Offline mock response
+      // Offline fallback mock response
       setTimeout(() => {
         setMessages((prev) => [
           ...prev,
           {
             id: Date.now() + 1,
             sender_type: 'employee',
-            sender_name: 'TMU Agent #304',
-            text: "Sure thing. Please attach the photo here and I'll merge it right away.",
+            sender_name: 'TMU Agent',
+            text: "Thank you for sending your message. Our duty operator has received it.",
             time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
           },
         ]);
@@ -140,7 +154,7 @@ export default function ChatScreen() {
           </View>
           <View>
             <Text style={styles.headerTitle}>
-              {isOperator ? 'Operator Dispatch Chat' : 'TMU Agent #304'}
+              {isOperator ? 'Operator Dispatch Chat' : 'TMU Agent'}
             </Text>
             <View style={styles.onlineBadgeRow}>
               <View style={styles.pulseDot} />

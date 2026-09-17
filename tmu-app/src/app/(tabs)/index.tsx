@@ -22,79 +22,49 @@ export default function HomeScreen() {
   const currentUser = authStore.getUser();
   const token = authStore.getToken() || undefined;
 
-  // Chat Modal State
+  // AI Chatbot State
   const [isChatModalVisible, setIsChatModalVisible] = useState(false);
-  const [conversationId, setConversationId] = useState<number>(1);
   const [messages, setMessages] = useState<Array<{ id: number; sender_type: string; sender_name: string; text: string; time: string }>>([
     {
       id: 1,
-      sender_type: 'employee',
-      sender_name: 'TMU Agent #304',
-      text: `Hello ${currentUser?.first_name || 'Citizen'}! How can I assist you with your report update today?`,
-      time: '10:02 AM',
+      sender_type: 'bot',
+      sender_name: 'TMU AI Assistant',
+      text: `Hello ${currentUser?.first_name || 'Citizen'}! 🤖 I am your 24/7 TMU AI Assistant. Ask me anything about filing complaints, violation penalties, or traffic rules!`,
+      time: 'Just now',
     },
   ]);
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const chatScrollRef = useRef<ScrollView>(null);
 
-  // Load chat messages
-  const loadMessages = async (convId: number) => {
-    try {
-      const res = await apiService.fetchMessages(convId, token);
-      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-        const mapped = res.data.map((m: any) => ({
-          id: m.id,
-          sender_type: m.sender_type || (m.sender_role === 'citizen' ? 'user' : 'employee'),
-          sender_name: m.sender_name || 'TMU Agent #304',
-          text: m.message_text,
-          time: m.time_formatted || 'Just now',
-        }));
-        setMessages(mapped);
-      }
-    } catch {
-      // Use fallback/mock messages if backend is offline
+  const getAiResponse = (userQuery: string): string => {
+    const q = userQuery.toLowerCase();
+
+    if (q.includes('file') || q.includes('report') || q.includes('submit') || q.includes('how to')) {
+      return `To file a traffic complaint:\n1. Tap 'File a Complaint' on the Home screen.\n2. Complete your complainant info (Address is required).\n3. Enter the driver/vehicle plate number, color, and location.\n4. Attach up to 3 photo/video evidence items.\n5. Tap Submit to send directly to TMU inspectors!`;
     }
+
+    if (q.includes('penalty') || q.includes('fine') || q.includes('cost') || q.includes('fee') || q.includes('amount')) {
+      return `Official TMU Violation Fines:\n• Overcharging Fare: ₱500.00\n• Route Deviation: ₱1,000.00\n• Reckless Driving: ₱1,500.00\n• Obstruction / Illegal Parking: ₱500.00\n\nAll fines are subject to municipal traffic code enforcement.`;
+    }
+
+    if (q.includes('evidence') || q.includes('photo') || q.includes('video') || q.includes('proof')) {
+      return `Valid Evidence Guidelines:\n• Clear photos or video showing vehicle license plate or body number.\n• Footage demonstrating the violation taking place.\n• Maximum 3 media attachments per complaint.`;
+    }
+
+    if (q.includes('human') || q.includes('agent') || q.includes('officer') || q.includes('staff') || q.includes('operator')) {
+      return `To chat live with a human TMU officer, tap the 'TMU Agent' tab in the bottom navigation bar!`;
+    }
+
+    if (q.includes('hello') || q.includes('hi') || q.includes('hey') || q.includes('good day')) {
+      return `Hello ${currentUser?.first_name || 'Citizen'}! How can I assist you today? You can ask about filing complaints, penalty rates, or evidence rules.`;
+    }
+
+    return `Thank you for your inquiry regarding "${userQuery}". TMU promotes safe, lawful road transit.\n\n• To submit a report, tap 'File a Complaint'.\n• To message human officers directly, visit the 'TMU Agent' tab at the bottom!`;
   };
 
-  useEffect(() => {
-    if (!isChatModalVisible) return;
-
-    let isMounted = true;
-    let pollInterval: any = null;
-
-    const initChat = async () => {
-      try {
-        const convRes = await apiService.fetchConversations(token);
-        let targetConvId = 1;
-        if (convRes.success && Array.isArray(convRes.data) && convRes.data.length > 0) {
-          targetConvId = convRes.data[0].id;
-        }
-        if (isMounted) {
-          setConversationId(targetConvId);
-          await loadMessages(targetConvId);
-        }
-      } catch (err) {
-        console.warn("Chat modal init error:", err);
-      }
-    };
-
-    initChat();
-
-    pollInterval = setInterval(() => {
-      if (isMounted) {
-        loadMessages(conversationId);
-      }
-    }, 3000);
-
-    return () => {
-      isMounted = false;
-      if (pollInterval) clearInterval(pollInterval);
-    };
-  }, [isChatModalVisible, conversationId]);
-
-  const handleSendMessage = async () => {
-    const textToSend = inputText.trim();
+  const handleSendMessage = (overrideText?: string) => {
+    const textToSend = (overrideText || inputText).trim();
     if (!textToSend) return;
 
     const userMsg = {
@@ -106,37 +76,20 @@ export default function HomeScreen() {
     };
 
     setMessages((prev) => [...prev, userMsg]);
-    setInputText('');
+    if (!overrideText) setInputText('');
     setIsSending(true);
 
-    try {
-      const senderName = currentUser ? `${currentUser.first_name} ${currentUser.last_name}` : 'Citizen';
-      const senderRole = currentUser?.role || 'citizen';
-      const sendRes = await apiService.sendChatMessage(conversationId, textToSend, token, senderName, senderRole);
-
-      if (sendRes?.data?.conversation_id && sendRes.data.conversation_id !== conversationId) {
-        setConversationId(sendRes.data.conversation_id);
-      }
-      setTimeout(() => {
-        loadMessages(sendRes?.data?.conversation_id || conversationId);
-      }, 800);
-    } catch {
-      // Offline support mock response
-      setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: Date.now() + 1,
-            sender_type: 'employee',
-            sender_name: 'TMU Agent #304',
-            text: "Sure thing. Please attach the photo here and I'll merge it right away.",
-            time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
-          },
-        ]);
-      }, 1000);
-    } finally {
+    setTimeout(() => {
+      const aiReply = {
+        id: Date.now() + 1,
+        sender_type: 'bot',
+        sender_name: 'TMU AI Assistant',
+        text: getAiResponse(textToSend),
+        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+      };
+      setMessages((prev) => [...prev, aiReply]);
       setIsSending(false);
-    }
+    }, 500);
   };
 
   return (
@@ -231,14 +184,14 @@ export default function HomeScreen() {
             <View style={styles.fullCardLeft}>
               <View style={styles.chatIconBadge}>
                 <SymbolView
-                  name={{ ios: 'message.fill', android: 'chat', web: 'chat' }}
+                  name={{ ios: 'sparkles', android: 'auto_awesome', web: 'auto_awesome' }}
                   tintColor="#2563eb"
                   size={20}
                 />
               </View>
               <View>
-                <Text style={styles.fullCardTitle}>Direct Operator Chat</Text>
-                <Text style={styles.fullCardSub}>Live support assistance with enforcement personnel</Text>
+                <Text style={styles.fullCardTitle}>TMU AI Assistant</Text>
+                <Text style={styles.fullCardSub}>Instant 24/7 AI guidance on traffic rules, fines, & filing reports</Text>
               </View>
             </View>
             <SymbolView
@@ -275,16 +228,16 @@ export default function HomeScreen() {
         ]}
       >
         <SymbolView
-          name={{ ios: 'message.fill', android: 'chat', web: 'chat' }}
+          name={{ ios: 'sparkles', android: 'auto_awesome', web: 'auto_awesome' }}
           tintColor="#ffffff"
           size={24}
         />
         <View style={styles.fabBadge}>
-          <Text style={styles.fabBadgeText}>1</Text>
+          <Text style={styles.fabBadgeText}>AI</Text>
         </View>
       </Pressable>
 
-      {/* Operator Chat Modal Popup */}
+      {/* TMU AI Assistant Chatbot Modal Popup */}
       <Modal
         visible={isChatModalVisible}
         transparent
@@ -297,13 +250,13 @@ export default function HomeScreen() {
             <View style={styles.chatModalHeader}>
               <View style={styles.chatHeaderLeft}>
                 <View style={styles.chatAvatar}>
-                  <Text style={styles.chatAvatarText}>OP</Text>
+                  <Text style={styles.chatAvatarText}>AI</Text>
                 </View>
                 <View>
-                  <Text style={styles.chatHeaderTitle}>TMU Agent #304</Text>
+                  <Text style={styles.chatHeaderTitle}>TMU AI Assistant</Text>
                   <View style={styles.onlineBadgeRow}>
                     <View style={styles.pulseDot} />
-                    <Text style={styles.onlineText}>Online</Text>
+                    <Text style={styles.onlineText}>Instant 24/7 Support</Text>
                   </View>
                 </View>
               </View>
@@ -358,28 +311,63 @@ export default function HomeScreen() {
                   </View>
                 );
               })}
+              {isSending && (
+                <View style={styles.messageBubbleWrapper}>
+                  <View style={[styles.messageBubble, styles.agentBubble]}>
+                    <Text style={styles.agentMessageText}>Thinking...</Text>
+                  </View>
+                </View>
+              )}
+            </ScrollView>
+
+            {/* AI Quick Prompts Row */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 8, paddingHorizontal: 4, paddingBottom: 8 }}
+            >
+              <Pressable
+                onPress={() => handleSendMessage('How to file a report?')}
+                style={styles.quickPromptChip}
+              >
+                <Text style={styles.quickPromptText}>📝 How to file a report?</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => handleSendMessage('What are penalty fines?')}
+                style={styles.quickPromptChip}
+              >
+                <Text style={styles.quickPromptText}>💰 Penalty Fines</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => handleSendMessage('What evidence is needed?')}
+                style={styles.quickPromptChip}
+              >
+                <Text style={styles.quickPromptText}>📷 Evidence Rules</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  setIsChatModalVisible(false);
+                  router.push('/(tabs)/chat' as any);
+                }}
+                style={[styles.quickPromptChip, { backgroundColor: '#eff6ff', borderColor: '#bfdbfe' }]}
+              >
+                <Text style={[styles.quickPromptText, { color: '#2563eb' }]}>👤 Chat with Human Agent</Text>
+              </Pressable>
             </ScrollView>
 
             {/* Input Row */}
             <View style={styles.chatInputRow}>
-              <Pressable style={styles.clipBtn} onPress={() => Alert.alert('Attachment', 'Attach image or file.')}>
-                <SymbolView
-                  name={{ ios: 'paperclip', android: 'attach_file', web: 'attach_file' }}
-                  tintColor="#64748b"
-                  size={20}
-                />
-              </Pressable>
-
               <TextInput
                 style={styles.chatTextInput}
-                placeholder="Type a message..."
+                placeholder="Ask AI about traffic rules or report steps..."
                 placeholderTextColor="#94a3b8"
                 value={inputText}
                 onChangeText={setInputText}
+                onSubmitEditing={() => handleSendMessage()}
               />
 
               <Pressable
-                onPress={handleSendMessage}
+                onPress={() => handleSendMessage()}
                 disabled={isSending || !inputText.trim()}
                 style={({ pressed }) => [
                   styles.sendBtn,
@@ -807,5 +795,20 @@ const styles = StyleSheet.create({
   },
   sendBtnDisabled: {
     opacity: 0.5,
+  },
+  quickPromptChip: {
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickPromptText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#334155',
   },
 });

@@ -12,6 +12,7 @@ use App\Models\Evidence;
 use App\Models\ViolationCategory;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
@@ -278,14 +279,17 @@ class ComplaintController extends Controller
             'evidence' => ['nullable', 'array', 'max:3'],
             'evidence.*' => [
                 'nullable',
-                'file',
-                'max:51200', // 50 MB per file
-                'mimetypes:image/jpeg,image/png,image/gif,image/webp,video/mp4,video/mpeg,video/quicktime,video/webm',
+                function ($attribute, $value, $fail) {
+                    if (is_null($value) || $value === '' || $value === 'null' || $value === '[object Object]') {
+                        return;
+                    }
+                    if (!($value instanceof \Illuminate\Http\UploadedFile) && !is_string($value)) {
+                        $fail("The {$attribute} must be a valid file.");
+                    }
+                },
             ],
         ], [
             'evidence.max' => 'You may attach a maximum of 3 evidence files.',
-            'evidence.*.mimetypes' => 'Each file must be an image (JPEG, PNG, GIF, WebP) or a video (MP4, MPEG, MOV, WebM).',
-            'evidence.*.max' => 'Each file must not exceed 50 MB.',
         ]);
 
         // Auto-match or create Driver record based on plate number / driver name

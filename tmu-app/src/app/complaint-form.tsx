@@ -77,6 +77,7 @@ export default function ComplaintFormScreen() {
   const [evidenceList, setEvidenceList] = useState<EvidenceItem[]>([]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -258,7 +259,19 @@ export default function ComplaintFormScreen() {
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+
+    if (Object.keys(newErrors).length > 0) {
+      if (Platform.OS === 'web') {
+        if (typeof window !== 'undefined' && window.alert) {
+          window.alert('Please fill out all required fields highlighted in red before submitting.');
+        }
+      } else {
+        Alert.alert('Incomplete Form', 'Please fill out all required fields highlighted in red.');
+      }
+      return false;
+    }
+
+    return true;
   };
 
   const handleSubmit = async () => {
@@ -292,32 +305,53 @@ export default function ComplaintFormScreen() {
       formData.append('incident_location', incidentLocation.trim());
       formData.append('status', 'unsettled');
 
-      evidenceList.forEach((item, index) => {
+      for (let index = 0; index < evidenceList.length; index++) {
+        const item = evidenceList[index];
         const fileExtension = item.uri.split('.').pop() || (item.type === 'video' ? 'mp4' : 'jpg');
         const mimeType = item.type === 'video' ? `video/${fileExtension}` : `image/${fileExtension}`;
-        formData.append('evidence[]', {
-          uri: item.uri,
-          name: item.name || `evidence_${index}.${fileExtension}`,
-          type: mimeType,
-        } as any);
-      });
+        const fileName = item.name || `evidence_${index}.${fileExtension}`;
+
+        if (Platform.OS === 'web') {
+          try {
+            const response = await fetch(item.uri);
+            const blob = await response.blob();
+            const file = new File([blob], fileName, { type: mimeType });
+            formData.append('evidence[]', file);
+          } catch (err) {
+            console.warn('Web blob conversion failed, attaching object:', err);
+            formData.append('evidence[]', {
+              uri: item.uri,
+              name: fileName,
+              type: mimeType,
+            } as any);
+          }
+        } else {
+          formData.append('evidence[]', {
+            uri: item.uri,
+            name: fileName,
+            type: mimeType,
+          } as any);
+        }
+      }
 
       await apiService.submitComplaint(formData, token);
 
       setIsSubmitting(false);
-      Alert.alert(
-        'Complaint Submitted!',
-        'Your report and evidence have been successfully transmitted to the Traffic Management Unit.',
-        [
-          {
-            text: 'Track Report',
-            onPress: () => router.replace('/(tabs)/track' as any),
-          },
-        ]
-      );
+      setShowSuccessToast(true);
+
+      setTimeout(() => {
+        router.replace('/(tabs)/history' as any);
+      }, 1600);
     } catch (err: any) {
       setIsSubmitting(false);
-      Alert.alert('Submission Error', err.message || 'Failed to submit complaint. Please check your inputs.');
+      const errMsg = err.message || 'Failed to submit complaint. Please check your inputs.';
+      if (Platform.OS === 'web') {
+        if (typeof window !== 'undefined' && window.alert) {
+          window.alert(`Submission Error: ${errMsg}`);
+        }
+      } else {
+        Alert.alert('Submission Error', errMsg);
+      }
     }
   };
 
@@ -333,6 +367,26 @@ export default function ComplaintFormScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* Floating Success Toast Banner */}
+      {showSuccessToast && (
+        <Pressable
+          onPress={() => router.replace('/(tabs)/history' as any)}
+          style={styles.toastContainer}
+        >
+          <View style={styles.toastBadge}>
+            <SymbolView
+              name={{ ios: 'checkmark.circle.fill', android: 'check_circle', web: 'check_circle' }}
+              tintColor="#22c55e"
+              size={24}
+            />
+          </View>
+          <View style={styles.toastTextWrapper}>
+            <Text style={styles.toastTitle}>Report Filed Successfully!</Text>
+            <Text style={styles.toastSubtext}>Your complaint & evidence have been transmitted to TMU.</Text>
+          </View>
+        </Pressable>
+      )}
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -1269,5 +1323,48 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#64748b',
+  },
+  toastContainer: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 20,
+    left: 16,
+    right: 16,
+    backgroundColor: '#0f172a',
+    borderRadius: 16,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.4)',
+    shadowColor: '#22c55e',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 10,
+    zIndex: 99999,
+  },
+  toastBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toastTextWrapper: {
+    flex: 1,
+    gap: 2,
+  },
+  toastTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#ffffff',
+    letterSpacing: -0.2,
+  },
+  toastSubtext: {
+    fontSize: 12,
+    color: '#94a3b8',
+    fontWeight: '500',
   },
 });

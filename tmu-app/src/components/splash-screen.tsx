@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Dimensions,
   StyleSheet,
@@ -22,13 +23,16 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.85)).current;
   const logoRotateAnim = useRef(new Animated.Value(0)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+
+  const [loadingStep, setLoadingStep] = useState('Loading TMU System...');
 
   useEffect(() => {
     // Fade in & Scale in
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 600,
+        duration: 500,
         useNativeDriver: true,
       }),
       Animated.spring(scaleAnim, {
@@ -42,7 +46,17 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         duration: duration,
         useNativeDriver: true,
       }),
+      Animated.timing(progressAnim, {
+        toValue: 1,
+        duration: duration - 300,
+        useNativeDriver: false,
+      }),
     ]).start();
+
+    // Step-by-step loading messages
+    const step1 = setTimeout(() => setLoadingStep('Connecting to Secure Servers...'), 600);
+    const step2 = setTimeout(() => setLoadingStep('Initializing System Modules...'), 1200);
+    const step3 = setTimeout(() => setLoadingStep('System Ready!'), 1800);
 
     // Trigger onFinish when timer completes
     const timer = setTimeout(() => {
@@ -55,12 +69,22 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
       });
     }, duration);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(step1);
+      clearTimeout(step2);
+      clearTimeout(step3);
+      clearTimeout(timer);
+    };
   }, []);
 
   const spin = logoRotateAnim.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
+  });
+
+  const progressBarWidth = progressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
   });
 
   return (
@@ -92,10 +116,19 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           <Text style={styles.brandSubtitle}>TRAFFIC MANAGEMENT UNIT</Text>
         </View>
 
-        {/* Status Badge */}
-        <View style={styles.statusBadge}>
-          <View style={styles.pulseDot} />
-          <Text style={styles.statusText}>SYSTEM ONLINE</Text>
+        {/* Lazy Loading Spinner & Status Badge */}
+        <View style={styles.loadingWrapper}>
+          <ActivityIndicator size="small" color="#2563eb" style={{ marginBottom: 4 }} />
+          
+          <View style={styles.statusBadge}>
+            <View style={styles.pulseDot} />
+            <Text style={styles.statusText}>{loadingStep.toUpperCase()}</Text>
+          </View>
+
+          {/* Progress Bar Container */}
+          <View style={styles.progressBarBg}>
+            <Animated.View style={[styles.progressBarFill, { width: progressBarWidth }]} />
+          </View>
         </View>
       </Animated.View>
 
@@ -192,6 +225,11 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     marginTop: 4,
   },
+  loadingWrapper: {
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 8,
+  },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -200,8 +238,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#bfdbfe',
     borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 7,
   },
   pulseDot: {
     width: 7,
@@ -210,10 +248,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#22c55e',
   },
   statusText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
-    color: '#64748b',
-    letterSpacing: 1.5,
+    color: '#1e40af',
+    letterSpacing: 1.2,
+  },
+  progressBarBg: {
+    width: 180,
+    height: 4,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginTop: 4,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#2563eb',
+    borderRadius: 2,
   },
   footerText: {
     position: 'absolute',

@@ -25,15 +25,7 @@ export default function ProfileScreen() {
   // Chat Modal State
   const [isChatModalVisible, setIsChatModalVisible] = useState(false);
   const [conversationId, setConversationId] = useState<number>(1);
-  const [chatMessages, setChatMessages] = useState<Array<{ id: number; sender_type: string; sender_name: string; text: string; time: string }>>([
-    {
-      id: 1,
-      sender_type: 'employee',
-      sender_name: 'TMU Agent #304',
-      text: `Hello ${currentUser?.first_name || 'Citizen'}! How can I assist you with your report update today?`,
-      time: '10:02 AM',
-    },
-  ]);
+  const [chatMessages, setChatMessages] = useState<Array<{ id: number; sender_type: string; sender_name: string; text: string; time: string }>>([]);
   const [chatInputText, setChatInputText] = useState('');
   const [isSendingChat, setIsSendingChat] = useState(false);
   const chatScrollRef = useRef<ScrollView>(null);
@@ -48,15 +40,28 @@ export default function ProfileScreen() {
   const roleDisplay = currentUser?.role ? `${currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1)} Account` : 'Citizen Account';
 
   const handleLogout = () => {
+    const doLogout = () => {
+      authStore.clearSession();
+      router.replace('/login');
+    };
+
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm) {
+        if (window.confirm('Are you sure you want to log out of your TMU account?')) {
+          doLogout();
+        }
+      } else {
+        doLogout();
+      }
+      return;
+    }
+
     Alert.alert('Log Out', 'Are you sure you want to log out of your TMU account?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Log Out',
         style: 'destructive',
-        onPress: () => {
-          authStore.clearSession();
-          router.replace('/login');
-        },
+        onPress: doLogout,
       },
     ]);
   };
@@ -76,7 +81,7 @@ export default function ProfileScreen() {
         const mapped = res.data.map((m: any) => ({
           id: m.id,
           sender_type: m.sender_type || (m.sender_role === 'citizen' ? 'user' : 'employee'),
-          sender_name: m.sender_name || 'TMU Agent #304',
+          sender_name: m.sender_name || 'TMU Agent',
           text: m.message_text,
           time: m.time_formatted || 'Just now',
         }));
@@ -148,19 +153,8 @@ export default function ProfileScreen() {
       setTimeout(() => {
         loadChatMessages(sendRes?.data?.conversation_id || conversationId);
       }, 800);
-    } catch {
-      setTimeout(() => {
-        setChatMessages((prev) => [
-          ...prev,
-          {
-            id: Date.now() + 1,
-            sender_type: 'employee',
-            sender_name: 'TMU Agent #304',
-            text: "Sure thing. Please attach the photo here and I'll merge it right away.",
-            time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
-          },
-        ]);
-      }, 1000);
+    } catch (err) {
+      console.warn('Chat send error:', err);
     } finally {
       setIsSendingChat(false);
     }
@@ -326,9 +320,9 @@ export default function ProfileScreen() {
         </Pressable>
       </ScrollView>
 
-      {/* Floating Action Button (FAB) */}
+      {/* Floating Action Button (FAB) -> Chat with TMU Agent */}
       <Pressable
-        onPress={() => setIsChatModalVisible(true)}
+        onPress={() => router.push('/(tabs)/chat' as any)}
         style={({ pressed }) => [
           styles.fab,
           pressed && styles.fabPressed,
@@ -339,124 +333,7 @@ export default function ProfileScreen() {
           tintColor="#ffffff"
           size={24}
         />
-        <View style={styles.fabBadge}>
-          <Text style={styles.fabBadgeText}>1</Text>
-        </View>
       </Pressable>
-
-      {/* Operator Chat Modal Popup */}
-      <Modal
-        visible={isChatModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setIsChatModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.chatModalContent}>
-            {/* Modal Header */}
-            <View style={styles.chatModalHeader}>
-              <View style={styles.chatHeaderLeft}>
-                <View style={styles.chatAvatar}>
-                  <Text style={styles.chatAvatarText}>OP</Text>
-                </View>
-                <View>
-                  <Text style={styles.chatHeaderTitle}>TMU Agent #304</Text>
-                  <View style={styles.onlineBadgeRow}>
-                    <View style={styles.pulseDot} />
-                    <Text style={styles.onlineText}>Online</Text>
-                  </View>
-                </View>
-              </View>
-
-              <Pressable
-                onPress={() => setIsChatModalVisible(false)}
-                style={styles.closeBtn}
-              >
-                <SymbolView
-                  name={{ ios: 'xmark.circle.fill', android: 'cancel', web: 'cancel' }}
-                  tintColor="#cbd5e1"
-                  size={24}
-                />
-              </Pressable>
-            </View>
-
-            {/* Chat Messages List */}
-            <ScrollView
-              ref={chatScrollRef}
-              onContentSizeChange={() => chatScrollRef.current?.scrollToEnd({ animated: true })}
-              style={styles.messagesContainer}
-              contentContainerStyle={{ gap: 12, paddingVertical: 12 }}
-              showsVerticalScrollIndicator={false}
-            >
-              {chatMessages.map((msg, idx) => {
-                const isUser = msg.sender_type === 'user';
-                return (
-                  <View key={idx} style={styles.messageBubbleWrapper}>
-                    <View
-                      style={[
-                        styles.messageBubble,
-                        isUser ? styles.userBubble : styles.agentBubble,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.messageText,
-                          isUser ? styles.userMessageText : styles.agentMessageText,
-                        ]}
-                      >
-                        {msg.text}
-                      </Text>
-                    </View>
-                    <Text
-                      style={[
-                        styles.messageTime,
-                        isUser ? styles.userTime : styles.agentTime,
-                      ]}
-                    >
-                      {msg.time}
-                    </Text>
-                  </View>
-                );
-              })}
-            </ScrollView>
-
-            {/* Input Row */}
-            <View style={styles.chatInputRow}>
-              <Pressable style={styles.clipBtn} onPress={() => Alert.alert('Attachment', 'Attach image or file.')}>
-                <SymbolView
-                  name={{ ios: 'paperclip', android: 'attach_file', web: 'attach_file' }}
-                  tintColor="#64748b"
-                  size={20}
-                />
-              </Pressable>
-
-              <TextInput
-                style={styles.chatTextInput}
-                placeholder="Type a message..."
-                placeholderTextColor="#94a3b8"
-                value={chatInputText}
-                onChangeText={setChatInputText}
-              />
-
-              <Pressable
-                onPress={handleSendChatMessage}
-                disabled={isSendingChat || !chatInputText.trim()}
-                style={({ pressed }) => [
-                  styles.sendBtn,
-                  pressed && styles.sendBtnPressed,
-                  (!chatInputText.trim()) && styles.sendBtnDisabled,
-                ]}
-              >
-                <SymbolView
-                  name={{ ios: 'paperplane.fill', android: 'send', web: 'send' }}
-                  tintColor="#ffffff"
-                  size={16}
-                />
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }

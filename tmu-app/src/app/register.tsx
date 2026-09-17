@@ -59,6 +59,10 @@ export default function RegisterScreen() {
       newErrors.email = 'Please enter a valid email address.';
     }
 
+    if (!address.trim()) {
+      newErrors.address = 'Address is required.';
+    }
+
     if (!username.trim()) {
       newErrors.username = 'Username is required.';
     } else if (!/^[a-zA-Z0-9._]{3,30}$/.test(username.trim())) {
@@ -98,32 +102,23 @@ export default function RegisterScreen() {
         username: username.trim(),
         email: email.trim() || undefined,
         phone: phone.trim() || undefined,
-        address: address.trim() || undefined,
+        address: address.trim(),
         password: password,
         role: 'user',
       });
 
       if (res.success) {
-        const registeredUser = res.user || {
-          id: Date.now(),
-          first_name: firstName.trim(),
-          middle_name: middleName.trim() || undefined,
-          last_name: lastName.trim(),
-          suffix_1name: suffix.trim() || undefined,
-          username: username.trim(),
-          email: email.trim() || undefined,
-          phone: phone.trim() || undefined,
-          address: address.trim() || undefined,
-          role: 'citizen',
-        };
-        authStore.setUser(registeredUser, res.token);
-
-        Alert.alert('Registration Successful', res.message, [
-          {
-            text: 'Sign In Now',
-            onPress: () => router.replace('/login'),
-          },
-        ]);
+        Alert.alert(
+          'Registration Successful',
+          res.message || 'Account created successfully! Please sign in with your credentials.',
+          [
+            {
+              text: 'Sign In Now',
+              onPress: () => router.replace('/login'),
+            },
+          ]
+        );
+        router.replace('/login');
       }
     } catch (err: any) {
       Alert.alert('Registration Failed', err.message || 'Unable to create account.');
@@ -262,7 +257,7 @@ export default function RegisterScreen() {
                 <View style={[styles.inputContainer, errors.email && styles.inputError]}>
                   <TextInput
                     style={styles.input}
-                    placeholder="john.doe@civic.gov"
+                    placeholder="john.doe@gmail.gov"
                     placeholderTextColor="#94a3b8"
                     keyboardType="email-address"
                     autoCapitalize="none"
@@ -278,16 +273,20 @@ export default function RegisterScreen() {
 
               {/* Address */}
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Address</Text>
-                <View style={styles.inputContainer}>
+                <Text style={styles.label}>Address *</Text>
+                <View style={[styles.inputContainer, errors.address && styles.inputError]}>
                   <TextInput
                     style={styles.input}
                     placeholder="Enter complete home address"
                     placeholderTextColor="#94a3b8"
                     value={address}
-                    onChangeText={setAddress}
+                    onChangeText={(t) => {
+                      setAddress(t);
+                      if (errors.address) setErrors((prev) => ({ ...prev, address: '' }));
+                    }}
                   />
                 </View>
+                {!!errors.address && <Text style={styles.errorText}>{errors.address}</Text>}
               </View>
             </View>
 

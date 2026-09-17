@@ -17,13 +17,6 @@ import { SymbolView } from 'expo-symbols';
 import { apiService } from '@/services/api';
 import { authStore } from '@/services/auth-store';
 
-interface ToastMessage {
-  type: 'success' | 'error' | 'info';
-  title: string;
-  message: string;
-  details?: string;
-}
-
 export default function LoginScreen() {
   const router = useRouter();
   const [username, setUsername] = useState('');
@@ -31,7 +24,6 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [lockoutSeconds, setLockoutSeconds] = useState(0);
-  const [toast, setToast] = useState<ToastMessage | null>(null);
 
   const [errors, setErrors] = useState<{
     username?: string;
@@ -64,17 +56,12 @@ export default function LoginScreen() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const showToast = (type: 'success' | 'error' | 'info', title: string, message: string, details?: string) => {
-    setToast({ type, title, message, details });
-  };
-
   const handleLogin = async (userOverride?: string, passOverride?: string) => {
-    setToast(null);
     const targetUser = (userOverride || username).trim();
     const targetPass = (passOverride || password).trim();
 
     if (lockoutSeconds > 0) {
-      showToast('error', 'Lockout Active', `Please wait ${lockoutSeconds}s before trying again.`);
+      Alert.alert('Lockout Active', `Please wait ${lockoutSeconds}s before trying again.`);
       return;
     }
 
@@ -91,25 +78,11 @@ export default function LoginScreen() {
         if (res.user) {
           authStore.setUser(res.user, res.token);
         }
-        showToast(
-          'success',
-          'Login Successful',
-          `Welcome back, ${res.user?.first_name || targetUser}!`,
-          `API Server: ${apiService.getBaseUrl()}`
-        );
-        setTimeout(() => {
-          router.replace('/(tabs)' as any);
-        }, 1200);
+        router.replace('/(tabs)' as any);
       }
     } catch (err: any) {
       const errMsg = err.message || 'Invalid username or password.';
-      const currentHost = apiService.getBaseUrl();
-      showToast(
-        'error',
-        'Authentication Failed',
-        errMsg,
-        `Attempted API Endpoint: ${currentHost}/auth/login`
-      );
+      Alert.alert('Authentication Failed', errMsg);
     } finally {
       setIsLoading(false);
     }
@@ -141,32 +114,6 @@ export default function LoginScreen() {
               <Text style={styles.brandSubtitle}>Traffic Management Unit Citizen Center</Text>
             </View>
           </View>
-
-          {/* Diagnostic Toast Notification Banner */}
-          {toast && (
-            <View
-              style={[
-                styles.toastContainer,
-                toast.type === 'error' && styles.toastError,
-                toast.type === 'success' && styles.toastSuccess,
-                toast.type === 'info' && styles.toastInfo,
-              ]}
-            >
-              <View style={styles.toastHeaderRow}>
-                <Text style={styles.toastTitle}>
-                  {toast.type === 'error' ? '❌ ' : toast.type === 'success' ? '✅ ' : 'ℹ️ '}
-                  {toast.title}
-                </Text>
-                <Pressable onPress={() => setToast(null)} style={styles.toastCloseBtn}>
-                  <Text style={styles.toastCloseText}>✕</Text>
-                </Pressable>
-              </View>
-              <Text style={styles.toastMessage}>{toast.message}</Text>
-              {!!toast.details && (
-                <Text style={styles.toastDetails}>{toast.details}</Text>
-              )}
-            </View>
-          )}
 
           {/* Login Card */}
           <View style={styles.card}>
