@@ -113,7 +113,7 @@ export const TableCell = <T extends string = string>({
               className={
                 isActive && currentSort?.direction === "asc"
                   ? "text-emerald-500"
-                  : "text-slate-700 group-hover:text-emerald-500/50"
+                  : "text-slate-300 dark:text-slate-600 group-hover:text-emerald-500/80"
               }
             />
             <Icon
@@ -122,7 +122,7 @@ export const TableCell = <T extends string = string>({
               className={
                 isActive && currentSort?.direction === "desc"
                   ? "text-emerald-500"
-                  : "text-slate-700 group-hover:text-emerald-500/50"
+                  : "text-slate-300 dark:text-slate-600 group-hover:text-emerald-500/80"
               }
             />
           </div>
@@ -180,21 +180,21 @@ export const TablePagination: FC<TablePaginationProps> = ({
       {/* LEFT: RESULTS INFO */}
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-3">
-          <span className="text-[10px] font-mono uppercase tracking-widest text-slate-700 dark:text-slate-400">Registry Range</span>
+          <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 dark:text-slate-400 font-bold">Registry Range</span>
           <div className="w-16">
             <select
               value={pageSize.toString()}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              className="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-lg px-2 py-1 text-[10px] font-mono text-slate-800 dark:text-white focus:outline-none focus:border-slate-400 dark:focus:border-white/20 transition-colors"
+              className="w-full bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg px-2 py-1 text-[10px] font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:border-emerald-500 transition-colors shadow-xs"
             >
-              {pageSizeOptions.map(opt => <option key={opt.value} value={opt.value} className="bg-white dark:bg-bg-light text-slate-900 dark:text-white">{opt.label}</option>)}
+              {pageSizeOptions.map(opt => <option key={opt.value} value={opt.value} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{opt.label}</option>)}
             </select>
           </div>
         </div>
 
-        <div className="h-4 w-px bg-slate-200 dark:bg-white/5" />
+        <div className="h-4 w-px bg-slate-200 dark:bg-white/10" />
 
-        <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-700 dark:text-slate-400">
+        <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
           Viewing <span className="font-extrabold text-slate-900 dark:text-white">{start}</span> -{" "}
           <span className="font-extrabold text-slate-900 dark:text-white">{end}</span> of{" "}
           <span className="font-extrabold text-slate-900 dark:text-white">{totalResults}</span>{" "}
@@ -209,13 +209,13 @@ export const TablePagination: FC<TablePaginationProps> = ({
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 text-slate-550 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:border-slate-350 dark:hover:border-white/10 disabled:opacity-20 transition-all duration-300"
+          className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-white hover:border-emerald-300 dark:hover:border-white/20 disabled:opacity-25 disabled:pointer-events-none transition-all shadow-xs"
         >
           <Icon iconName="FaChevronLeft" size={10} />
         </button>
 
         {/* PAGES */}
-        <div className="flex items-center gap-1 bg-slate-50 dark:bg-black/40 p-1 rounded-xl border border-slate-200 dark:border-white/5">
+        <div className="flex items-center gap-1 bg-slate-100/80 dark:bg-black/40 p-1 rounded-xl border border-slate-200/80 dark:border-white/10">
           {pages.map((page) => (
             <button
               key={page}
@@ -223,8 +223,8 @@ export const TablePagination: FC<TablePaginationProps> = ({
               className={`
                 w-8 h-8 rounded-lg text-[10px] font-mono transition-all duration-300
                 ${currentPage === page
-                  ? "bg-slate-900/70 text-white dark:bg-slate-200/90 dark:text-slate-950 font-extrabold shadow-sm"
-                  : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-white/5"
+                  ? "bg-slate-900 text-white dark:bg-emerald-500 dark:text-slate-950 font-extrabold shadow-sm"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-white/10"
                 }
               `}>
               {page}
@@ -236,7 +236,7 @@ export const TablePagination: FC<TablePaginationProps> = ({
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 text-slate-550 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:border-slate-350 dark:hover:border-white/10 disabled:opacity-20 transition-all duration-300"
+          className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-white hover:border-emerald-300 dark:hover:border-white/20 disabled:opacity-25 disabled:pointer-events-none transition-all shadow-xs"
         >
           <Icon iconName="FaChevronRight" size={10} />
         </button>
