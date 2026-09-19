@@ -66,7 +66,8 @@ class DriverController extends Controller
                 'first_name' => $driver->first_name,
                 'middle_name' => $driver->middle_name,
                 'last_name' => $driver->last_name,
-                'full_name' => trim(implode(' ', array_filter([$driver->first_name, $driver->middle_name, $driver->last_name]))),
+                'suffix_1name' => $driver->suffix_1name,
+                'full_name' => trim(implode(' ', array_filter([$driver->first_name, $driver->middle_name, $driver->last_name, $driver->suffix_1name]))),
                 'plate_number' => $driver->plate_number,
                 'vehicle_type' => $driver->vehicleType?->vehicle_name ?? 'N/A',
                 'address' => $driver->address,
@@ -140,9 +141,11 @@ class DriverController extends Controller
                     'id' => $driver->id,
                     'slug' => $driver->slug,
                     'avatar' => $driver->avatar,
-                    'full_name' => trim(implode(' ', array_filter([$driver->first_name, $driver->middle_name, $driver->last_name]))),
+                    'full_name' => trim(implode(' ', array_filter([$driver->first_name, $driver->middle_name, $driver->last_name, $driver->suffix_1name]))),
                     'first_name' => $driver->first_name,
+                    'middle_name' => $driver->middle_name,
                     'last_name' => $driver->last_name,
+                    'suffix_1name' => $driver->suffix_1name,
                     'plate_number' => $driver->plate_number,
                     'vehicle_type' => $driver->vehicleType?->vehicle_name ?? 'N/A',
                     'address' => $driver->address,
@@ -172,6 +175,46 @@ class DriverController extends Controller
                         'created_at' => $complaint->created_at?->toIso8601String(),
                     ];
                 }),
+            ],
+            200
+        );
+    }
+
+    /**
+     * Update driver details (name and address).
+     */
+    public function update(Request $request, $id)
+    {
+        $driver = Driver::findOrFail($id);
+
+        $validated = $request->validate([
+            'first_name' => 'required|string|max:100',
+            'middle_name' => 'nullable|string|max:100',
+            'last_name' => 'required|string|max:100',
+            'suffix_1name' => 'nullable|string|max:20',
+            'address' => 'required|string|max:255',
+        ]);
+
+        $driver->update([
+            'first_name' => trim($validated['first_name']),
+            'middle_name' => !empty($validated['middle_name']) ? trim($validated['middle_name']) : null,
+            'last_name' => trim($validated['last_name']),
+            'suffix_1name' => !empty($validated['suffix_1name']) ? trim($validated['suffix_1name']) : null,
+            'address' => trim($validated['address']),
+        ]);
+
+        return $this->success(
+            'Driver details updated successfully',
+            [
+                'driver' => [
+                    'id' => $driver->id,
+                    'first_name' => $driver->first_name,
+                    'middle_name' => $driver->middle_name,
+                    'last_name' => $driver->last_name,
+                    'suffix_1name' => $driver->suffix_1name,
+                    'full_name' => trim(implode(' ', array_filter([$driver->first_name, $driver->middle_name, $driver->last_name, $driver->suffix_1name]))),
+                    'address' => $driver->address,
+                ],
             ],
             200
         );

@@ -24,9 +24,13 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<Array<{ id: number; sender_type: string; sender_name: string; text: string; time: string }>>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const conversationIdRef = useRef<number>(0);
   const scrollViewRef = useRef<ScrollView>(null);
-
   const token = authStore.getToken() || undefined;
+
+  useEffect(() => {
+    conversationIdRef.current = conversationId;
+  }, [conversationId]);
 
   const getWelcomeMessage = (name: string) => ({
     id: 99999,
@@ -41,13 +45,19 @@ export default function ChatScreen() {
     try {
       const res = await apiService.fetchMessages(convId, token);
       if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-        const mapped = res.data.map((m: any) => ({
-          id: m.id,
-          sender_type: m.sender_type || (m.sender_role === 'citizen' ? 'user' : 'employee'),
-          sender_name: m.sender_name || 'TMU Agent',
-          text: m.message_text,
-          time: m.time_formatted || 'Just now',
-        }));
+        const mapped = res.data.map((m: any) => {
+          let sType = m.sender_type;
+          if (!sType) {
+            sType = (m.sender_role === 'citizen' || m.sender_role === 'user') ? 'user' : 'employee';
+          }
+          return {
+            id: m.id,
+            sender_type: sType,
+            sender_name: m.sender_name || (sType === 'user' ? fullName : 'TMU Agent'),
+            text: m.message_text,
+            time: m.time_formatted || 'Just now',
+          };
+        });
         setMessages(mapped);
       } else {
         setMessages([getWelcomeMessage(currentUser?.first_name || 'Citizen')]);
@@ -61,38 +71,36 @@ export default function ChatScreen() {
     let isMounted = true;
     let pollInterval: any = null;
 
-    // Reset messages for the newly logged-in account
     setConversationId(0);
+    conversationIdRef.current = 0;
     setMessages([getWelcomeMessage(currentUser?.first_name || 'Citizen')]);
 
-    const initChat = async () => {
-      try {
-        const convRes = await apiService.fetchConversations(token, fullName);
-        if (convRes.success && Array.isArray(convRes.data) && convRes.data.length > 0) {
-          const userConv = convRes.data[0];
-          if (isMounted && userConv?.id) {
-            setConversationId(userConv.id);
-            await loadBackendMessages(userConv.id);
-            return;
+    const checkAndFetchChat = async () => {
+      if (!isMounted) return;
+
+      const currentId = conversationIdRef.current;
+      if (currentId > 0) {
+        await loadBackendMessages(currentId);
+      } else {
+        try {
+          const convRes = await apiService.fetchConversations(token, fullName);
+          if (convRes.success && Array.isArray(convRes.data) && convRes.data.length > 0) {
+            const userConv = convRes.data[0];
+            if (isMounted && userConv?.id) {
+              setConversationId(userConv.id);
+              conversationIdRef.current = userConv.id;
+              await loadBackendMessages(userConv.id);
+            }
           }
-        }
-        if (isMounted) {
-          setConversationId(0);
-          setMessages([getWelcomeMessage(currentUser?.first_name || 'Citizen')]);
-        }
-      } catch (err) {
-        if (isMounted) {
-          setConversationId(0);
-          setMessages([getWelcomeMessage(currentUser?.first_name || 'Citizen')]);
-        }
+        } catch {}
       }
     };
 
-    initChat();
+    checkAndFetchChat();
 
     pollInterval = setInterval(() => {
-      if (isMounted && conversationId > 0) {
-        loadBackendMessages(conversationId);
+      if (isMounted) {
+        checkAndFetchChat();
       }
     }, 3000);
 
@@ -100,7 +108,7 @@ export default function ChatScreen() {
       isMounted = false;
       if (pollInterval) clearInterval(pollInterval);
     };
-  }, [currentUser?.username, currentUser?.id, token]);
+  }, [currentUser?.username, currentUser?.id, token, fullName]);
 
   const handleSend = async () => {
     const textToSend = inputText.trim();

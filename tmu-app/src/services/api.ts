@@ -1,13 +1,13 @@
 import { Platform } from 'react-native';
 
 // Local network candidate URLs for high resilience across Web, Emulator, and Physical Devices
-const DEV_LAN_IP = '192.168.1.5';
+const DEV_LAN_IP = '192.168.254.106';
 
 const CANDIDATE_BASE_URLS = [
+  `http://${DEV_LAN_IP}:8000/api`,
+  'http://10.0.2.2:8000/api',
   'http://localhost:8000/api',
   'http://127.0.0.1:8000/api',
-  'http://10.0.2.2:8000/api',
-  `http://${DEV_LAN_IP}:8000/api`,
 ];
 
 const DEFAULT_API_BASE_URL = Platform.select({

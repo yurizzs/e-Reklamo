@@ -25,22 +25,35 @@ class ChatController extends Controller
 
         // If authenticated user is a citizen (mobile app), filter to their conversations only
         if ($authUser && get_class($authUser) === User::class) {
-            $query->where(function ($q) use ($authUser) {
+            $fullName = trim("{$authUser->first_name} {$authUser->last_name}");
+            $query->where(function ($q) use ($authUser, $fullName) {
                 $q->where('user_id', $authUser->id)
                   ->orWhereHas('complaint', function ($cq) use ($authUser) {
                       $cq->where('user_id', $authUser->id);
                   })
-                  ->orWhereHas('messages', function ($mq) use ($authUser) {
-                      $mq->where('sender_id', $authUser->id)->where('sender_type', 'user');
+                  ->orWhereHas('messages', function ($mq) use ($authUser, $fullName) {
+                      $mq->where('sender_id', $authUser->id)
+                        ->orWhere('sender_name', 'LIKE', "%{$fullName}%");
                   });
             });
         } elseif ($request->header('X-Sender-Name') || $request->query('sender_name')) {
-            $sName = $request->header('X-Sender-Name') ?? $request->query('sender_name');
-            $query->where(function ($q) use ($sName) {
-                $q->whereHas('messages', function ($mq) use ($sName) {
-                    $mq->where('sender_name', $sName);
+            $sName = trim($request->header('X-Sender-Name') ?? $request->query('sender_name'));
+            if (!empty($sName)) {
+                $query->where(function ($q) use ($sName) {
+                    $q->whereHas('messages', function ($mq) use ($sName) {
+                        $mq->where('sender_name', 'LIKE', "%{$sName}%");
+                    })
+                    ->orWhereHas('user', function ($uq) use ($sName) {
+                        $uq->whereRaw("CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) LIKE ?", ["%{$sName}%"]);
+                    })
+                    ->orWhereHas('complaint', function ($cq) use ($sName) {
+                        $cq->where('complainant_first_name', 'LIKE', "%{$sName}%")
+                          ->orWhereHas('user', function ($uq) use ($sName) {
+                              $uq->whereRaw("CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) LIKE ?", ["%{$sName}%"]);
+                          });
+                    });
                 });
-            });
+            }
         }
 
         $conversations = $query->orderBy('updated_at', 'desc')->get();
@@ -91,9 +104,21 @@ class ChatController extends Controller
             ];
         });
 
+        // Deduplicate conversations per participant so staff only sees one unified chat per citizen
+        $uniqueData = collect();
+        $seenParticipants = [];
+
+        foreach ($data as $convItem) {
+            $key = !empty($convItem['participant_name']) ? strtolower(trim($convItem['participant_name'])) : 'id_'.$convItem['id'];
+            if (!in_array($key, $seenParticipants)) {
+                $seenParticipants[] = $key;
+                $uniqueData->push($convItem);
+            }
+        }
+
         return $this->success(
             'Conversations retrieved successfully',
-            ['conversations' => $data],
+            ['conversations' => $uniqueData->values()],
             200
         );
     }
@@ -162,33 +187,31 @@ class ChatController extends Controller
 
         $conv = null;
 
-        if ($authUser && get_class($authUser) === User::class) {
-            $conv = Conversation::where('user_id', $authUser->id)->first();
-        } elseif (!empty($senderName) && $senderName !== 'Citizen User') {
-            $conv = Conversation::whereHas('messages', function ($q) use ($senderName) {
-                $q->where('sender_name', $senderName);
-            })->first();
+        // 1. If explicit conversation_id passed, use it directly
+        if ($convId && $convId > 0) {
+            $conv = Conversation::find($convId);
         }
 
-        if (!$conv && $convId && $convId > 0) {
-            $existing = Conversation::find($convId);
-            if ($existing) {
-                if ($authUser && get_class($authUser) === User::class) {
-                    if ($existing->user_id === $authUser->id) {
-                        $conv = $existing;
-                    }
-                } elseif (!empty($senderName)) {
-                    $hasSenderMsg = $existing->messages()->where('sender_name', $senderName)->exists();
-                    if ($hasSenderMsg || is_null($existing->user_id)) {
-                        $conv = $existing;
-                    }
-                }
+        // 2. If no valid conversation found by ID yet:
+        if (!$conv) {
+            if ($authUser && get_class($authUser) === User::class) {
+                $conv = Conversation::where('user_id', $authUser->id)->first();
+            } elseif ($complaintId && $complaintId > 0) {
+                $conv = Conversation::where('complaint_id', $complaintId)->first();
+            }
+
+            if (!$conv && !empty($senderName) && $senderName !== 'Citizen User' && $senderType === 'user') {
+                $conv = Conversation::whereHas('messages', function ($q) use ($senderName) {
+                    $q->where('sender_name', $senderName)->where('sender_type', 'user');
+                })->first();
             }
         }
 
+        // 3. If still no conversation exists, create a single conversation record
         if (!$conv) {
             $conv = Conversation::create([
                 'user_id' => ($authUser && get_class($authUser) === User::class) ? $authUser->id : null,
+                'complaint_id' => ($complaintId && $complaintId > 0) ? $complaintId : null,
             ]);
         }
 

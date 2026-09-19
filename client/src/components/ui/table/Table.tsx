@@ -5,7 +5,7 @@ import { Icon } from "../../ui";
    TABLE
 ========================= */
 export const Table: FC<{ children: ReactNode; className?: string }> = ({ children, className = "" }) => (
-  <div className={`rounded-2xl border border-slate-200 dark:border-white/5 bg-white/2 backdrop-blur-md shadow-2xl overflow-hidden ${className}`}>
+  <div className={`rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-bg-light shadow-sm overflow-hidden ${className}`}>
     <div className="overflow-x-auto">
       <table className="w-full text-sm border-collapse">
         {children}
@@ -18,7 +18,7 @@ export const Table: FC<{ children: ReactNode; className?: string }> = ({ childre
    HEADER
 ========================= */
 export const TableHeader: FC<{ children: ReactNode; className?: string }> = ({ children, className = "" }) => (
-  <thead className={`text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-black/40 border-b border-slate-200 dark:border-white/5 ${className}`}>
+  <thead className={`text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300 bg-slate-50/80 dark:bg-black/40 border-b border-slate-200 dark:border-white/5 ${className}`}>
     {children}
   </thead>
 );
@@ -27,7 +27,7 @@ export const TableHeader: FC<{ children: ReactNode; className?: string }> = ({ c
    BODY
 ========================= */
 export const TableBody: FC<{ children: ReactNode }> = ({ children }) => (
-  <tbody className="divide-y divide-white/2">
+  <tbody className="divide-y divide-slate-100 dark:divide-white/5">
     {children}
   </tbody>
 );

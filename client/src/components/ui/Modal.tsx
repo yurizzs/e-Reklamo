@@ -15,13 +15,14 @@ interface ModalAction {
 interface ModalProps {
     isOpen: boolean;
     onClose: () => void;
-    title: string;
+    title?: React.ReactNode;
     children: React.ReactNode;
     primaryAction?: ModalAction;
     secondaryAction?: ModalAction;
     footer?: React.ReactNode;
     size?: "sm" | "md" | "lg" | "xl" | "custom";
     customSize?: string;
+    hideHeader?: boolean;
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -34,6 +35,7 @@ export const Modal: React.FC<ModalProps> = ({
     footer,
     size = "md",
     customSize,
+    hideHeader = false,
 }) => {
     const modalRef = useRef<HTMLDivElement>(null);
 
@@ -82,22 +84,24 @@ export const Modal: React.FC<ModalProps> = ({
                 <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-650/5 rounded-full blur-[80px] pointer-events-none hidden dark:block" />
 
                 {/* Header */}
-                <div className="relative z-10 px-8 py-6 flex items-center justify-between border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-black/20 transition-colors duration-300">
-                    <h2 className="text-xl font-black uppercase tracking-tighter text-slate-900 dark:text-white transition-colors">
-                        {title}
-                    </h2>
+                {!hideHeader && (
+                    <div className="relative z-10 px-8 py-6 flex items-center justify-between border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-black/20 transition-colors duration-300">
+                        <h2 className="text-xl font-black uppercase tracking-tighter text-slate-900 dark:text-white transition-colors">
+                            {title}
+                        </h2>
 
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        tooltip="Close"
-                        tooltipPosition="left"
-                        iconName="FaXmark"
-                        onClick={onClose}
-                        className="text-slate-400 hover:text-slate-900 dark:hover:text-white border-transparent hover:bg-slate-100 dark:hover:bg-white/5 shadow-none transition-colors"
-                        disabled={primaryAction?.isLoading}>
-                    </Button>
-                </div>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            tooltip="Close"
+                            tooltipPosition="left"
+                            iconName="FaXmark"
+                            onClick={onClose}
+                            className="text-slate-400 hover:text-slate-900 dark:hover:text-white border-transparent hover:bg-slate-100 dark:hover:bg-white/5 shadow-none transition-colors"
+                            disabled={primaryAction?.isLoading}>
+                        </Button>
+                    </div>
+                )}
 
                 {/* Content */}
                 <div className="relative z-10 p-8 max-h-[70vh] overflow-y-auto flex-1 text-slate-700 dark:text-slate-350 transition-colors duration-300">

@@ -72,10 +72,8 @@ class ComplaintController extends Controller
         // 1. Total Complaints Count
         $totalComplaints = $query->count();
 
-        // 2. Total Fee Collected (Sum of penalty_amount of resolved complaints matching the filter)
-        // Since penalty_amount is stored as a string, we cast it to decimal/double in query.
+        // 2. Total Fee Collected (Sum of penalty_amount for all complaints matching the filter across violation categories)
         $totalFeeCollected = (double) $query->clone()
-            ->where('status', 'resolved')
             ->join('violation_categories', 'complaints.category_id', '=', 'violation_categories.id')
             ->sum(\Illuminate\Support\Facades\DB::raw('CAST(violation_categories.penalty_amount AS DECIMAL(10,2))'));
 

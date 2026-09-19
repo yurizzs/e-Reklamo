@@ -14,6 +14,7 @@ import { useDebounce } from "../../hooks";
 import DriverService from "../../services/DriverService";
 import DriverHistoryModal from "./DriverHistoryModal";
 import ComplaintDetailsModal from "../staff/ComplaintDetailsModal";
+import EditDriverModal from "./EditDriverModal";
 
 interface DriverRecord {
   id: number;
@@ -22,6 +23,7 @@ interface DriverRecord {
   first_name: string;
   middle_name: string | null;
   last_name: string;
+  suffix_1name: string | null;
   full_name: string;
   plate_number: string;
   vehicle_type: string;
@@ -89,6 +91,7 @@ const DriverRecords = () => {
 
   const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
   const [selectedComplaintId, setSelectedComplaintId] = useState<number | null>(null);
+  const [editingDriver, setEditingDriver] = useState<DriverRecord | null>(null);
 
   const debouncedSearch = useDebounce(search, 400);
 
@@ -96,54 +99,54 @@ const DriverRecords = () => {
     setPage(1);
   }, [debouncedSearch]);
 
-  useEffect(() => {
-    const fetchDriverRecords = async () => {
-      setIsLoading(true);
+  const fetchDriverRecords = async () => {
+    setIsLoading(true);
 
-      try {
-        const response = (await DriverService.getRecords({
-          search: debouncedSearch || undefined,
-          page,
-          limit,
-        })) as any;
+    try {
+      const response = (await DriverService.getRecords({
+        search: debouncedSearch || undefined,
+        page,
+        limit,
+      })) as any;
 
-        const payload = response?.data ?? response;
-        setDrivers(payload?.drivers ?? []);
-        setStats(
-          payload?.stats ?? {
-            total_drivers: 0,
-            total_violations: 0,
-            repeat_offenders: 0,
-            total_penalties_collected: 0,
-          },
-        );
-        setMeta(
-          payload?.meta ?? {
-            current_page: page,
-            last_page: 1,
-            per_page: limit,
-            total: 0,
-          },
-        );
-      } catch {
-        setDrivers([]);
-        setStats({
+      const payload = response?.data ?? response;
+      setDrivers(payload?.drivers ?? []);
+      setStats(
+        payload?.stats ?? {
           total_drivers: 0,
           total_violations: 0,
           repeat_offenders: 0,
           total_penalties_collected: 0,
-        });
-        setMeta({
+        },
+      );
+      setMeta(
+        payload?.meta ?? {
           current_page: page,
           last_page: 1,
           per_page: limit,
           total: 0,
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+        },
+      );
+    } catch {
+      setDrivers([]);
+      setStats({
+        total_drivers: 0,
+        total_violations: 0,
+        repeat_offenders: 0,
+        total_penalties_collected: 0,
+      });
+      setMeta({
+        current_page: page,
+        last_page: 1,
+        per_page: limit,
+        total: 0,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchDriverRecords();
   }, [debouncedSearch, page, limit]);
 
@@ -255,7 +258,6 @@ const DriverRecords = () => {
                   <TableCell isHeader className="text-slate-700 dark:text-slate-300 py-4 w-28">Plate Number</TableCell>
                   <TableCell isHeader className="text-slate-700 dark:text-slate-300 py-4 w-32">Vehicle Type</TableCell>
                   <TableCell isHeader className="text-slate-700 dark:text-slate-300 py-4 w-36">Violations Count</TableCell>
-                  <TableCell isHeader className="text-slate-700 dark:text-slate-300 py-4 w-48">Status Breakdown</TableCell>
                   <TableCell isHeader className="text-slate-700 dark:text-slate-300 py-4 w-32">Last Reported</TableCell>
                   <TableCell isHeader align="center" className="text-slate-700 dark:text-slate-300 py-4 pr-8 text-right">Action</TableCell>
                 </tr>
@@ -263,7 +265,7 @@ const DriverRecords = () => {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-24">
+                    <TableCell colSpan={6} className="text-center py-24">
                       <div className="flex items-center justify-center w-full">
                         <LoadingSpinner size="lg" text="Syncing driver database..." />
                       </div>
@@ -271,7 +273,7 @@ const DriverRecords = () => {
                   </TableRow>
                 ) : drivers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" className="py-24 text-center">
+                    <TableCell colSpan={6} align="center" className="py-24 text-center">
                       <div className="flex flex-col items-center justify-center text-center gap-3 text-slate-400">
                         <Icon iconName="FaDatabase" size={32} />
                         <p className="text-xs font-black uppercase tracking-wider">No driver records found</p>
@@ -318,29 +320,30 @@ const DriverRecords = () => {
                           {driver.total_violations} {driver.total_violations === 1 ? "Violation" : "Violations"}
                         </span>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider">
-                          <span className="rounded-md bg-rose-100 border border-rose-200 px-2 py-0.5 text-rose-700 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400" title="Unsettled">
-                            Unsettled: {driver.status_breakdown.unsettled}
-                          </span>
-                          <span className="rounded-md bg-slate-100 border border-slate-300 px-2 py-0.5 text-slate-700 dark:bg-white/5 dark:border-white/5 dark:text-slate-300" title="Settled">
-                            Settled: {driver.status_breakdown.settled}
-                          </span>
-                        </div>
-                      </TableCell>
                       <TableCell className="font-mono text-xs font-semibold text-slate-700 dark:text-slate-300">
                         {formatDate(driver.last_reported_at)}
                       </TableCell>
                       <TableCell align="right" className="pr-4">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          iconName="FaClockRotateLeft"
-                          onClick={() => setSelectedDriverId(driver.id)}
-                          className="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-xs font-bold transition-all"
-                        >
-                          View History
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            iconName="FaPen"
+                            onClick={() => setEditingDriver(driver)}
+                            className="text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-xs font-bold transition-all"
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            iconName="FaClockRotateLeft"
+                            onClick={() => setSelectedDriverId(driver.id)}
+                            className="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-xs font-bold transition-all"
+                          >
+                            View History
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -383,6 +386,12 @@ const DriverRecords = () => {
         isOpen={selectedComplaintId !== null}
         onClose={() => setSelectedComplaintId(null)}
         complaintId={selectedComplaintId}
+      />
+      <EditDriverModal
+        isOpen={editingDriver !== null}
+        onClose={() => setEditingDriver(null)}
+        driver={editingDriver}
+        onSuccess={fetchDriverRecords}
       />
     </>
   );

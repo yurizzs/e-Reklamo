@@ -110,15 +110,16 @@ const AnalyticsReport = () => {
   // Calculate table aggregates
   const tableTotals = useMemo(() => {
     if (!data?.violation_table_data) {
-      return { totalViolators: 0, grandTotalAmount: 0 };
+      return { totalPenaltyFee: 0, totalViolators: 0, grandTotalAmount: 0 };
     }
     return data.violation_table_data.reduce(
       (acc, curr) => {
+        acc.totalPenaltyFee += curr.fee;
         acc.totalViolators += curr.violators_count;
         acc.grandTotalAmount += curr.total_amount;
         return acc;
       },
-      { totalViolators: 0, grandTotalAmount: 0 }
+      { totalPenaltyFee: 0, totalViolators: 0, grandTotalAmount: 0 }
     );
   }, [data?.violation_table_data]);
 
@@ -200,7 +201,7 @@ const AnalyticsReport = () => {
                     {formatCurrency(data?.total_fee_collected ?? 0)}
                   </div>
                   <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono uppercase tracking-widest">
-                    Total penalty fee collected (Resolved Cases)
+                    Total penalty fee collected (Sum of Violation Breakdown)
                   </div>
                 </div>
               </div>
@@ -325,8 +326,8 @@ const AnalyticsReport = () => {
                         <TableCell className="text-slate-900 dark:text-white uppercase tracking-wider">
                           Grand Total
                         </TableCell>
-                        <TableCell align="right" className="text-slate-600 dark:text-slate-400 font-mono">
-                          -
+                        <TableCell align="right" className="text-slate-900 dark:text-white font-mono text-base font-extrabold">
+                          {formatCurrency(tableTotals.totalPenaltyFee)}
                         </TableCell>
                         <TableCell align="center" className="text-slate-900 dark:text-white font-mono text-base font-extrabold">
                           {tableTotals.totalViolators}

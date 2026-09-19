@@ -74,21 +74,6 @@ const statusStyle = (status: string) => {
   return "border-amber-500/20 bg-amber-500/10 text-amber-400";
 };
 
-const formatIncidentTime = (value: string) => {
-  if (!value) return "Not set";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return date.toLocaleString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
 const ComplaintsList = () => {
   const [complaints, setComplaints] = useState<ComplaintRecord[]>([]);
   const [stats, setStats] = useState<ComplaintStats>({
@@ -252,20 +237,19 @@ const ComplaintsList = () => {
                 <TableCell isHeader>Category</TableCell>
                 <TableCell isHeader>Title</TableCell>
                 <TableCell isHeader>Status</TableCell>
-                <TableCell isHeader>Incident Time</TableCell>
                 <TableCell isHeader>Actions</TableCell>
               </tr>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" className="py-16">
+                  <TableCell colSpan={6} align="center" className="py-16">
                     <LoadingSpinner text="Loading complaints..." />
                   </TableCell>
                 </TableRow>
               ) : complaints.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" className="py-16">
+                  <TableCell colSpan={6} align="center" className="py-16">
                     <div className="flex flex-col items-center gap-3 text-slate-500">
                       <Icon iconName="FaFolderOpen" size={32} />
                       <span className="text-xs font-black uppercase tracking-[0.3em]">
@@ -293,9 +277,6 @@ const ComplaintsList = () => {
                       >
                         {complaint.status}
                       </span>
-                    </TableCell>
-                    <TableCell className="font-mono text-[11px] text-slate-550 dark:text-slate-400">
-                      {formatIncidentTime(complaint.incident_date_time)}
                     </TableCell>
                     <TableCell>
                       <Button

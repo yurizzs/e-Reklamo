@@ -41,6 +41,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Driver Violation Records Access
         Route::get('drivers/records', [DriverController::class, 'records']);
         Route::get('drivers/{id}/history', [DriverController::class, 'history'])->where('id', '[0-9]+');
+        Route::put('drivers/{id}', [DriverController::class, 'update'])->where('id', '[0-9]+');
 
         // Schedules Access (View & Assign)
         Route::get('operator-schedules/employees', [OperatorScheduleController::class, 'employees']);

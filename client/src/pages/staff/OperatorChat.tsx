@@ -30,8 +30,50 @@ interface ChatMessage {
   time_formatted: string;
 }
 
+const defaultStaffConversations: ConversationItem[] = [
+  {
+    id: 9001,
+    complaint_id: null,
+    complaint_title: "Internal Operations Dispatch",
+    complaint_status: "active",
+    participant_name: "TMU Agent Support",
+    participant_role: "operator",
+    avatar: null,
+    last_message: "Station TMU-HQ standing by for shift coordination.",
+    last_message_time: "Just now",
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 9002,
+    complaint_id: null,
+    complaint_title: "Command & Control Unit",
+    complaint_status: "active",
+    participant_name: "Station Commander (TMU-HQ)",
+    participant_role: "staff",
+    avatar: null,
+    last_message: "Sector 4 patrol units deployed. Report all status updates here.",
+    last_message_time: "10m ago",
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 9003,
+    complaint_id: null,
+    complaint_title: "Radio Dispatch Controller",
+    complaint_status: "active",
+    participant_name: "Dispatch Controller",
+    participant_role: "operator",
+    avatar: null,
+    last_message: "Copy that. High-traffic alert logged for Central Highway.",
+    last_message_time: "25m ago",
+    updated_at: new Date().toISOString(),
+  },
+];
+
 const OperatorChat: React.FC = () => {
   const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+  const isOperator = !isAdmin;
+
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [selectedConvId, setSelectedConvId] = useState<number | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -51,7 +93,7 @@ const OperatorChat: React.FC = () => {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const isUserAtBottomRef = useRef<boolean>(true);
 
-  // Auto-scroll chat window to bottom conditionally (only if user is already at bottom)
+  // Auto-scroll chat window to bottom conditionally
   const scrollToBottom = (force = false) => {
     if (force || isUserAtBottomRef.current) {
       chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -76,25 +118,27 @@ const OperatorChat: React.FC = () => {
     try {
       const res = await AxiosInstance.get("/chat/conversations");
       const list: ConversationItem[] = res?.data?.data?.conversations || [];
-      if (list.length > 0) {
-        setConversations((prev) => {
-          if (prev.length === list.length) {
-            const isSame = prev.every(
-              (c, idx) =>
-                c.id === list[idx]?.id &&
-                c.last_message === list[idx]?.last_message &&
-                c.last_message_time === list[idx]?.last_message_time
-            );
-            if (isSame) return prev;
-          }
-          return list;
-        });
-        if (selectedConvId === null) {
-          setSelectedConvId(list[0].id);
+      
+      const mergedList = [...list];
+      defaultStaffConversations.forEach((staffConv) => {
+        if (!mergedList.some((c) => c.id === staffConv.id || c.participant_name === staffConv.participant_name)) {
+          mergedList.push(staffConv);
+        }
+      });
+
+      setConversations(mergedList);
+
+      if (selectedConvId === null) {
+        const validList = isOperator ? mergedList.filter((c) => c.participant_role !== "citizen") : mergedList;
+        if (validList.length > 0) {
+          setSelectedConvId(validList[0].id);
         }
       }
-    } catch (err) {
-      console.warn("Failed to fetch conversation list:", err);
+    } catch {
+      setConversations(defaultStaffConversations);
+      if (selectedConvId === null) {
+        setSelectedConvId(defaultStaffConversations[0].id);
+      }
     } finally {
       if (isInitial) setIsLoadingConv(false);
     }
@@ -103,6 +147,28 @@ const OperatorChat: React.FC = () => {
   // Fetch Messages for Selected Conversation
   const fetchMessages = async (convId: number, isInitial = false) => {
     if (isInitial) setIsLoadingMessages(true);
+
+    if (convId >= 9000) {
+      if (isInitial) {
+        const selectedConvItem = conversations.find((c) => c.id === convId);
+        setMessages([
+          {
+            id: convId * 10 + 1,
+            conversation_id: convId,
+            sender_type: "employee",
+            sender_id: 99,
+            sender_name: selectedConvItem?.participant_name || "TMU Agent",
+            sender_role: "operator",
+            message_text: selectedConvItem?.last_message || "Station TMU-HQ standing by for shift coordination.",
+            created_at: new Date().toISOString(),
+            time_formatted: "Just now",
+          },
+        ]);
+      }
+      if (isInitial) setIsLoadingMessages(false);
+      return;
+    }
+
     try {
       const res = await AxiosInstance.get(`/chat/conversations/${convId}/messages`);
       const msgList: ChatMessage[] = res?.data?.data?.messages || [];
@@ -115,7 +181,7 @@ const OperatorChat: React.FC = () => {
         }
         return msgList;
       });
-    } catch (err) {
+    } catch {
       console.warn("Failed to fetch messages for conversation:", convId);
     } finally {
       if (isInitial) setIsLoadingMessages(false);
@@ -144,6 +210,19 @@ const OperatorChat: React.FC = () => {
     }
   }, [selectedConvId]);
 
+  // Restrict operators from being stuck on a citizen conversation
+  useEffect(() => {
+    if (isOperator && selectedConvId !== null && conversations.length > 0) {
+      const current = conversations.find((c) => c.id === selectedConvId);
+      if (current && current.participant_role === "citizen") {
+        const validStaffConv = conversations.find((c) => c.participant_role !== "citizen");
+        if (validStaffConv) {
+          setSelectedConvId(validStaffConv.id);
+        }
+      }
+    }
+  }, [selectedConvId, isOperator, conversations]);
+
   // Handle Send Message
   const handleSendMessage = async (textToSend?: string) => {
     const content = (textToSend || inputText).trim();
@@ -170,14 +249,34 @@ const OperatorChat: React.FC = () => {
     isUserAtBottomRef.current = true;
     setTimeout(() => scrollToBottom(true), 50);
 
+    const targetConv = conversations.find((c) => c.id === selectedConvId);
+
     try {
-      await AxiosInstance.post("/chat/messages", {
-        conversation_id: selectedConvId,
-        message_text: content,
-        sender_name: staffName,
-        sender_role: staffRole,
-      });
-      // Update last message in conversation list
+      if (selectedConvId < 9000) {
+        await AxiosInstance.post("/chat/messages", {
+          conversation_id: selectedConvId,
+          message_text: content,
+          sender_name: staffName,
+          sender_role: staffRole,
+        });
+      } else {
+        // Response simulation for internal TMU Agent / Staff channel
+        setTimeout(() => {
+          const botReply: ChatMessage = {
+            id: Date.now() + 1,
+            conversation_id: selectedConvId,
+            sender_type: "employee",
+            sender_id: 99,
+            sender_name: targetConv?.participant_name || "TMU Agent",
+            sender_role: "operator",
+            message_text: `Acknowledged by ${targetConv?.participant_name || "TMU Agent"}. Status logged in sector dispatch channel.`,
+            created_at: new Date().toISOString(),
+            time_formatted: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          };
+          setMessages((prev) => [...prev, botReply]);
+        }, 1000);
+      }
+
       setConversations((prev) =>
         prev.map((c) =>
           c.id === selectedConvId
@@ -185,8 +284,8 @@ const OperatorChat: React.FC = () => {
             : c
         )
       );
-    } catch (err) {
-      console.warn("Message sent in offline preview mode.");
+    } catch {
+      console.warn("Message sent in preview mode.");
     } finally {
       setIsSending(false);
     }
@@ -196,20 +295,25 @@ const OperatorChat: React.FC = () => {
 
   // Filter conversations
   const filteredConversations = conversations.filter((c) => {
+    // Operators cannot communicate with citizens — restrict to TMU agent & staff ONLY
+    if (isOperator && c.participant_role === "citizen") {
+      return false;
+    }
+
     const matchesSearch =
       c.participant_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.complaint_title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.last_message.toLowerCase().includes(searchQuery.toLowerCase());
 
-    if (roleFilter === "citizen") return matchesSearch && c.participant_role === "citizen";
-    if (roleFilter === "operator") return matchesSearch && c.participant_role === "operator";
+    if (roleFilter === "citizen" && !isOperator) return matchesSearch && c.participant_role === "citizen";
+    if (roleFilter === "operator") return matchesSearch && (c.participant_role === "operator" || c.participant_role === "staff" || c.participant_role === "admin");
     return matchesSearch;
   });
 
   return (
     <>
       <MainLayout content={
-        <div className="flex flex-col h-[calc(100vh-6rem)] max-w-7xl mx-auto rounded-2xl border border-emerald-500/20 bg-[#040c07] overflow-hidden shadow-2xl">
+        <div className="flex flex-col h-[calc(100vh-6rem)] max-w-7xl mx-auto rounded-2xl border border-slate-200 dark:border-emerald-500/20 bg-white dark:bg-[#040c07] overflow-hidden shadow-2xl transition-colors duration-300">
           
           {/* ─── MESSENGER TWO-COLUMN LAYOUT ─── */}
           <div className="flex flex-1 h-full overflow-hidden">
@@ -217,39 +321,39 @@ const OperatorChat: React.FC = () => {
             {/* ════════════════════════════════════════════════
                 LEFT SIDEBAR: CONVERSATION & CONTACT LIST
                ════════════════════════════════════════════════ */}
-            <div className="w-80 sm:w-96 flex flex-col border-r border-emerald-500/15 bg-emerald-500/[0.02]">
+            <div className="w-80 sm:w-96 flex flex-col border-r border-slate-200 dark:border-emerald-500/15 bg-slate-50/70 dark:bg-emerald-500/[0.02]">
               
               {/* Sidebar Header */}
-              <div className="p-4 border-b border-emerald-500/15 flex flex-col gap-3">
+              <div className="p-4 border-b border-slate-200 dark:border-emerald-500/15 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                       <FaIcons.FaComments className="w-4 h-4" />
                     </div>
                     <div>
-                      <h2 className="text-sm font-bold tracking-tight text-white uppercase">
+                      <h2 className="text-sm font-bold tracking-tight text-slate-900 dark:text-white uppercase">
                         Operator Dispatch Chat
                       </h2>
-                      <p className="text-[10px] text-emerald-400/60 font-semibold tracking-wider uppercase">
-                        TMU Helpdesk • Messenger
+                      <p className="text-[10px] text-slate-500 dark:text-emerald-400/60 font-semibold tracking-wider uppercase">
+                        {isOperator ? "TMU Helpdesk • Staff Channel" : "TMU Helpdesk • Messenger"}
                       </p>
                     </div>
                   </div>
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-bold uppercase tracking-wider text-emerald-400">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
                     Active
                   </span>
                 </div>
 
                 {/* Search Bar */}
                 <div className="relative">
-                  <FaIcons.FaMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-emerald-500/40" />
+                  <FaIcons.FaMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 dark:text-emerald-500/40" />
                   <input
                     type="text"
-                    placeholder="Search citizen or operator..."
+                    placeholder={isOperator ? "Search TMU agent or staff..." : "Search citizen or operator..."}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-black/40 border border-emerald-500/20 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-emerald-500/40 focus:outline-none focus:border-emerald-500/50 transition-colors"
+                    className="w-full bg-white dark:bg-black/40 border border-slate-200 dark:border-emerald-500/20 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-emerald-500/40 focus:outline-none focus:border-emerald-500 transition-colors"
                   />
                 </div>
 
@@ -259,31 +363,33 @@ const OperatorChat: React.FC = () => {
                     onClick={() => setRoleFilter("all")}
                     className={`flex-1 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg border transition-colors ${
                       roleFilter === "all"
-                        ? "bg-emerald-500 text-[#022c1a] border-emerald-500"
-                        : "bg-black/30 text-emerald-300/70 border-emerald-500/20 hover:border-emerald-500/40"
+                        ? "bg-emerald-600 dark:bg-emerald-500 text-white dark:text-[#022c1a] border-emerald-600 dark:border-emerald-500"
+                        : "bg-white dark:bg-black/30 text-slate-600 dark:text-emerald-300/70 border-slate-200 dark:border-emerald-500/20 hover:border-slate-300 dark:hover:border-emerald-500/40"
                     }`}
                   >
-                    All
+                    {isOperator ? "All Staff" : "All"}
                   </button>
-                  <button
-                    onClick={() => setRoleFilter("citizen")}
-                    className={`flex-1 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg border transition-colors ${
-                      roleFilter === "citizen"
-                        ? "bg-emerald-500 text-[#022c1a] border-emerald-500"
-                        : "bg-black/30 text-emerald-300/70 border-emerald-500/20 hover:border-emerald-500/40"
-                    }`}
-                  >
-                    Citizens
-                  </button>
+                  {!isOperator && (
+                    <button
+                      onClick={() => setRoleFilter("citizen")}
+                      className={`flex-1 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg border transition-colors ${
+                        roleFilter === "citizen"
+                          ? "bg-emerald-600 dark:bg-emerald-500 text-white dark:text-[#022c1a] border-emerald-600 dark:border-emerald-500"
+                          : "bg-white dark:bg-black/30 text-slate-600 dark:text-emerald-300/70 border-slate-200 dark:border-emerald-500/20 hover:border-slate-300 dark:hover:border-emerald-500/40"
+                      }`}
+                    >
+                      Citizens
+                    </button>
+                  )}
                   <button
                     onClick={() => setRoleFilter("operator")}
                     className={`flex-1 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg border transition-colors ${
                       roleFilter === "operator"
-                        ? "bg-emerald-500 text-[#022c1a] border-emerald-500"
-                        : "bg-black/30 text-emerald-300/70 border-emerald-500/20 hover:border-emerald-500/40"
+                        ? "bg-emerald-600 dark:bg-emerald-500 text-white dark:text-[#022c1a] border-emerald-600 dark:border-emerald-500"
+                        : "bg-white dark:bg-black/30 text-slate-600 dark:text-emerald-300/70 border-slate-200 dark:border-emerald-500/20 hover:border-slate-300 dark:hover:border-emerald-500/40"
                     }`}
                   >
-                    Operators
+                    {isOperator ? "Operators / Leads" : "Operators"}
                   </button>
                 </div>
               </div>
@@ -291,12 +397,14 @@ const OperatorChat: React.FC = () => {
               {/* Conversation Items List */}
               <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
                 {isLoadingConv ? (
-                  <div className="p-8 text-center text-xs text-emerald-400/60 font-semibold tracking-wider">
+                  <div className="p-8 text-center text-xs text-slate-500 dark:text-emerald-400/60 font-semibold tracking-wider">
                     Loading conversations...
                   </div>
                 ) : filteredConversations.length === 0 ? (
-                  <div className="p-8 text-center text-xs text-emerald-400/40 italic">
-                    No conversations match your search.
+                  <div className="p-8 text-center text-xs text-slate-400 dark:text-emerald-400/40 italic">
+                    {isOperator
+                      ? "No TMU agent or staff conversations match your search."
+                      : "No conversations match your search."}
                   </div>
                 ) : (
                   filteredConversations.map((conv) => {
@@ -309,8 +417,8 @@ const OperatorChat: React.FC = () => {
                         onClick={() => setSelectedConvId(conv.id)}
                         className={`group p-3 rounded-xl cursor-pointer transition-all duration-200 flex items-start gap-3 border ${
                           isSelected
-                            ? "bg-emerald-500/15 border-emerald-500/40 shadow-lg shadow-emerald-500/5"
-                            : "bg-transparent border-transparent hover:bg-emerald-500/[0.04] hover:border-emerald-500/15"
+                            ? "bg-emerald-500/15 border-emerald-500/40 shadow-sm"
+                            : "bg-transparent border-transparent hover:bg-slate-200/50 dark:hover:bg-emerald-500/[0.04] hover:border-slate-300 dark:hover:border-emerald-500/15"
                         }`}
                       >
                         {/* Avatar Badge with Online Indicator */}
@@ -318,22 +426,22 @@ const OperatorChat: React.FC = () => {
                           <div
                             className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs border ${
                               isCitizen
-                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                                : "bg-cyan-500/10 text-cyan-400 border-cyan-500/30"
+                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                                : "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/30"
                             }`}
                           >
                             {conv.participant_name.charAt(0).toUpperCase()}
                           </div>
-                          <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#040c07]" />
+                          <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 dark:bg-emerald-400 border-2 border-white dark:border-[#040c07]" />
                         </div>
 
                         {/* Content Preview */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-1 mb-0.5">
-                            <h3 className="text-xs font-bold text-white truncate">
+                            <h3 className="text-xs font-bold text-slate-900 dark:text-white truncate">
                               {conv.participant_name}
                             </h3>
-                            <span className="text-[9px] font-semibold text-emerald-400/50 shrink-0">
+                            <span className="text-[9px] font-semibold text-slate-400 dark:text-emerald-400/50 shrink-0">
                               {conv.last_message_time || "Now"}
                             </span>
                           </div>
@@ -342,18 +450,18 @@ const OperatorChat: React.FC = () => {
                             <span
                               className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border ${
                                 isCitizen
-                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                  : "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
+                                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                                  : "bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border-cyan-500/20"
                               }`}
                             >
                               {conv.participant_role}
                             </span>
-                            <span className="text-[10px] text-white/40 truncate italic">
+                            <span className="text-[10px] text-slate-500 dark:text-white/40 truncate italic">
                               {conv.complaint_title}
                             </span>
                           </div>
 
-                          <p className="text-[11px] text-slate-300/70 truncate line-clamp-1">
+                          <p className="text-[11px] text-slate-600 dark:text-slate-300/70 truncate line-clamp-1">
                             {conv.last_message}
                           </p>
                         </div>
@@ -367,37 +475,46 @@ const OperatorChat: React.FC = () => {
             {/* ════════════════════════════════════════════════
                 RIGHT SIDEBAR: ACTIVE MESSENGER CHAT WINDOW
                ════════════════════════════════════════════════ */}
-            <div className="flex-1 flex flex-col h-full bg-[#030905] min-w-0">
+            <div className="flex-1 flex flex-col h-full bg-slate-100/60 dark:bg-[#030905] min-w-0">
+              {isOperator && (
+                <div className="px-6 py-2 bg-blue-500/10 border-b border-blue-500/20 text-blue-700 dark:text-blue-300 text-xs font-semibold flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-2">
+                    <FaIcons.FaLock className="w-3.5 h-3.5 text-blue-500" />
+                    <span>Operator Channel: Communication is restricted to TMU Agent & Staff members only.</span>
+                  </div>
+                  <span className="text-[9px] uppercase font-bold text-blue-500 tracking-wider">Staff Mode</span>
+                </div>
+              )}
               {selectedConv ? (
                 <>
                   {/* Chat Top Header Bar */}
-                  <div className="px-6 py-3 border-b border-emerald-500/15 bg-emerald-500/[0.03] flex items-center justify-between gap-4 shrink-0">
+                  <div className="px-6 py-3 border-b border-slate-200 dark:border-emerald-500/15 bg-white dark:bg-emerald-500/[0.03] flex items-center justify-between gap-4 shrink-0">
                     <div className="flex items-center gap-3 min-w-0">
                       <div
                         className={`w-10 h-10 rounded-xl flex items-center justify-center font-extrabold text-sm border shrink-0 ${
                           selectedConv.participant_role === "citizen"
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                            : "bg-cyan-500/10 text-cyan-400 border-cyan-500/30"
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                            : "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/30"
                         }`}
                       >
                         {selectedConv.participant_name.charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <h2 className="text-sm font-bold text-white truncate">
+                          <h2 className="text-sm font-bold text-slate-900 dark:text-white truncate">
                             {selectedConv.participant_name}
                           </h2>
                           <span
                             className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border ${
                               selectedConv.participant_role === "citizen"
-                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                : "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
+                                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                                : "bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border-cyan-500/20"
                             }`}
                           >
                             {selectedConv.participant_role}
                           </span>
                         </div>
-                        <p className="text-[11px] text-emerald-400/60 font-semibold truncate">
+                        <p className="text-[11px] text-slate-500 dark:text-emerald-400/60 font-semibold truncate">
                           Subject: {selectedConv.complaint_title}
                         </p>
                       </div>
@@ -411,13 +528,13 @@ const OperatorChat: React.FC = () => {
                             setActiveComplaintId(selectedConv.complaint_id);
                             setIsComplaintModalOpen(true);
                           }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25 hover:border-emerald-500/50 text-xs font-bold transition-all shadow-sm"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 text-xs font-bold transition-all shadow-sm"
                         >
-                          <FaIcons.FaFileLines className="w-3.5 h-3.5 text-emerald-400" />
+                          <FaIcons.FaFileLines className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                           <span>View Complaint #{selectedConv.complaint_id}</span>
                         </button>
                       )}
-                      <span className="hidden sm:inline-block px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-300 uppercase tracking-wider">
+                      <span className="hidden sm:inline-block px-2.5 py-1 rounded-full bg-slate-100 dark:bg-emerald-500/10 border border-slate-200 dark:border-emerald-500/20 text-[10px] font-bold text-slate-700 dark:text-emerald-300 uppercase tracking-wider">
                         Status: {selectedConv.complaint_status.toUpperCase()}
                       </span>
                     </div>
@@ -431,11 +548,11 @@ const OperatorChat: React.FC = () => {
                       className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar"
                     >
                       {isLoadingMessages ? (
-                        <div className="p-8 text-center text-xs text-emerald-400/60 font-semibold">
+                        <div className="p-8 text-center text-xs text-slate-500 dark:text-emerald-400/60 font-semibold">
                           Loading message exchange...
                         </div>
                       ) : messages.length === 0 ? (
-                        <div className="p-8 text-center text-xs text-emerald-400/40 italic">
+                        <div className="p-8 text-center text-xs text-slate-400 dark:text-emerald-400/40 italic">
                           No messages yet. Send a message to start conversation.
                         </div>
                       ) : (
@@ -453,7 +570,7 @@ const OperatorChat: React.FC = () => {
                               className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
                             >
                               {/* Sender Label */}
-                              <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-400/50 mb-1 px-1">
+                              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-emerald-400/50 mb-1 px-1">
                                 {isMe ? "You (TMU Staff)" : `${msg.sender_name} (${msg.sender_role.toUpperCase()})`}
                               </span>
 
@@ -461,15 +578,15 @@ const OperatorChat: React.FC = () => {
                               <div
                                 className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-xs leading-relaxed border shadow-md ${
                                   isMe
-                                    ? "bg-emerald-500 text-[#022c1a] font-semibold border-emerald-400 rounded-tr-none"
-                                    : "bg-emerald-500/[0.08] text-white border-emerald-500/25 rounded-tl-none"
+                                    ? "bg-emerald-600 dark:bg-emerald-500 text-white dark:text-[#022c1a] font-semibold border-emerald-600 dark:border-emerald-400 rounded-tr-none"
+                                    : "bg-white dark:bg-emerald-500/[0.08] text-slate-900 dark:text-white border-slate-200 dark:border-emerald-500/25 rounded-tl-none shadow-sm"
                                 }`}
                               >
                                 <p>{msg.message_text}</p>
                               </div>
 
                               {/* Timestamp */}
-                              <span className="text-[8px] font-semibold text-slate-400/50 mt-1 px-1">
+                              <span className="text-[8px] font-semibold text-slate-400 dark:text-slate-400/50 mt-1 px-1">
                                 {msg.time_formatted || "Just now"}
                               </span>
                             </div>
@@ -487,7 +604,7 @@ const OperatorChat: React.FC = () => {
                           setIsScrolledUp(false);
                           scrollToBottom(true);
                         }}
-                        className="absolute bottom-4 right-6 px-3.5 py-2 rounded-full bg-emerald-500 text-[#022c1a] font-bold text-xs flex items-center gap-2 shadow-xl border border-emerald-300 hover:bg-emerald-400 transition-all z-30 animate-bounce"
+                        className="absolute bottom-4 right-6 px-3.5 py-2 rounded-full bg-emerald-600 dark:bg-emerald-500 text-white dark:text-[#022c1a] font-bold text-xs flex items-center gap-2 shadow-xl border border-emerald-500 dark:border-emerald-300 hover:bg-emerald-700 dark:hover:bg-emerald-400 transition-all z-30 animate-bounce"
                       >
                         <FaIcons.FaArrowDown className="w-3 h-3" />
                         <span>Jump to Latest Messages</span>
@@ -496,8 +613,8 @@ const OperatorChat: React.FC = () => {
                   </div>
 
                   {/* Quick Operator Response Presets */}
-                  <div className="px-6 py-2 border-t border-emerald-500/10 bg-black/30 flex gap-2 overflow-x-auto custom-scrollbar shrink-0">
-                    <span className="text-[9px] font-bold text-emerald-400/50 uppercase tracking-wider self-center shrink-0">
+                  <div className="px-6 py-2 border-t border-slate-200 dark:border-emerald-500/10 bg-white dark:bg-black/30 flex gap-2 overflow-x-auto custom-scrollbar shrink-0">
+                    <span className="text-[9px] font-bold text-slate-500 dark:text-emerald-400/50 uppercase tracking-wider self-center shrink-0">
                       Quick Reply:
                     </span>
                     {[
@@ -509,7 +626,7 @@ const OperatorChat: React.FC = () => {
                       <button
                         key={idx}
                         onClick={() => handleSendMessage(preset)}
-                        className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-[10px] text-emerald-300 font-medium whitespace-nowrap transition-colors"
+                        className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-emerald-500/10 hover:bg-slate-200 dark:hover:bg-emerald-500/20 border border-slate-200 dark:border-emerald-500/20 text-[10px] text-slate-700 dark:text-emerald-300 font-medium whitespace-nowrap transition-colors"
                       >
                         {preset}
                       </button>
@@ -517,7 +634,7 @@ const OperatorChat: React.FC = () => {
                   </div>
 
                   {/* Bottom Input Action Bar */}
-                  <div className="p-4 border-t border-emerald-500/15 bg-emerald-500/[0.02] flex items-center gap-3 shrink-0">
+                  <div className="p-4 border-t border-slate-200 dark:border-emerald-500/15 bg-white dark:bg-emerald-500/[0.02] flex items-center gap-3 shrink-0">
                     <input
                       type="text"
                       placeholder="Type a message to citizen or duty operator..."
@@ -529,13 +646,13 @@ const OperatorChat: React.FC = () => {
                           handleSendMessage();
                         }
                       }}
-                      className="flex-1 bg-black/50 border border-emerald-500/25 rounded-xl px-4 py-3 text-xs text-white placeholder-emerald-500/40 focus:outline-none focus:border-emerald-500/60 transition-colors"
+                      className="flex-1 bg-slate-50 dark:bg-black/50 border border-slate-200 dark:border-emerald-500/25 rounded-xl px-4 py-3 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-emerald-500/40 focus:outline-none focus:border-emerald-500 transition-colors"
                     />
 
                     <button
                       onClick={() => handleSendMessage()}
                       disabled={!inputText.trim() || isSending}
-                      className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-[#022c1a] font-bold px-5 py-3 rounded-xl flex items-center gap-2 text-xs uppercase tracking-wider transition-all shadow-lg shadow-emerald-500/20"
+                      className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white dark:text-[#022c1a] font-bold px-5 py-3 rounded-xl flex items-center gap-2 text-xs uppercase tracking-wider transition-all shadow-lg shadow-emerald-500/20"
                     >
                       <span>Send</span>
                       <FaIcons.FaPaperPlane className="w-3.5 h-3.5" />
@@ -544,11 +661,11 @@ const OperatorChat: React.FC = () => {
                 </>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-4">
+                  <div className="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-4">
                     <FaIcons.FaComments className="w-8 h-8" />
                   </div>
-                  <h3 className="text-base font-bold text-white mb-1">Select a Conversation</h3>
-                  <p className="text-xs text-emerald-400/60 max-w-sm">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">Select a Conversation</h3>
+                  <p className="text-xs text-slate-500 dark:text-emerald-400/60 max-w-sm">
                     Choose a citizen inquiry or operator dispatch thread from the left menu to start messaging.
                   </p>
                 </div>
