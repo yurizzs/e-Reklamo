@@ -26,6 +26,13 @@ class ChatController extends Controller
         // If authenticated user is a citizen (mobile app), filter to their conversations only
         if ($authUser && get_class($authUser) === User::class) {
             $fullName = trim("{$authUser->first_name} {$authUser->last_name}");
+            
+            // Auto-associate any unlinked conversations with matching sender_name to this user
+            Conversation::whereNull('user_id')
+                ->whereHas('messages', function ($mq) use ($fullName) {
+                    $mq->where('sender_name', 'LIKE', "%{$fullName}%");
+                })->update(['user_id' => $authUser->id]);
+
             $query->where(function ($q) use ($authUser, $fullName) {
                 $q->where('user_id', $authUser->id)
                   ->orWhereHas('complaint', function ($cq) use ($authUser) {
@@ -127,7 +134,23 @@ class ChatController extends Controller
     {
         $conversation = Conversation::with(['complaint.user', 'messages'])->findOrFail($id);
 
-        $messages = $conversation->messages->map(function ($msg) {
+        $relatedConvIds = [$conversation->id];
+
+        if ($conversation->user_id) {
+            $relatedConvIds = Conversation::where('user_id', $conversation->user_id)->pluck('id')->toArray();
+        } elseif ($conversation->messages->isNotEmpty()) {
+            $userMsg = $conversation->messages->whereIn('sender_type', ['user', 'citizen'])->first();
+            if ($userMsg && !empty($userMsg->sender_name)) {
+                $sName = $userMsg->sender_name;
+                $relatedConvIds = Conversation::whereHas('messages', function ($q) use ($sName) {
+                    $q->where('sender_name', $sName);
+                })->pluck('id')->toArray();
+            }
+        }
+
+        $allMessages = Message::whereIn('conversation_id', $relatedConvIds)->orderBy('created_at', 'asc')->get();
+
+        $messages = $allMessages->map(function ($msg) {
             return [
                 'id' => $msg->id,
                 'conversation_id' => $msg->conversation_id,
@@ -161,6 +184,8 @@ class ChatController extends Controller
         $validated = $request->validate([
             'conversation_id' => ['nullable', 'integer'],
             'complaint_id' => ['nullable', 'integer'],
+            'user_id' => ['nullable', 'integer'],
+            'recipient_name' => ['nullable', 'string', 'max:255'],
             'message_text' => ['required', 'string', 'max:2000'],
             'sender_name' => ['nullable', 'string', 'max:255'],
             'sender_role' => ['nullable', 'string', 'max:50'],
@@ -184,19 +209,30 @@ class ChatController extends Controller
 
         $convId = $validated['conversation_id'] ?? null;
         $complaintId = $validated['complaint_id'] ?? null;
+        $userId = $validated['user_id'] ?? null;
+        $recipientName = $validated['recipient_name'] ?? null;
 
         $conv = null;
 
-        // 1. If explicit conversation_id passed, use it directly
-        if ($convId && $convId > 0) {
+        // 1. If explicit valid conversation_id passed, use it directly
+        if ($convId && $convId > 0 && $convId < 900000000) {
             $conv = Conversation::find($convId);
         }
 
         // 2. If no valid conversation found by ID yet:
         if (!$conv) {
-            if ($authUser && get_class($authUser) === User::class) {
+            if ($userId && $userId > 0) {
+                $conv = Conversation::where('user_id', $userId)->first();
+            } elseif ($recipientName) {
+                $matchedUser = User::whereRaw("CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) LIKE ?", ["%{$recipientName}%"])->first();
+                if ($matchedUser) {
+                    $conv = Conversation::where('user_id', $matchedUser->id)->first();
+                }
+            }
+
+            if (!$conv && $authUser && get_class($authUser) === User::class) {
                 $conv = Conversation::where('user_id', $authUser->id)->first();
-            } elseif ($complaintId && $complaintId > 0) {
+            } elseif (!$conv && $complaintId && $complaintId > 0) {
                 $conv = Conversation::where('complaint_id', $complaintId)->first();
             }
 
@@ -210,9 +246,12 @@ class ChatController extends Controller
         // 3. If still no conversation exists, create a single conversation record
         if (!$conv) {
             $conv = Conversation::create([
-                'user_id' => ($authUser && get_class($authUser) === User::class) ? $authUser->id : null,
+                'user_id' => $userId ?? ($matchedUser?->id ?? (($authUser && get_class($authUser) === User::class) ? $authUser->id : null)),
                 'complaint_id' => ($complaintId && $complaintId > 0) ? $complaintId : null,
             ]);
+        } elseif ($authUser && get_class($authUser) === User::class && empty($conv->user_id)) {
+            $conv->user_id = $authUser->id;
+            $conv->save();
         }
 
         $message = Message::create([
@@ -244,5 +283,28 @@ class ChatController extends Controller
             ],
             201
         );
+    }
+
+    /**
+     * Get list of registered citizen users for starting new chat threads.
+     */
+    public function users()
+    {
+        $users = User::select('id', 'first_name', 'last_name', 'email', 'phone', 'address', 'avatar')
+            ->orderBy('first_name')
+            ->get()
+            ->map(function ($u) {
+                return [
+                    'id' => $u->id,
+                    'name' => trim("{$u->first_name} {$u->last_name}"),
+                    'email' => $u->email,
+                    'phone' => $u->phone,
+                    'address' => $u->address,
+                    'avatar' => $u->avatar,
+                ];
+            })
+            ->filter(fn($u) => !empty($u['name']));
+
+        return $this->success('Users retrieved successfully', ['users' => $users->values()]);
     }
 }

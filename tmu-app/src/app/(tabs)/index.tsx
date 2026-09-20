@@ -24,12 +24,25 @@ export default function HomeScreen() {
 
   // AI Chatbot State
   const [isChatModalVisible, setIsChatModalVisible] = useState(false);
-  const [messages, setMessages] = useState<Array<{ id: number; sender_type: string; sender_name: string; text: string; time: string }>>([
+  const [messages, setMessages] = useState<Array<{
+    id: number | string;
+    sender_type: 'user' | 'bot';
+    sender_name: string;
+    text: string;
+    time: string;
+    card?: {
+      title: string;
+      ordinance_ref?: string;
+      content: string;
+      fine_amount?: number;
+    } | null;
+    references?: string[];
+  }>>([
     {
       id: 1,
       sender_type: 'bot',
       sender_name: 'TMU AI Assistant',
-      text: `Hello ${currentUser?.first_name || 'Citizen'}! 🤖 I am your 24/7 TMU AI Assistant. Ask me anything about filing complaints, violation penalties, or traffic rules!`,
+      text: `Kumusta ${currentUser?.first_name || 'Citizen'}! 🤖 I am your 24/7 TMU AI Ordinance Assistant.\n\nAsk me anything about Roxas City Ordinance No. 024-2024 (Tricycle fare rates, Senior/Student discounts, overcharging fines, dress code, refusal of service, or towing rules)!`,
       time: 'Just now',
     },
   ]);
@@ -37,39 +50,13 @@ export default function HomeScreen() {
   const [isSending, setIsSending] = useState(false);
   const chatScrollRef = useRef<ScrollView>(null);
 
-  const getAiResponse = (userQuery: string): string => {
-    const q = userQuery.toLowerCase();
-
-    if (q.includes('file') || q.includes('report') || q.includes('submit') || q.includes('how to')) {
-      return `To file a traffic complaint:\n1. Tap 'File a Complaint' on the Home screen.\n2. Complete your complainant info (Address is required).\n3. Enter the driver/vehicle plate number, color, and location.\n4. Attach up to 3 photo/video evidence items.\n5. Tap Submit to send directly to TMU inspectors!`;
-    }
-
-    if (q.includes('penalty') || q.includes('fine') || q.includes('cost') || q.includes('fee') || q.includes('amount')) {
-      return `Official TMU Violation Fines:\n• Overcharging Fare: ₱500.00\n• Route Deviation: ₱1,000.00\n• Reckless Driving: ₱1,500.00\n• Obstruction / Illegal Parking: ₱500.00\n\nAll fines are subject to municipal traffic code enforcement.`;
-    }
-
-    if (q.includes('evidence') || q.includes('photo') || q.includes('video') || q.includes('proof')) {
-      return `Valid Evidence Guidelines:\n• Clear photos or video showing vehicle license plate or body number.\n• Footage demonstrating the violation taking place.\n• Maximum 3 media attachments per complaint.`;
-    }
-
-    if (q.includes('human') || q.includes('agent') || q.includes('officer') || q.includes('staff') || q.includes('operator')) {
-      return `To chat live with a human TMU officer, tap the 'TMU Agent' tab in the bottom navigation bar!`;
-    }
-
-    if (q.includes('hello') || q.includes('hi') || q.includes('hey') || q.includes('good day')) {
-      return `Hello ${currentUser?.first_name || 'Citizen'}! How can I assist you today? You can ask about filing complaints, penalty rates, or evidence rules.`;
-    }
-
-    return `Thank you for your inquiry regarding "${userQuery}". TMU promotes safe, lawful road transit.\n\n• To submit a report, tap 'File a Complaint'.\n• To message human officers directly, visit the 'TMU Agent' tab at the bottom!`;
-  };
-
-  const handleSendMessage = (overrideText?: string) => {
+  const handleSendMessage = async (overrideText?: string) => {
     const textToSend = (overrideText || inputText).trim();
-    if (!textToSend) return;
+    if (!textToSend || isSending) return;
 
     const userMsg = {
       id: Date.now(),
-      sender_type: 'user',
+      sender_type: 'user' as const,
       sender_name: currentUser ? `${currentUser.first_name} ${currentUser.last_name}` : 'Citizen',
       text: textToSend,
       time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
@@ -79,17 +66,45 @@ export default function HomeScreen() {
     if (!overrideText) setInputText('');
     setIsSending(true);
 
-    setTimeout(() => {
-      const aiReply = {
-        id: Date.now() + 1,
-        sender_type: 'bot',
-        sender_name: 'TMU AI Assistant',
-        text: getAiResponse(textToSend),
-        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
-      };
-      setMessages((prev) => [...prev, aiReply]);
+    try {
+      const res = await apiService.askChatbot(textToSend);
+      if (res.success && res.data) {
+        const aiReply = {
+          id: Date.now() + 1,
+          sender_type: 'bot' as const,
+          sender_name: 'TMU AI Assistant',
+          text: res.data.reply || 'No response available.',
+          time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+          card: res.data.card,
+          references: res.data.references,
+        };
+        setMessages((prev) => [...prev, aiReply]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 1,
+            sender_type: 'bot',
+            sender_name: 'TMU AI Assistant',
+            text: 'Roxas City Ordinance No. 024-2024 sets tricycle fares at ₱15.00 for the first 2km (₱10.00 for Senior/Student/PWD). For complaints or inquiries, please contact the TMU help desk.',
+            time: 'Just now',
+          },
+        ]);
+      }
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          sender_type: 'bot',
+          sender_name: 'TMU AI Assistant',
+          text: 'According to Roxas City Ordinance No. 024-2024: Tricycle fare is ₱15.00 for the first 2km, with a discounted rate of ₱10.00 for Senior Citizens, Students, and PWDs.',
+          time: 'Just now',
+        },
+      ]);
+    } finally {
       setIsSending(false);
-    }, 500);
+    }
   };
 
   return (
@@ -299,6 +314,53 @@ export default function HomeScreen() {
                       >
                         {msg.text}
                       </Text>
+
+                      {/* Highlighted Penalty Card */}
+                      {msg.card && (
+                        <View style={{
+                          marginTop: 10,
+                          padding: 10,
+                          backgroundColor: '#f8fafc',
+                          borderRadius: 8,
+                          borderLeftWidth: 3,
+                          borderLeftColor: '#2563eb',
+                        }}>
+                          <Text style={{ fontSize: 13, fontWeight: '800', color: '#1e293b' }}>
+                            📜 {msg.card.title}
+                          </Text>
+                          {msg.card.ordinance_ref && (
+                            <Text style={{ fontSize: 11, fontWeight: '700', color: '#2563eb', marginBottom: 4 }}>
+                              {msg.card.ordinance_ref}
+                            </Text>
+                          )}
+                          <Text style={{ fontSize: 12, color: '#334155', lineHeight: 16 }}>
+                            {msg.card.content}
+                          </Text>
+                          {msg.card.fine_amount ? (
+                            <View style={{
+                              marginTop: 6,
+                              backgroundColor: '#fef2f2',
+                              borderColor: '#fecaca',
+                              borderWidth: 1,
+                              borderRadius: 6,
+                              paddingHorizontal: 8,
+                              paddingVertical: 4,
+                              alignSelf: 'flex-start',
+                            }}>
+                              <Text style={{ fontSize: 11, fontWeight: '800', color: '#dc2626' }}>
+                                Penalty Fine: ₱{Number(msg.card.fine_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                              </Text>
+                            </View>
+                          ) : null}
+                        </View>
+                      )}
+
+                      {/* Reference Section Footer */}
+                      {msg.references && msg.references.length > 0 && (
+                        <Text style={{ marginTop: 6, fontSize: 10, color: '#64748b', fontStyle: 'italic' }}>
+                          Source: {msg.references.join(', ')}
+                        </Text>
+                      )}
                     </View>
                     <Text
                       style={[
@@ -314,7 +376,7 @@ export default function HomeScreen() {
               {isSending && (
                 <View style={styles.messageBubbleWrapper}>
                   <View style={[styles.messageBubble, styles.agentBubble]}>
-                    <Text style={styles.agentMessageText}>Thinking...</Text>
+                    <Text style={styles.agentMessageText}>Searching Ordinance No. 024-2024...</Text>
                   </View>
                 </View>
               )}
@@ -327,22 +389,40 @@ export default function HomeScreen() {
               contentContainerStyle={{ gap: 8, paddingHorizontal: 4, paddingBottom: 8 }}
             >
               <Pressable
-                onPress={() => handleSendMessage('How to file a report?')}
+                onPress={() => handleSendMessage('Magkano pamasahe sa tricycle?')}
                 style={styles.quickPromptChip}
               >
-                <Text style={styles.quickPromptText}>📝 How to file a report?</Text>
+                <Text style={styles.quickPromptText}>💵 Pamasahe Rates</Text>
               </Pressable>
               <Pressable
-                onPress={() => handleSendMessage('What are penalty fines?')}
+                onPress={() => handleSendMessage('Magkano discount sa Senior at Student?')}
                 style={styles.quickPromptChip}
               >
-                <Text style={styles.quickPromptText}>💰 Penalty Fines</Text>
+                <Text style={styles.quickPromptText}>👵 Discounts</Text>
               </Pressable>
               <Pressable
-                onPress={() => handleSendMessage('What evidence is needed?')}
+                onPress={() => handleSendMessage('Magkano multa sa overcharging?')}
                 style={styles.quickPromptChip}
               >
-                <Text style={styles.quickPromptText}>📷 Evidence Rules</Text>
+                <Text style={styles.quickPromptText}>🚨 Overcharging Fines</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => handleSendMessage('Ano ang multa pag tinanggihan ang pasahero?')}
+                style={styles.quickPromptChip}
+              >
+                <Text style={styles.quickPromptText}>🚫 Refusal of Passenger</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => handleSendMessage('Bawal ba mag-shorts o tsinelas ang driver?')}
+                style={styles.quickPromptChip}
+              >
+                <Text style={styles.quickPromptText}>🩴 Driver Dress Code</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => handleSendMessage('Rules sa towing at abandoned vehicles')}
+                style={styles.quickPromptChip}
+              >
+                <Text style={styles.quickPromptText}>🚗 Towing & Impound</Text>
               </Pressable>
               <Pressable
                 onPress={() => {
@@ -351,7 +431,7 @@ export default function HomeScreen() {
                 }}
                 style={[styles.quickPromptChip, { backgroundColor: '#eff6ff', borderColor: '#bfdbfe' }]}
               >
-                <Text style={[styles.quickPromptText, { color: '#2563eb' }]}>👤 Chat with Human Agent</Text>
+                <Text style={[styles.quickPromptText, { color: '#2563eb' }]}>👤 Live Staff Chat</Text>
               </Pressable>
             </ScrollView>
 

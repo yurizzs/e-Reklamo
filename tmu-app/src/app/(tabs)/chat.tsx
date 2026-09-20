@@ -36,7 +36,7 @@ export default function ChatScreen() {
     id: 99999,
     sender_type: 'employee',
     sender_name: 'TMU Agent',
-    text: `Hello ${name || 'Citizen'}! 👋 Welcome to TMU Agent Support. How can we assist you with traffic inquiries or report follow-ups today?`,
+    text: `Hello ${name || 'Citizen'}! 👋 Welcome to TMU Live Support. How can we assist you with traffic inquiries or report follow-ups today?`,
     time: 'Just now',
   });
 
@@ -70,10 +70,6 @@ export default function ChatScreen() {
   useEffect(() => {
     let isMounted = true;
     let pollInterval: any = null;
-
-    setConversationId(0);
-    conversationIdRef.current = 0;
-    setMessages([getWelcomeMessage(currentUser?.first_name || 'Citizen')]);
 
     const checkAndFetchChat = async () => {
       if (!isMounted) return;
@@ -129,15 +125,17 @@ export default function ChatScreen() {
       const senderRole = currentUser?.role || (isOperator ? 'operator' : 'citizen');
       const sendRes = await apiService.sendChatMessage(conversationId, textToSend, token, fullName, senderRole);
 
-      const returnedConvId = sendRes?.data?.message?.conversation_id || sendRes?.data?.conversation_id;
-      if (returnedConvId && returnedConvId !== conversationId) {
-        setConversationId(returnedConvId);
-        setTimeout(() => loadBackendMessages(returnedConvId), 600);
+      const returnedConvId = sendRes?.data?.conversation_id || sendRes?.data?.message?.conversation_id;
+      if (returnedConvId) {
+        if (returnedConvId !== conversationId) {
+          setConversationId(returnedConvId);
+        }
+        conversationIdRef.current = returnedConvId;
+        setTimeout(() => loadBackendMessages(returnedConvId), 300);
       } else if (conversationId > 0) {
-        setTimeout(() => loadBackendMessages(conversationId), 600);
+        setTimeout(() => loadBackendMessages(conversationId), 300);
       }
     } catch {
-      // Offline fallback mock response
       setTimeout(() => {
         setMessages((prev) => [
           ...prev,
@@ -155,6 +153,7 @@ export default function ChatScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* Top Bar Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.chatAvatar}>
@@ -162,11 +161,11 @@ export default function ChatScreen() {
           </View>
           <View>
             <Text style={styles.headerTitle}>
-              {isOperator ? 'Operator Dispatch Chat' : 'TMU Agent'}
+              {isOperator ? 'Operator Dispatch Chat' : 'TMU Duty Agent'}
             </Text>
             <View style={styles.onlineBadgeRow}>
               <View style={styles.pulseDot} />
-              <Text style={styles.onlineText}>Online</Text>
+              <Text style={styles.onlineText}>Online & Active</Text>
             </View>
           </View>
         </View>
@@ -178,6 +177,7 @@ export default function ChatScreen() {
         )}
       </View>
 
+      {/* Main Chat Scroll Container */}
       <ScrollView
         ref={scrollViewRef}
         onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
@@ -220,7 +220,7 @@ export default function ChatScreen() {
         )}
       </ScrollView>
 
-      {/* Input Row */}
+      {/* Input Box Row */}
       <View style={styles.chatInputRow}>
         <Pressable style={styles.clipBtn} onPress={() => Alert.alert('Attachment', 'Attach image or file.')}>
           <SymbolView
@@ -232,10 +232,11 @@ export default function ChatScreen() {
 
         <TextInput
           style={styles.chatTextInput}
-          placeholder="Type a message..."
+          placeholder="Message TMU Duty Officer..."
           placeholderTextColor="#94a3b8"
           value={inputText}
           onChangeText={setInputText}
+          onSubmitEditing={handleSend}
         />
 
         <Pressable
@@ -300,95 +301,90 @@ const styles = StyleSheet.create({
   onlineBadgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    marginTop: 1,
+    gap: 6,
+    marginTop: 2,
   },
   pulseDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#22c55e',
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#10b981',
   },
   onlineText: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 12,
     color: '#64748b',
+    fontWeight: '600',
   },
   opBadge: {
     backgroundColor: '#eff6ff',
-    borderWidth: 1,
     borderColor: '#bfdbfe',
-    borderRadius: 8,
+    borderWidth: 1,
     paddingHorizontal: 8,
     paddingVertical: 3,
+    borderRadius: 6,
   },
   opBadgeText: {
-    fontSize: 9,
-    fontWeight: '900',
+    fontSize: 10,
+    fontWeight: '800',
     color: '#2563eb',
   },
   chatScroll: {
-    padding: 16,
-    paddingBottom: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     gap: 12,
   },
   messageBubbleWrapper: {
-    alignSelf: 'stretch',
-    marginVertical: 4,
+    marginBottom: 8,
   },
   messageBubble: {
-    maxWidth: '80%',
+    maxWidth: '84%',
     borderRadius: 16,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 10,
-  },
-  agentBubble: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderTopLeftRadius: 4,
   },
   userBubble: {
     alignSelf: 'flex-end',
     backgroundColor: '#2563eb',
-    borderTopRightRadius: 4,
+    borderBottomRightRadius: 4,
+  },
+  agentBubble: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#ffffff',
+    borderBottomLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   messageText: {
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: '500',
-  },
-  agentMessageText: {
-    color: '#334155',
   },
   userMessageText: {
     color: '#ffffff',
+    fontWeight: '500',
+  },
+  agentMessageText: {
+    color: '#1e293b',
   },
   messageTime: {
     fontSize: 10,
+    marginTop: 3,
     color: '#94a3b8',
-    marginTop: 4,
-    fontWeight: '600',
-  },
-  agentTime: {
-    alignSelf: 'flex-start',
-    paddingLeft: 4,
   },
   userTime: {
     alignSelf: 'flex-end',
-    paddingRight: 4,
+  },
+  agentTime: {
+    alignSelf: 'flex-start',
   },
   chatInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
+    paddingVertical: 10,
     backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
   },
   clipBtn: {
     width: 36,
@@ -400,19 +396,17 @@ const styles = StyleSheet.create({
   },
   chatTextInput: {
     flex: 1,
+    height: 42,
     backgroundColor: '#f1f5f9',
-    borderRadius: 20,
+    borderRadius: 21,
     paddingHorizontal: 16,
-    height: 40,
-    color: '#0f172a',
     fontSize: 14,
-    fontWeight: '500',
-    outlineStyle: 'none' as any,
+    color: '#0f172a',
   },
   sendBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#2563eb',
     alignItems: 'center',
     justifyContent: 'center',
@@ -421,6 +415,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#1d4ed8',
   },
   sendBtnDisabled: {
-    opacity: 0.5,
+    backgroundColor: '#94a3b8',
   },
 });

@@ -435,6 +435,35 @@ class ApiService {
       throw error;
     }
   }
+
+  async askChatbot(message: string): Promise<{ success: boolean; data?: any; message?: string }> {
+    try {
+      const response = await this.fetchWithDiscovery(
+        '/chatbot/ask',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message }),
+        },
+        8000
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to query chatbot');
+      }
+      return {
+        success: true,
+        data: data.data,
+        message: data.message,
+      };
+    } catch (err: any) {
+      console.warn('Chatbot API error:', err);
+      return {
+        success: false,
+        message: err?.message || 'Chatbot service unavailable.',
+      };
+    }
+  }
 }
 
 export const apiService = new ApiService();

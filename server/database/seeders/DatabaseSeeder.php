@@ -176,5 +176,6 @@ class DatabaseSeeder extends Seeder
         );
 
         $this->call(ComplaintSeeder::class);
+        $this->call(ChatbotKnowledgeSeeder::class);
     }
 }

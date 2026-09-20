@@ -9,6 +9,7 @@ use App\Http\Controllers\API\v1\DriverController;
 use App\Http\Controllers\API\v1\OperatorScheduleController;
 use App\Http\Controllers\API\v1\ChatController;
 use App\Http\Controllers\API\v1\VehicleTypeController;
+use App\Http\Controllers\API\v1\ChatbotController;
 use Illuminate\Support\Facades\Route;
 
 // Public Auth Endpoints
@@ -20,6 +21,11 @@ Route::get('complaints/options', [ComplaintController::class, 'options']);
 Route::get('chat/conversations', [ChatController::class, 'conversations']);
 Route::get('chat/conversations/{id}/messages', [ChatController::class, 'messages']);
 Route::post('chat/messages', [ChatController::class, 'sendMessage']);
+Route::get('chat/users', [ChatController::class, 'users']);
+
+// Chatbot AI Support Endpoints
+Route::post('chatbot/ask', [ChatbotController::class, 'ask']);
+Route::get('chatbot/knowledge', [ChatbotController::class, 'knowledgeBase']);
 
 Route::middleware('auth:sanctum')->group(function () {
 
