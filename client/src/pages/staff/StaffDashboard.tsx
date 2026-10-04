@@ -14,6 +14,8 @@ import { PATHS } from "../../routes/path";
 import ComplaintService from "../../services/ComplaintService";
 import ComplaintDetailsModal from "./ComplaintDetailsModal";
 import CreateComplaintModal from "./CreateComplaintModal";
+import MayorReportModal from "./MayorReportModal";
+import PrintReportModal from "./PrintReportModal";
 
 interface ComplaintRecord {
   id: number;
@@ -63,6 +65,9 @@ const StaffDashboard: React.FC = () => {
   // Modal states
   const [selectedComplaintId, setSelectedComplaintId] = useState<number | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isMayorModalOpen, setIsMayorModalOpen] = useState(false);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [printCustomData, setPrintCustomData] = useState<any>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -155,13 +160,22 @@ const StaffDashboard: React.FC = () => {
               <span>Updated Just Now • 09:42 AM PST</span>
             </div>
 
-            <Button
-              iconName="FaPlus"
-              onClick={() => setIsCreateModalOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold px-5 py-3 rounded-2xl shadow-lg shadow-blue-500/20 text-xs uppercase tracking-wider transition-all"
-            >
-              + Log New Incident
-            </Button>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <Button
+                iconName="FaLandmark"
+                onClick={() => setIsMayorModalOpen(true)}
+                className="bg-amber-600 hover:bg-amber-500 text-white font-extrabold px-4 py-3 rounded-2xl shadow-lg shadow-amber-500/20 text-xs uppercase tracking-wider transition-all flex items-center gap-2"
+              >
+                Mayor Report (WIP)
+              </Button>
+              <Button
+                iconName="FaPlus"
+                onClick={() => setIsCreateModalOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold px-5 py-3 rounded-2xl shadow-lg shadow-blue-500/20 text-xs uppercase tracking-wider transition-all flex items-center gap-2"
+              >
+                + Log New Incident
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -512,6 +526,20 @@ const StaffDashboard: React.FC = () => {
         onClose={() => setSelectedComplaintId(null)}
         complaintId={selectedComplaintId}
         onStatusUpdated={() => setRefreshKey((k) => k + 1)}
+      />
+      <MayorReportModal
+        isOpen={isMayorModalOpen}
+        onClose={() => setIsMayorModalOpen(false)}
+        onOpenPrint={(customData) => {
+          setPrintCustomData(customData);
+          setIsMayorModalOpen(false);
+          setIsPrintModalOpen(true);
+        }}
+      />
+      <PrintReportModal
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        reportData={printCustomData}
       />
     </div>
   );

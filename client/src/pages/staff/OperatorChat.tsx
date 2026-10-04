@@ -71,8 +71,6 @@ const defaultStaffConversations: ConversationItem[] = [
 
 const OperatorChat: React.FC = () => {
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
-  const isOperator = !isAdmin;
 
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [selectedConvId, setSelectedConvId] = useState<number | null>(null);
