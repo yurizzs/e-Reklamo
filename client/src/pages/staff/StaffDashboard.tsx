@@ -16,6 +16,7 @@ import ComplaintDetailsModal from "./ComplaintDetailsModal";
 import CreateComplaintModal from "./CreateComplaintModal";
 import MayorReportModal from "./MayorReportModal";
 import PrintReportModal from "./PrintReportModal";
+import CreateAnnouncementModal from "./CreateAnnouncementModal";
 
 interface ComplaintRecord {
   id: number;
@@ -67,6 +68,7 @@ const StaffDashboard: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isMayorModalOpen, setIsMayorModalOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
   const [printCustomData, setPrintCustomData] = useState<any>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -161,6 +163,13 @@ const StaffDashboard: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2.5 flex-wrap">
+              <Button
+                iconName="FaBullhorn"
+                onClick={() => setIsAnnouncementModalOpen(true)}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold px-4 py-3 rounded-2xl shadow-lg shadow-indigo-500/20 text-xs uppercase tracking-wider transition-all flex items-center gap-2"
+              >
+                Post Announcement (WIP)
+              </Button>
               <Button
                 iconName="FaLandmark"
                 onClick={() => setIsMayorModalOpen(true)}
@@ -540,6 +549,10 @@ const StaffDashboard: React.FC = () => {
         isOpen={isPrintModalOpen}
         onClose={() => setIsPrintModalOpen(false)}
         reportData={printCustomData}
+      />
+      <CreateAnnouncementModal
+        isOpen={isAnnouncementModalOpen}
+        onClose={() => setIsAnnouncementModalOpen(false)}
       />
     </div>
   );

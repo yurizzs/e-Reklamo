@@ -40,6 +40,7 @@ export default function RootLayout() {
         <Stack.Screen name="register" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
         <Stack.Screen name="complaint-form" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="announcements" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="index" />
         <Stack.Screen name="explore" />
       </Stack>

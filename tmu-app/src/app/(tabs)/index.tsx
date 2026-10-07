@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { apiService } from '@/services/api';
 import { authStore } from '@/services/auth-store';
+import { PublicAnnouncements } from '@/components/public-announcements';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -216,22 +217,9 @@ export default function HomeScreen() {
             />
           </Pressable>
         </View>
-
-        {/* Advisory Warning Alert Banner */}
-        <View style={styles.advisoryCard}>
-          <View style={styles.advisoryHeader}>
-            <SymbolView
-              name={{ ios: 'info.circle.fill', android: 'info', web: 'info' }}
-              tintColor="#d97706"
-              size={18}
-              style={styles.advisoryIcon}
-            />
-            <Text style={styles.advisoryTitle}>Advisory: Road Maintenance</Text>
-          </View>
-          <Text style={styles.advisoryText}>
-            Expect high volume around Roxas Blvd starting Nov 12 due to lane repairs.
-          </Text>
-        </View>
+        
+        {/* WIP Public Announcements & Memoranda Section */}
+        <PublicAnnouncements />
       </ScrollView>
 
       {/* Floating Action Button (FAB) */}
