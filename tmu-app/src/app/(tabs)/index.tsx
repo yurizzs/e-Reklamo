@@ -17,6 +17,7 @@ import { SymbolView } from 'expo-symbols';
 import { apiService } from '@/services/api';
 import { authStore } from '@/services/auth-store';
 import { CompactAnnouncements } from '@/components/compact-announcements';
+import { OperatorAttendanceCard } from '@/components/operator-attendance-card';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -154,6 +155,9 @@ export default function HomeScreen() {
             <Text style={styles.fileComplaintBtnText}>File a Complaint</Text>
           </Pressable>
         </View>
+
+        {/* Field Operator Duty Roster & Biometric Facial Attendance */}
+        <OperatorAttendanceCard />
 
         {/* Quick Access Section */}
         <View style={styles.quickPortalsSection}>

@@ -494,6 +494,74 @@ class ApiService {
       };
     }
   }
+
+  async fetchOperatorSchedule(token?: string, employeeId?: number): Promise<{ success: boolean; data?: any; message?: string }> {
+    try {
+      const query = employeeId ? `?employee_id=${employeeId}` : '';
+      const response = await this.fetchWithDiscovery(
+        `/operator-schedules${query}`,
+        {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          },
+        },
+        5000
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch schedule.');
+      }
+      return {
+        success: true,
+        data: data.data || [],
+        message: data.message,
+      };
+    } catch (err: any) {
+      console.warn('Operator schedule fetch fallback:', err?.message);
+      return {
+        success: false,
+        message: err?.message || 'Unable to fetch schedule.',
+      };
+    }
+  }
+
+  async verifyFaceAttendance(
+    payload: { employee_id: number; live_image: string; schedule_date?: string },
+    token?: string
+  ): Promise<{ success: boolean; data?: any; message?: string }> {
+    try {
+      const response = await this.fetchWithDiscovery(
+        '/operator-schedules/attendance/verify',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify(payload),
+        },
+        12000
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Biometric facial verification failed.');
+      }
+      return {
+        success: true,
+        data: data.data,
+        message: data.message,
+      };
+    } catch (err: any) {
+      console.warn('Facial verification error:', err?.message);
+      return {
+        success: false,
+        message: err?.message || 'Biometric verification error. Ensure clear lighting.',
+      };
+    }
+  }
 }
 
 export const apiService = new ApiService();

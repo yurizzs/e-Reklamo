@@ -57,6 +57,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('operator-schedules', [OperatorScheduleController::class, 'index']);
         Route::post('operator-schedules', [OperatorScheduleController::class, 'store']);
         Route::put('operator-schedules/{id}', [OperatorScheduleController::class, 'update']);
+        Route::post('operator-schedules/attendance/verify', [OperatorScheduleController::class, 'verifyAttendance']);
+        Route::post('operator-schedules/{id}/emergency-confirm', [OperatorScheduleController::class, 'emergencyConfirm'])->where('id', '[0-9]+');
 
         // Announcement Management
         Route::post('announcements', [AnnouncementController::class, 'store']);
