@@ -16,7 +16,7 @@ import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { apiService } from '@/services/api';
 import { authStore } from '@/services/auth-store';
-import { PublicAnnouncements } from '@/components/public-announcements';
+import { CompactAnnouncements } from '@/components/compact-announcements';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -218,8 +218,8 @@ export default function HomeScreen() {
           </Pressable>
         </View>
         
-        {/* WIP Public Announcements & Memoranda Section */}
-        <PublicAnnouncements />
+        {/* Compact Official Announcements & Memoranda Section */}
+        <CompactAnnouncements />
       </ScrollView>
 
       {/* Floating Action Button (FAB) */}

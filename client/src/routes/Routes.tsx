@@ -16,6 +16,7 @@ const ComplaintsList = React.lazy(() => import("../pages/staff/ComplaintsList"))
 const DriverRecords = React.lazy(() => import("../pages/drivers/DriverRecords"));
 const AnalyticsReport = React.lazy(() => import("../pages/staff/AnalyticsReport"));
 const OperatorChat = React.lazy(() => import("../pages/staff/OperatorChat"));
+const AnnouncementsPage = React.lazy(() => import("../pages/staff/AnnouncementsPage"));
 
 export const Routes = createBrowserRouter([
   {
@@ -63,6 +64,10 @@ export const Routes = createBrowserRouter([
                   {
                     path: PATHS.APP.ANALYTICS,
                     element: <AnalyticsReport />,
+                  },
+                  {
+                    path: PATHS.APP.ANNOUNCEMENTS,
+                    element: <AnnouncementsPage />,
                   },
                 ],
               },

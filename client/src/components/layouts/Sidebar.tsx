@@ -68,6 +68,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
           roles: ["staff", "operator"],
         },
         {
+          name: "Announcements",
+          icon: "FaBullhorn",
+          path: PATHS.APP.ANNOUNCEMENTS,
+          roles: ["staff", "operator", "admin"],
+        },
+        {
           name: "Users",
           icon: "FaUsers",
           path: PATHS.APP.USERS,

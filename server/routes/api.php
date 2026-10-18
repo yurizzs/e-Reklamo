@@ -10,6 +10,7 @@ use App\Http\Controllers\API\v1\OperatorScheduleController;
 use App\Http\Controllers\API\v1\ChatController;
 use App\Http\Controllers\API\v1\VehicleTypeController;
 use App\Http\Controllers\API\v1\ChatbotController;
+use App\Http\Controllers\API\v1\AnnouncementController;
 use Illuminate\Support\Facades\Route;
 
 // Public Auth Endpoints
@@ -17,6 +18,8 @@ Route::post('auth/login', [AuthenticationController::class, 'login']);
 Route::post('auth/register', [AuthenticationController::class, 'register']);
 
 // Public / Mobile Accessible Endpoints
+Route::get('announcements', [AnnouncementController::class, 'index']);
+Route::get('announcements/{id}', [AnnouncementController::class, 'show'])->where('id', '[0-9]+');
 Route::get('complaints/options', [ComplaintController::class, 'options']);
 Route::get('chat/conversations', [ChatController::class, 'conversations']);
 Route::get('chat/conversations/{id}/messages', [ChatController::class, 'messages']);
@@ -54,6 +57,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('operator-schedules', [OperatorScheduleController::class, 'index']);
         Route::post('operator-schedules', [OperatorScheduleController::class, 'store']);
         Route::put('operator-schedules/{id}', [OperatorScheduleController::class, 'update']);
+
+        // Announcement Management
+        Route::post('announcements', [AnnouncementController::class, 'store']);
+        Route::delete('announcements/{id}', [AnnouncementController::class, 'destroy'])->where('id', '[0-9]+');
     });
 
     // Detail view accessible to authenticated users

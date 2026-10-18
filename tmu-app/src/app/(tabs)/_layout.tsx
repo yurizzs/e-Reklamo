@@ -30,6 +30,20 @@ export default function TabsLayout() {
       />
 
       <Tabs.Screen
+        name="announcements"
+        options={{
+          title: 'Announcements',
+          tabBarIcon: ({ color, size }: { color: string; size?: number }) => (
+            <SymbolView
+              name={{ ios: 'newspaper.fill', android: 'campaign', web: 'campaign' }}
+              tintColor={color}
+              size={size || 22}
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
         name="chat"
         options={{
           title: 'TMU Agent',

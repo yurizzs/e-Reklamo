@@ -3,6 +3,7 @@ import { Icon, Button } from "../../components/ui";
 import { InputField, TextArea, Select } from "../../components/ui/forms";
 import { useAuth } from "../../contexts/AuthContext";
 import { notify } from "../../util/notify";
+import AnnouncementService from "../../services/AnnouncementService";
 
 export interface NewAnnouncementData {
   type: "memorandum" | "announcement" | "directive";
@@ -67,6 +68,7 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
   const [publishToMobile, setPublishToMobile] = useState(true);
   const [sendPushAlert, setSendPushAlert] = useState(true);
   const [previewMode, setPreviewMode] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [wipNotice, setWipNotice] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -87,7 +89,7 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
     setRefNumber(`${prefix}-2026-10-${randomSuffix}`);
   };
 
-  const handlePublishClick = () => {
+  const handlePublishClick = async () => {
     if (!title.trim() || !summary.trim()) {
       notify.error("Please fill in both the Title and Executive Summary.");
       return;
@@ -96,12 +98,12 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
     const payload: NewAnnouncementData = {
       type: announcementType,
       refNumber,
-      title,
-      summary,
-      issuingOffice,
+      title: title.trim(),
+      summary: summary.trim(),
+      issuingOffice: issuingOffice.trim(),
       date: todayStr,
       urgency,
-      legalBasis,
+      legalBasis: legalBasis.trim(),
       keyDirectives: directives,
       signatories: [
         { name: primarySignatory, title: "TMU Operations Specialist" },
@@ -111,14 +113,20 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
       sendPushAlert,
     };
 
-    if (onPublish) {
-      onPublish(payload);
+    setIsSubmitting(true);
+    try {
+      await AnnouncementService.create(payload);
+      notify.success("Official announcement published and synced to mobile app successfully!");
+      if (onPublish) {
+        onPublish(payload);
+      }
+      onClose();
+    } catch (err: any) {
+      console.error("Failed to publish announcement:", err);
+      notify.error(err.message || "Failed to publish announcement to server.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    notify.success("Official announcement drafted and synced to mobile dispatch stream!");
-    setWipNotice(
-      "Notice (WIP Feature): Telematics API successfully queued this announcement. Live citizen push broadcast will be dispatched to connected mobile devices."
-    );
   };
 
   return (
@@ -533,10 +541,11 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
 
             <Button
               onClick={handlePublishClick}
+              disabled={isSubmitting}
               iconName="FaPaperPlane"
-              className="bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase tracking-wider px-5 py-2.5 rounded-xl shadow-lg shadow-blue-600/20 flex items-center gap-2"
+              className="bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase tracking-wider px-5 py-2.5 rounded-xl shadow-lg shadow-blue-600/20 flex items-center gap-2 disabled:opacity-50"
             >
-              Publish to Mobile App
+              {isSubmitting ? "Publishing..." : "Publish to Mobile App"}
             </Button>
           </div>
         </div>

@@ -464,6 +464,36 @@ class ApiService {
       };
     }
   }
+
+  async fetchAnnouncements(): Promise<{ success: boolean; data?: any[]; message?: string }> {
+    try {
+      const response = await this.fetchWithDiscovery(
+        '/announcements',
+        {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+        },
+        5000
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch announcements.');
+      }
+      return {
+        success: true,
+        data: data.data || [],
+        message: data.message,
+      };
+    } catch (err: any) {
+      console.warn('Announcements fetch fallback:', err?.message);
+      return {
+        success: false,
+        message: err?.message || 'Unable to fetch announcements from server.',
+      };
+    }
+  }
 }
 
 export const apiService = new ApiService();
