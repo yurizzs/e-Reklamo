@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^Set-Location 'C:\\\\xampp\\\\htdocs\\\\e-Reklamo\\\\server'; Write-Output \"predis_vendor=\\$\\(Test-Path \\.\\\\vendor\\\\predis\\\\predis\\\\autoload\\.php\\)\"; Write-Output \"env_exists=\\$\\(Test-Path \\.\\\\\\.env\\)\"; if \\(Test-Path \\.\\\\\\.env\\) \\{ Get-Content \\.\\\\\\.env \\| Where-Object \\{ \\$_ -match '\\^\\(REDIS_CLIENT\\|REDIS_HOST\\|REDIS_PORT\\|CACHE_STORE\\|SESSION_DRIVER\\|QUEUE_CONNECTION\\)=' \\} \\}; composer show predis/predis --no-interaction; php artisan tinker --execute=\"Redis::connection\\(\\)->ping\\(\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

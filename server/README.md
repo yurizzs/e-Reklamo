@@ -8,6 +8,15 @@
 </p>
 
 ## About Laravel
+## Redis Backend
+
+The sample configuration uses Redis for cache, sessions, and queued jobs.
+Existing installs should set `CACHE_STORE=redis`, `SESSION_DRIVER=redis`,
+`QUEUE_CONNECTION=redis`, and `REDIS_CLIENT=predis` in `.env`. Predis is included,
+so the PHP `redis` extension is not required. Start a Redis server reachable at
+`127.0.0.1:6379`; set `REDIS_HOST`, `REDIS_PORT`, and `REDIS_PASSWORD` as needed.
+Run `php artisan config:clear` after changing environment settings and
+`php artisan queue:work redis` to process queued jobs.
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
 
