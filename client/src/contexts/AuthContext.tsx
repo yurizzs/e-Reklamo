@@ -1,7 +1,21 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import React, { createContext, useContext, useCallback } from "react";
+import type { AxiosResponse } from "axios";
 import type { User } from "../interfaces/user";
 import AuthService from "../services/AuthService";
 
+const CURRENT_USER_QUERY_KEY = ["auth", "me"] as const;
+
+interface CurrentUserResponse {
+    data?: { user?: User | null };
+}
+
+interface LoginResponse {
+    data: {
+        user?: User | null;
+        token?: string;
+    };
+}
 
 interface AuthContextType {
     user: User | null;
@@ -17,45 +31,47 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const queryClient = useQueryClient();
+    const {
+        data: user,
+        isLoading,
+        refetch: refetchCurrentUser,
+    } = useQuery({
+        queryKey: CURRENT_USER_QUERY_KEY,
+        queryFn: async () => {
+            const response = await AuthService.me();
+            return (response as CurrentUserResponse)?.data?.user ?? null;
+        },
+    });
 
-    /**
-     * Fetch current user from /api/user/auth/me
-     * Silently fails for 401 (not logged in).
-     */
     const refreshUser = useCallback(async () => {
-        try {
-            const res = await AuthService.me() as any;
-            setUser(res?.data?.user ?? null);
-        } catch {
-            setUser(null);
-        }
-    }, []);
+        await refetchCurrentUser();
+    }, [refetchCurrentUser]);
 
-    /**
-     * We need to check if a valid session exists.
-     */
-    useEffect(() => {
-        const bootstrap = async () => {
-            setIsLoading(true);
-            await refreshUser();
-            setIsLoading(false);
-        };
-        bootstrap();
-    }, [refreshUser]);
+    const clearOtherCachedData = () => {
+        const currentUserQuery = queryClient.getQueryCache().find({
+            queryKey: CURRENT_USER_QUERY_KEY,
+            exact: true,
+        });
+
+        queryClient.removeQueries({
+            predicate: (query) => query !== currentUserQuery,
+        });
+    };
 
     /**
      * Login flow: CSRF -> authenticate -> refresh user state.
      */
     const login = async (credentials: { username: string; password: string }) => {
         await AuthService.csrf();
-        const res = await AuthService.login(credentials) as any;
-        const dataPayload = res?.data?.data || res?.data;
+        const response = await AuthService.login(credentials) as AxiosResponse<LoginResponse>;
+        const dataPayload = response.data.data;
         if (dataPayload?.token) {
             localStorage.setItem("auth_token", dataPayload.token);
         }
-        setUser(dataPayload?.user ?? null);
+        await queryClient.cancelQueries();
+        queryClient.setQueryData(CURRENT_USER_QUERY_KEY, dataPayload.user ?? null);
+        clearOtherCachedData();
     };
 
     /**
@@ -66,14 +82,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await AuthService.logout();
         } finally {
             localStorage.removeItem("auth_token");
-            setUser(null);
+            await queryClient.cancelQueries();
+            queryClient.setQueryData(CURRENT_USER_QUERY_KEY, null);
+            clearOtherCachedData();
         }
     };
 
     return (
         <AuthContext.Provider
             value={{
-                user,
+                user: user ?? null,
                 isAuthenticated: !!user,
                 isLoading,
                 login,
