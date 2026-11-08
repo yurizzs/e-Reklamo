@@ -1,21 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { createContext, useContext, useCallback } from "react";
-import type { AxiosResponse } from "axios";
 import type { User } from "../interfaces/user";
 import AuthService from "../services/AuthService";
 
 const CURRENT_USER_QUERY_KEY = ["auth", "me"] as const;
-
-interface CurrentUserResponse {
-    data?: { user?: User | null };
-}
-
-interface LoginResponse {
-    data: {
-        user?: User | null;
-        token?: string;
-    };
-}
 
 interface AuthContextType {
     user: User | null;
@@ -39,8 +27,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } = useQuery({
         queryKey: CURRENT_USER_QUERY_KEY,
         queryFn: async () => {
-            const response = await AuthService.me();
-            return (response as CurrentUserResponse)?.data?.user ?? null;
+            try {
+                const response = await AuthService.me() as any;
+                return response?.data?.user ?? null;
+            } catch {
+                return null;
+            }
         },
     });
 
@@ -64,13 +56,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
      */
     const login = async (credentials: { username: string; password: string }) => {
         await AuthService.csrf();
-        const response = await AuthService.login(credentials) as AxiosResponse<LoginResponse>;
-        const dataPayload = response.data.data;
+        const response = await AuthService.login(credentials) as any;
+        const dataPayload = response?.data?.data ?? response?.data;
         if (dataPayload?.token) {
             localStorage.setItem("auth_token", dataPayload.token);
         }
         await queryClient.cancelQueries();
-        queryClient.setQueryData(CURRENT_USER_QUERY_KEY, dataPayload.user ?? null);
+        queryClient.setQueryData(CURRENT_USER_QUERY_KEY, dataPayload?.user ?? null);
         clearOtherCachedData();
     };
 
