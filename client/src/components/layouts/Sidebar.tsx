@@ -5,6 +5,7 @@ import * as FaIcons from "react-icons/fa6";
 import { PATHS } from "../../routes/path";
 import { useAuth } from "../../contexts/AuthContext";
 import type { Role } from "../../interfaces/user";
+import logo from "../../assets/Logo.jpg";
 
 // Define the shape of a single menu item
 interface MenuItem {
@@ -118,8 +119,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
     >
       {/* Sidebar Branding / Logo Header (Desktop-only/Unified) */}
       <div className="h-18 flex items-center px-6 gap-3 bg-[#1e3a8a] dark:bg-bg-light shrink-0">
-        <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600/20 border border-white/20 shrink-0">
-          <Icon iconName="FaShieldHalved" size={16} className="text-white/90 dark:text-blue-500" />
+        <div className="relative flex items-center justify-center w-9 h-9 rounded-lg overflow-hidden border border-white/20 bg-white shrink-0">
+          <img src={logo} alt="e-Reklamo Logo" className="w-full h-full object-cover" />
         </div>
         <span className="text-white font-black text-xl tracking-tighter uppercase">
           e-<span className="text-amber-400">Reklamo</span>

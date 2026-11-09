@@ -6,6 +6,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useOnClickOutside } from "../../hooks/useOnClickOutside";
 import { notify } from "../../util/notify";
 import { useTheme } from "../../contexts/ThemeContext";
+import logo from "../../assets/Logo.jpg";
 
 interface NavbarProps {
   onMenuClick: () => void;
@@ -56,11 +57,11 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
               to={PATHS.APP.DASHBOARD}
               className="flex gap-3 items-center group"
             >
-              <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 shrink-0">
-                <Icon
-                  iconName="FaShieldHalved"
-                  size={16}
-                  className="text-primary relative z-10"
+              <div className="relative flex items-center justify-center w-8 h-8 rounded-lg overflow-hidden border border-primary/20 bg-white shrink-0">
+                <img
+                  src={logo}
+                  alt="e-Reklamo Logo"
+                  className="w-full h-full object-cover"
                 />
               </div>
               <span className="text-slate-900 dark:text-white font-black text-xl tracking-tighter uppercase hidden sm:block transition-colors duration-300">

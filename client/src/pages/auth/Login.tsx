@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ToastProvider, Icon } from "../../components/ui/index";
+import { ToastProvider } from "../../components/ui/index";
 import {
   InputField,
   PasswordInputField,
@@ -9,6 +9,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { notify } from "../../util/notify";
 import { PATHS } from "../../routes/path";
 import type { AxiosError } from "axios";
+import logo from "../../assets/Logo.jpg";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -119,8 +120,8 @@ const Login: React.FC = () => {
 
           {/* Logo & Subtitle */}
           <div className="relative z-10 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-550/5 dark:bg-blue-500/10 border border-blue-550/15 dark:border-blue-500/20 flex items-center justify-center transition-colors">
-              <Icon iconName="FaShieldHalved" size={18} className="text-blue-600 dark:text-blue-505" />
+            <div className="w-10 h-10 rounded-xl overflow-hidden bg-white border border-blue-550/15 dark:border-blue-500/20 flex items-center justify-center transition-colors">
+              <img src={logo} alt="e-Reklamo Logo" className="w-full h-full object-cover" />
             </div>
             <div className="flex flex-col">
               <span className="text-lg font-black tracking-tight text-slate-900 dark:text-white uppercase leading-none transition-colors">
@@ -140,8 +141,8 @@ const Login: React.FC = () => {
               <div className="absolute inset-4 border border-indigo-555/10 dark:border-indigo-500/10 border-b-indigo-600/30 dark:border-b-indigo-500/30 animate-[spin_8s_linear_infinite_reverse]" />
 
               {/* Central Glowing Shield Icon */}
-              <div className="w-24 h-24 rounded-3xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 flex items-center justify-center shadow-2xl dark:shadow-none relative z-10 animate-pulse transition-colors">
-                <Icon iconName="FaShieldHalved" size={40} className="text-blue-600 dark:text-blue-505" />
+              <div className="w-24 h-24 rounded-3xl overflow-hidden bg-white border border-blue-200 dark:border-blue-500/20 flex items-center justify-center shadow-2xl dark:shadow-none relative z-10 animate-pulse transition-colors">
+                <img src={logo} alt="e-Reklamo Logo" className="w-full h-full object-cover" />
               </div>
             </div>
 
@@ -178,8 +179,8 @@ const Login: React.FC = () => {
 
             {/* Header Block (Logo & Greeting) */}
             <div className="flex flex-col items-center gap-4 text-center">
-              <div className="w-14 h-14 rounded-2xl border border-blue-550/20 dark:border-blue-500/10 bg-white dark:bg-blue-500/10 flex items-center justify-center shadow-inner transition-colors">
-                <Icon iconName="FaShieldHalved" size={24} className="text-blue-600 dark:text-blue-500 transition-colors" />
+              <div className="w-14 h-14 rounded-2xl overflow-hidden border border-blue-550/20 dark:border-blue-500/10 bg-white flex items-center justify-center shadow-inner transition-colors">
+                <img src={logo} alt="e-Reklamo Logo" className="w-full h-full object-cover" />
               </div>
 
               <div className="space-y-1">
@@ -247,7 +248,7 @@ const Login: React.FC = () => {
                 {isLoading ? (
                   <>
                     <svg
-                      className="w-3.5 h-3.5 animate-spin"
+                      className="w-4.5 h-4.5 animate-spin"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
