@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MainLayout } from "../../components/layouts";
 import { Button, Icon, LoadingSpinner } from "../../components/ui";
 import { InputField, Select } from "../../components/ui/forms";
@@ -104,36 +104,51 @@ const ComplaintsList = () => {
 
   const debouncedSearch = useDebounce(search, 300);
 
-  const fetchComplaints = useCallback(async () => {
-    setIsLoading(true);
-
-    try {
-      const response = (await ComplaintService.getAll({
-        search: debouncedSearch,
-        status: statusFilter,
-        page,
-        limit: pageSize,
-      })) as any;
-
-      const payload = response?.data ?? response;
-
-      setComplaints(payload?.complaints ?? []);
-      setStats(payload?.stats ?? { all: 0, unsettled: 0, settled: 0 });
-
-      if (payload?.meta) {
-        setPagination(payload.meta);
-      }
-    } catch {
-      setComplaints([]);
-      setStats({ all: 0, unsettled: 0, settled: 0 });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [debouncedSearch, statusFilter, page, pageSize, refreshKey]);
-
   useEffect(() => {
-    fetchComplaints();
-  }, [fetchComplaints]);
+    let isMounted = true;
+
+    (async () => {
+      try {
+        const response = (await ComplaintService.getAll({
+          search: debouncedSearch,
+          status: statusFilter,
+          page,
+          limit: pageSize,
+        })) as {
+          data?: {
+            complaints?: ComplaintRecord[];
+            stats?: { all: number; unsettled: number; settled: number };
+            meta?: { current_page: number; last_page: number; per_page: number; total: number };
+          };
+          complaints?: ComplaintRecord[];
+          stats?: { all: number; unsettled: number; settled: number };
+          meta?: { current_page: number; last_page: number; per_page: number; total: number };
+        };
+
+        if (!isMounted) return;
+
+        const payload = response?.data ?? response;
+        setComplaints(payload?.complaints ?? []);
+        setStats(payload?.stats ?? { all: 0, unsettled: 0, settled: 0 });
+
+        if (payload?.meta) {
+          setPagination(payload.meta);
+        }
+      } catch {
+        if (!isMounted) return;
+        setComplaints([]);
+        setStats({ all: 0, unsettled: 0, settled: 0 });
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [debouncedSearch, statusFilter, page, pageSize, refreshKey]);
 
   const statCards = useMemo(
     () => [
@@ -174,7 +189,7 @@ const ComplaintsList = () => {
         <Button
           iconName="FaPlus"
           onClick={() => setIsCreateModalOpen(true)}
-          className="self-start bg-blue-950 hover:bg-blue-900 text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950 border border-slate-950 dark:border-transparent font-extrabold shadow-sm md:self-auto"
+          className="self-start bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-500 font-extrabold shadow-md shadow-blue-500/20 border border-transparent md:self-auto"
         >
           Add Complaint
         </Button>
@@ -284,7 +299,7 @@ const ComplaintsList = () => {
                         variant="ghost"
                         iconName="FaEye"
                         onClick={() => setSelectedComplaintId(complaint.id)}
-                        className="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-xs font-bold transition-all"
+                        className="text-blue-600 dark:text-blue-400 bg-blue-50/80 hover:bg-blue-100 hover:text-blue-700 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 border border-blue-200 dark:border-blue-500/20 text-xs font-bold transition-all shadow-xs"
                       >
                         View Details
                       </Button>

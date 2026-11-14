@@ -57,8 +57,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('operator-schedules', [OperatorScheduleController::class, 'index']);
         Route::post('operator-schedules', [OperatorScheduleController::class, 'store']);
         Route::put('operator-schedules/{id}', [OperatorScheduleController::class, 'update']);
+    });
 
-        // Announcement Management
+    // Staff & Admin Only (Staff is the only one who can create/manage announcements)
+    Route::middleware('role:staff,admin')->group(function () {
         Route::post('announcements', [AnnouncementController::class, 'store']);
         Route::delete('announcements/{id}', [AnnouncementController::class, 'destroy'])->where('id', '[0-9]+');
     });

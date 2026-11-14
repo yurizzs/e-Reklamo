@@ -96,32 +96,46 @@ const ComplaintDetailsModal = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isChangeStatusOpen, setIsChangeStatusOpen] = useState(false);
   const [activeMedia, setActiveMedia] = useState<EvidenceItem | null>(null);
+  const [detailsRefreshKey, setDetailsRefreshKey] = useState(0);
+  const [prevOpen, setPrevOpen] = useState(isOpen);
 
-  const fetchDetails = async () => {
-    if (!complaintId) return;
-    setIsLoading(true);
-    try {
-      const response = (await ComplaintService.getById(complaintId)) as any;
-      const data = response?.data ?? response;
-      setComplaint(data);
-    } catch {
-      setComplaint(null);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (isOpen && complaintId) {
-      fetchDetails();
-    } else {
+  if (isOpen !== prevOpen) {
+    setPrevOpen(isOpen);
+    if (!isOpen) {
       setComplaint(null);
       setActiveMedia(null);
     }
-  }, [isOpen, complaintId]);
+  }
+
+  useEffect(() => {
+    let isMounted = true;
+    if (!isOpen || !complaintId) {
+      return;
+    }
+
+    (async () => {
+      try {
+        const response = (await ComplaintService.getById(complaintId)) as { data?: ComplaintDetail } | ComplaintDetail;
+        if (!isMounted) return;
+        const data = (response as { data?: ComplaintDetail })?.data ?? (response as ComplaintDetail);
+        setComplaint(data);
+      } catch {
+        if (!isMounted) return;
+        setComplaint(null);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, complaintId, detailsRefreshKey]);
 
   const handleStatusChangeSuccess = () => {
-    fetchDetails();
+    setDetailsRefreshKey((k) => k + 1);
     if (onStatusUpdated) onStatusUpdated();
   };
 
@@ -149,7 +163,7 @@ const ComplaintDetailsModal = ({
         ) : (
           <div className="space-y-6">
             {/* Header section with Title & Status Change Action */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between rounded-2xl border border-white/10 bg-white/5 p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-5">
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
                   <span
@@ -163,7 +177,7 @@ const ComplaintDetailsModal = ({
                     ID #{complaint.id}
                   </span>
                 </div>
-                <h2 className="text-xl font-black text-white">{complaint.title}</h2>
+                <h2 className="text-xl font-black text-slate-900 dark:text-white">{complaint.title}</h2>
               </div>
 
               {/* Action Button: Change Status */}
@@ -171,7 +185,7 @@ const ComplaintDetailsModal = ({
                 variant="primary"
                 size="md"
                 onClick={() => setIsChangeStatusOpen(true)}
-                className="bg-emerald-600 hover:bg-emerald-500 shadow-lg shrink-0"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg shrink-0 border-transparent"
               >
                 Change Status
               </Button>
@@ -180,23 +194,23 @@ const ComplaintDetailsModal = ({
             {/* Information Grid */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {/* Complainant */}
-              <div className="rounded-xl border border-white/5 bg-black/20 p-4 space-y-1">
+              <div className="rounded-xl border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-black/20 p-4 space-y-1">
                 <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">
                   Complainant
                 </p>
-                <p className="text-sm font-semibold text-slate-200">
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-200">
                   {complaint.complainant?.name || complaint.user?.name || "N/A"}
                 </p>
                 {(complaint.user?.phone || complaint.complainant?.contact_number) && (
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-600 dark:text-slate-400">
                     <span className="font-medium text-slate-500">Phone / Contact:</span>{" "}
-                    <span className="font-mono text-emerald-400">
+                    <span className="font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
                       {complaint.user?.phone || complaint.complainant?.contact_number}
                     </span>
                   </p>
                 )}
                 {(complaint.user?.address || complaint.complainant?.address) && (
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-600 dark:text-slate-400">
                     <span className="font-medium text-slate-500">Address:</span>{" "}
                     {complaint.user?.address || complaint.complainant?.address}
                   </p>
@@ -204,14 +218,14 @@ const ComplaintDetailsModal = ({
               </div>
 
               {/* Driver */}
-              <div className="rounded-xl border border-white/5 bg-black/20 p-4 space-y-1">
+              <div className="rounded-xl border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-black/20 p-4 space-y-1">
                 <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">
                   Driver
                 </p>
-                <p className="text-sm font-semibold text-slate-200">
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-200">
                   {complaint.driver?.name || "N/A"}
                   {complaint.driver?.plate_number && (
-                    <span className="ml-2 text-xs font-mono text-emerald-400">
+                    <span className="ml-2 text-xs font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
                       ({complaint.driver.plate_number})
                     </span>
                   )}
@@ -219,58 +233,58 @@ const ComplaintDetailsModal = ({
               </div>
 
               {/* Category */}
-              <div className="rounded-xl border border-white/5 bg-black/20 p-4 space-y-1">
+              <div className="rounded-xl border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-black/20 p-4 space-y-1">
                 <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">
                   Violation Category
                 </p>
-                <p className="text-sm font-semibold text-slate-200">
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-200">
                   {complaint.category?.category_name || "Uncategorized"}
                 </p>
               </div>
 
               {/* Incident Location */}
-              <div className="rounded-xl border border-white/5 bg-black/20 p-4 space-y-1">
+              <div className="rounded-xl border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-black/20 p-4 space-y-1">
                 <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">
                   Incident Location
                 </p>
-                <p className="text-sm font-semibold text-slate-200">
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-200">
                   {complaint.incident_location || "N/A"}
                 </p>
               </div>
 
               {/* Incident Time */}
-              <div className="rounded-xl border border-white/5 bg-black/20 p-4 space-y-1">
+              <div className="rounded-xl border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-black/20 p-4 space-y-1">
                 <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">
                   Incident Date & Time
                 </p>
-                <p className="text-sm font-mono text-slate-300">
+                <p className="text-sm font-mono text-slate-800 dark:text-slate-300">
                   {formatDateTime(complaint.incident_date_time)}
                 </p>
               </div>
 
               {/* Submitted At */}
-              <div className="rounded-xl border border-white/5 bg-black/20 p-4 space-y-1">
+              <div className="rounded-xl border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-black/20 p-4 space-y-1">
                 <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">
                   Submitted At
                 </p>
-                <p className="text-sm font-mono text-slate-300">
+                <p className="text-sm font-mono text-slate-800 dark:text-slate-300">
                   {formatDateTime(complaint.created_at)}
                 </p>
               </div>
             </div>
 
             {/* Description */}
-            <div className="rounded-xl border border-white/5 bg-black/20 p-4 space-y-2">
+            <div className="rounded-xl border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-black/20 p-4 space-y-2">
               <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">
                 Description
               </p>
-              <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">
+              <p className="text-sm text-slate-800 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
                 {complaint.description || "No description provided."}
               </p>
             </div>
 
             {/* Evidence Files */}
-            <div className="rounded-xl border border-white/5 bg-black/20 p-4 space-y-3">
+            <div className="rounded-xl border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-black/20 p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">
                   Evidence ({complaint.evidence?.length || 0} files attached)
@@ -327,7 +341,7 @@ const ComplaintDetailsModal = ({
 
             {/* Status Change History */}
             {complaint.status_histories && complaint.status_histories.length > 0 && (
-              <div className="rounded-xl border border-white/5 bg-black/20 p-4 space-y-3">
+              <div className="rounded-xl border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-black/20 p-4 space-y-3">
                 <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">
                   Status History ({complaint.status_histories.length})
                 </p>
@@ -357,7 +371,7 @@ const ComplaintDetailsModal = ({
                           {formatDateTime(history.created_at)}
                         </span>
                       </div>
-                      <p className="text-slate-300 font-normal mt-1">{history.remarks}</p>
+                      <p className="text-slate-700 dark:text-slate-300 font-normal mt-1">{history.remarks}</p>
                     </div>
                   ))}
                 </div>

@@ -65,6 +65,13 @@ export const Routes = createBrowserRouter([
                     path: PATHS.APP.ANALYTICS,
                     element: <AnalyticsReport />,
                   },
+                ],
+              },
+
+              // Announcements: Accessible to Staff, Operator, Citizen, and Admin
+              {
+                element: <RoleRoute allowedRoles={['staff', 'operator', 'citizen', 'admin']} />,
+                children: [
                   {
                     path: PATHS.APP.ANNOUNCEMENTS,
                     element: <AnnouncementsPage />,

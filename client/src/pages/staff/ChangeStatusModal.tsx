@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Modal from "../../components/ui/Modal";
 import { Select, TextArea } from "../../components/ui/forms";
 import ComplaintService from "../../services/ComplaintService";
@@ -42,15 +42,16 @@ const ChangeStatusModal = ({
   const [description, setDescription] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
 
-  // Reset form when modal opens
-  useEffect(() => {
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
     if (isOpen) {
       setStatus(currentStatus || "unsettled");
       setDescription("");
       setErrors({});
     }
-  }, [isOpen, currentStatus]);
+  }
 
   const handleClose = () => {
     if (isLoading) return;
@@ -80,14 +81,15 @@ const ChangeStatusModal = ({
       notify.success("Complaint status updated successfully.");
       handleClose();
       onSuccess();
-    } catch (error: any) {
-      const validationErrors = error.response?.data?.errors;
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { errors?: Record<string, string[]> } } };
+      const validationErrors = err.response?.data?.errors;
 
       if (validationErrors && typeof validationErrors === "object") {
         const formattedErrors: FormErrors = {};
         for (const [field, messages] of Object.entries(validationErrors)) {
           if (Array.isArray(messages) && messages.length > 0) {
-            formattedErrors[field] = messages[0] as string;
+            formattedErrors[field] = messages[0];
           }
         }
         setErrors(formattedErrors);
@@ -125,11 +127,11 @@ const ChangeStatusModal = ({
     >
       <div className="space-y-5">
         {/* Complaint reference */}
-        <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+        <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 px-4 py-3">
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-1">
             Complaint
           </p>
-          <p className="text-sm font-semibold text-slate-200 line-clamp-2">{complaintTitle}</p>
+          <p className="text-sm font-semibold text-slate-900 dark:text-slate-200 line-clamp-2">{complaintTitle}</p>
         </div>
 
         {/* Current → New status visual */}
@@ -147,7 +149,7 @@ const ChangeStatusModal = ({
 
           {/* Arrow */}
           <svg
-            className={`w-5 h-5 flex-shrink-0 transition-colors ${hasStatusChanged ? "text-emerald-400" : "text-slate-600"}`}
+            className={`w-5 h-5 flex-shrink-0 transition-colors ${hasStatusChanged ? "text-emerald-500 dark:text-emerald-400" : "text-slate-400 dark:text-slate-600"}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -171,7 +173,7 @@ const ChangeStatusModal = ({
                 {selectedOption.label}
               </span>
             ) : (
-              <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-600">
+              <span className="inline-flex rounded-full border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
                 No change
               </span>
             )}
@@ -185,7 +187,7 @@ const ChangeStatusModal = ({
           value={status}
           onChange={(e) => {
             setStatus(e.target.value);
-            if (errors.status) setErrors((prev) => { const { status: _, ...rest } = prev; return rest; });
+            if (errors.status) setErrors((prev) => { const next = { ...prev }; delete next.status; return next; });
           }}
           options={STATUS_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
           error={errors.status}
@@ -200,7 +202,7 @@ const ChangeStatusModal = ({
           value={description}
           onChange={(e) => {
             setDescription(e.target.value);
-            if (errors.description) setErrors((prev) => { const { description: _, ...rest } = prev; return rest; });
+            if (errors.description) setErrors((prev) => { const next = { ...prev }; delete next.description; return next; });
           }}
           error={errors.description}
           rows={4}

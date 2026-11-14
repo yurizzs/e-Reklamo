@@ -117,10 +117,9 @@ export const Modal: React.FC<ModalProps> = ({
                             <>
                                 {secondaryAction && (
                                     <Button
-                                        variant={secondaryAction.variant || "ghost"}
+                                        variant={secondaryAction.variant || "secondary"}
                                         onClick={secondaryAction.onClick}
                                         size="md"
-                                        className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white border-transparent hover:bg-slate-100 dark:hover:bg-white/5"
                                         disabled={primaryAction?.isLoading}
                                     >
                                         {secondaryAction.label}
@@ -135,7 +134,6 @@ export const Modal: React.FC<ModalProps> = ({
                                         loadingText={primaryAction.loadingText}
                                         iconName={primaryAction.iconName}
                                         size="md"
-                                        className="bg-blue-600 hover:bg-blue-500 text-white shadow-md"
                                     >
                                         {primaryAction.label}
                                     </Button>

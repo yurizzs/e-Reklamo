@@ -12,6 +12,8 @@ import {
 import { useAuth } from "../../contexts/AuthContext";
 import { PATHS } from "../../routes/path";
 import ComplaintService from "../../services/ComplaintService";
+import AnnouncementService from "../../services/AnnouncementService";
+import type { AnnouncementRecord } from "./AnnouncementsPage";
 import ComplaintDetailsModal from "./ComplaintDetailsModal";
 import CreateComplaintModal from "./CreateComplaintModal";
 import MayorReportModal from "./MayorReportModal";
@@ -56,8 +58,11 @@ const formatTimeSource = (dateTimeStr: string) => {
 const StaffDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isStaff = user?.role === "staff" || user?.role === "admin";
 
   const [complaints, setComplaints] = useState<ComplaintRecord[]>([]);
+  const [recentAnnouncements, setRecentAnnouncements] = useState<AnnouncementRecord[]>([]);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<AnnouncementRecord | null>(null);
   const [stats, setStats] = useState({ all: 0, unsettled: 0, settled: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -83,6 +88,16 @@ const StaffDashboard: React.FC = () => {
         const fetchedComplaints: ComplaintRecord[] = payload?.complaints ?? [];
         setComplaints(fetchedComplaints.slice(0, 5));
         setStats(payload?.stats ?? { all: 0, unsettled: 0, settled: 0 });
+
+        // Load latest announcements broadcasted by staff
+        try {
+          const annRes = await AnnouncementService.getAll();
+          if (annRes && annRes.data && Array.isArray(annRes.data)) {
+            setRecentAnnouncements(annRes.data.slice(0, 3));
+          }
+        } catch {
+          setRecentAnnouncements([]);
+        }
       } catch {
         setComplaints([]);
         setStats({ all: 0, unsettled: 0, settled: 0 });
@@ -453,8 +468,81 @@ const StaffDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* ─── RIGHT COLUMN: ACTIVE OFFICERS (4 COLS) ─── */}
+        {/* ─── RIGHT COLUMN: ANNOUNCEMENTS BULLETIN & ACTIVE OFFICERS (4 COLS) ─── */}
         <div className="lg:col-span-4 space-y-5">
+          {/* Announcements & Directives Bulletin */}
+          <div className="bg-white dark:bg-bg-light border border-slate-200 dark:border-white/5 rounded-3xl p-6 shadow-sm space-y-4 transition-colors duration-300">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                  <Icon iconName="FaBullhorn" size={14} />
+                </div>
+                <div>
+                  <h2 className="text-sm font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                    Directives & Advisories
+                  </h2>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                    {isStaff ? "Official Staff Bulletins" : "Passed from Staff • Live Sync"}
+                  </p>
+                </div>
+              </div>
+
+              <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/20">
+                {recentAnnouncements.length} Active
+              </span>
+            </div>
+
+            {/* List of recent announcements */}
+            <div className="space-y-2.5">
+              {recentAnnouncements.length === 0 ? (
+                <div className="py-6 text-center text-xs text-slate-400">
+                  No active circulars at this moment.
+                </div>
+              ) : (
+                recentAnnouncements.map((item) => {
+                  const urgencyBadge =
+                    item.urgency === "urgent"
+                      ? "bg-red-500/10 text-red-600 border-red-500/20"
+                      : item.urgency === "priority"
+                      ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                      : "bg-blue-500/10 text-blue-600 border-blue-500/20";
+
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => setSelectedAnnouncement(item)}
+                      className="p-3 rounded-2xl bg-slate-50/70 dark:bg-black/20 border border-slate-100 dark:border-white/5 hover:border-blue-300 dark:hover:border-blue-500/30 transition-all cursor-pointer group"
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <span className={`px-2 py-0.5 rounded-md text-[8.5px] font-black uppercase tracking-wider border ${urgencyBadge}`}>
+                          {item.urgency}
+                        </span>
+                        <span className="text-[9.5px] font-mono text-slate-400 truncate max-w-[120px]">
+                          {item.refNumber || item.ref_number}
+                        </span>
+                      </div>
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white line-clamp-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        {item.title}
+                      </h4>
+                      <p className="text-[10.5px] text-slate-500 dark:text-slate-400 line-clamp-2 mt-0.5 leading-relaxed">
+                        {item.summary}
+                      </p>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <Button
+              variant="outline"
+              fullWidth
+              onClick={() => navigate(PATHS.APP.ANNOUNCEMENTS)}
+              className="text-xs font-extrabold uppercase tracking-wider py-2.5 rounded-xl border border-slate-200 dark:border-white/10"
+            >
+              Open Announcements Hub →
+            </Button>
+          </div>
+
           <div className="bg-white dark:bg-bg-light border border-slate-200 dark:border-white/5 rounded-3xl p-6 shadow-sm space-y-6 transition-colors duration-300">
             
             {/* Header */}
@@ -548,6 +636,97 @@ const StaffDashboard: React.FC = () => {
         onClose={() => setIsPrintModalOpen(false)}
         reportData={printCustomData}
       />
+
+      {/* Official Announcement Preview Modal */}
+      {selectedAnnouncement && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-[#080B14]/80 backdrop-blur-sm">
+          <div className="bg-white dark:bg-bg-light border border-slate-200 dark:border-white/10 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col text-slate-800 dark:text-slate-200">
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-50 dark:bg-black/25">
+              <span className="text-xs font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                Official TMU Directive Preview
+              </span>
+              <button
+                onClick={() => setSelectedAnnouncement(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-5 custom-scrollbar">
+              <div className="text-center pb-4 border-b border-slate-200 dark:border-white/10">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block">
+                  Republic of the Philippines • City of Roxas
+                </span>
+                <h2 className="text-base font-black text-slate-900 dark:text-white mt-0.5">
+                  TRAFFIC MANAGEMENT UNIT (TMU)
+                </h2>
+                <div className="flex items-center justify-center gap-3 text-xs font-mono font-bold text-blue-600 dark:text-blue-400 mt-2">
+                  <span>{selectedAnnouncement.refNumber || selectedAnnouncement.ref_number}</span>
+                  <span>•</span>
+                  <span>{selectedAnnouncement.date}</span>
+                </div>
+              </div>
+
+              <div>
+                <span className="px-2.5 py-0.5 rounded text-[9.5px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300">
+                  {selectedAnnouncement.type.toUpperCase()}
+                </span>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white mt-2 leading-snug">
+                  {selectedAnnouncement.title}
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 mt-2 leading-relaxed">
+                  {selectedAnnouncement.summary}
+                </p>
+              </div>
+
+              {(selectedAnnouncement.legalBasis || selectedAnnouncement.legal_basis) && (
+                <div className="p-3.5 rounded-2xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-xs">
+                  <span className="font-bold text-blue-900 dark:text-blue-300 block mb-0.5">Statutory Basis</span>
+                  <span className="text-blue-800 dark:text-blue-200">
+                    {selectedAnnouncement.legalBasis || selectedAnnouncement.legal_basis}
+                  </span>
+                </div>
+              )}
+
+              <div>
+                <span className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-2">
+                  Key Directives & Guidelines
+                </span>
+                <div className="space-y-2">
+                  {(selectedAnnouncement.keyDirectives || selectedAnnouncement.key_directives || []).map((d, i) => (
+                    <div key={i} className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
+                      <span className="w-4 h-4 rounded-full bg-blue-500 text-white font-bold text-[9px] flex items-center justify-center shrink-0 mt-0.5">
+                        {i + 1}
+                      </span>
+                      <span className="leading-relaxed">{d}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-200 dark:border-white/10 flex items-center justify-between text-xs text-slate-500">
+                <span>Authority: {selectedAnnouncement.issuingOffice || selectedAnnouncement.issuing_office}</span>
+                <button
+                  onClick={() => {
+                    const ref = selectedAnnouncement.refNumber || selectedAnnouncement.ref_number || "";
+                    navigator.clipboard.writeText(ref);
+                  }}
+                  className="text-blue-600 font-bold hover:underline"
+                >
+                  Copy Reference Code
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-black/25 flex justify-end">
+              <Button onClick={() => setSelectedAnnouncement(null)}>
+                Close Preview
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 

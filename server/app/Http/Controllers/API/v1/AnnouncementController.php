@@ -51,6 +51,15 @@ class AnnouncementController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        $user = Auth::user() ?? $request->user();
+        $userRole = is_object($user?->role) && isset($user->role->value) 
+            ? $user->role->value 
+            : (string) ($user?->role ?? '');
+
+        if (!in_array($userRole, ['staff', 'admin'])) {
+            return $this->error('Only TMU Staff members are authorized to publish announcements.', 403);
+        }
+
         $validated = $request->validate([
             'type' => ['required', 'string', 'in:memorandum,announcement,directive'],
             'refNumber' => ['nullable', 'string', 'max:100'],
@@ -131,8 +140,17 @@ class AnnouncementController extends Controller
     /**
      * Remove the specified announcement from storage.
      */
-    public function destroy(string $id): JsonResponse
+    public function destroy(Request $request, string $id): JsonResponse
     {
+        $user = Auth::user() ?? $request->user();
+        $userRole = is_object($user?->role) && isset($user->role->value) 
+            ? $user->role->value 
+            : (string) ($user?->role ?? '');
+
+        if (!in_array($userRole, ['staff', 'admin'])) {
+            return $this->error('Only TMU Staff members are authorized to delete announcements.', 403);
+        }
+
         $announcement = Announcement::find($id);
 
         if (!$announcement) {

@@ -40,13 +40,51 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     tracking-tighter transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:active:scale-100 
     disabled:cursor-not-allowed rounded-2xl gap-2 overflow-visible`;
 
-    const variants = {
-      primary: "bg-primary text-bg-dark hover:bg-primary/80 border border-border-muted shadow",
-      secondary: "bg-secondary text-bg-dark hover:bg-secondary/80 border border-border-muted shadow",
-      danger: "bg-danger text-bg-dark hover:bg-danger/80 border border-border-muted shadow",
-      outline: "border-2 border-primary text-primary hover:bg-primary hover:text-bg-dark dark:hover:text-text shadow-sm",
-      ghost: "bg-transparent hover:bg-slate-100 dark:hover:bg-white/5 text-text border border-transparent shadow-none",
+    const hasCustomBg = /(?:^|\s)(?:bg-|hover:bg-|dark:bg-)/.test(className);
+    const hasCustomText = /(?:^|\s)(?:text-|hover:text-|dark:text-)/.test(className);
+    const hasCustomBorder = /(?:^|\s)(?:border-|border\b|dark:border-)/.test(className);
+
+    const variantStyles: Record<ButtonVariant, { bg: string; text: string; border: string; extra: string }> = {
+      primary: {
+        bg: "bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500",
+        text: "text-white",
+        border: "border border-transparent",
+        extra: "shadow-md shadow-blue-500/20",
+      },
+      secondary: {
+        bg: "bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15",
+        text: "text-slate-700 dark:text-slate-200",
+        border: "border border-slate-200 dark:border-white/10",
+        extra: "shadow-xs",
+      },
+      danger: {
+        bg: "bg-red-600 hover:bg-red-700",
+        text: "text-white",
+        border: "border border-transparent",
+        extra: "shadow-md shadow-red-500/20",
+      },
+      outline: {
+        bg: "bg-transparent hover:bg-blue-600 dark:hover:bg-blue-500",
+        text: "text-blue-600 hover:text-white dark:text-blue-400 dark:hover:text-white",
+        border: "border-2 border-blue-600 dark:border-blue-400",
+        extra: "shadow-xs",
+      },
+      ghost: {
+        bg: "bg-transparent hover:bg-slate-100 dark:hover:bg-white/10",
+        text: "text-slate-700 dark:text-slate-200",
+        border: "border border-transparent",
+        extra: "shadow-none",
+      },
     };
+
+    const currentVariant = variantStyles[variant] || variantStyles.primary;
+
+    const variantClasses = [
+      hasCustomBg ? "" : currentVariant.bg,
+      hasCustomText ? "" : currentVariant.text,
+      hasCustomBorder ? "" : currentVariant.border,
+      currentVariant.extra,
+    ].filter(Boolean).join(" ");
 
     const sizes = {
       sm: "px-4 py-2 text-sm tracking-widest min-h-[36px]",
@@ -68,7 +106,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     const widthStyle = fullWidth ? 'w-full' : '';
-    const combinedClassName = `${baseStyles} ${variants[variant]} ${sizes[size]} ${widthStyle} ${className}`.trim();
+    const combinedClassName = `${baseStyles} ${variantClasses} ${sizes[size]} ${widthStyle} ${className}`.trim();
 
     return (
       <button

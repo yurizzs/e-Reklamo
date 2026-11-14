@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { MainLayout } from "../../components/layouts";
 import { Icon, Button, LoadingSpinner } from "../../components/ui";
 import { useAuth } from "../../contexts/AuthContext";
@@ -35,7 +35,11 @@ export interface AnnouncementRecord {
 
 export const AnnouncementsPage: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<"catalog" | "create">("catalog");
+  const isStaff = user?.role === "staff" || user?.role === "admin";
+  const isOperator = user?.role === "operator";
+
+  const [activeTabState, setActiveTab] = useState<"catalog" | "create">("catalog");
+  const activeTab = isStaff ? activeTabState : "catalog";
   const [announcements, setAnnouncements] = useState<AnnouncementRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -72,25 +76,39 @@ export const AnnouncementsPage: React.FC = () => {
   const [sendPushAlert, setSendPushAlert] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch announcements
-  const fetchAnnouncements = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await AnnouncementService.getAll();
-      if (res && res.data) {
-        setAnnouncements(Array.isArray(res.data) ? res.data : []);
-      }
-    } catch (err: any) {
-      console.error("Failed to load announcements:", err);
-      notify.error("Unable to load announcements catalog.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [refreshKey, setRefreshKey] = useState(0);
 
+  const handleRefresh = () => {
+    setLoading(true);
+    setRefreshKey((k) => k + 1);
+  };
+
+  // Fetch announcements
   useEffect(() => {
-    fetchAnnouncements();
-  }, [fetchAnnouncements]);
+    let isMounted = true;
+
+    const loadAnnouncements = async () => {
+      try {
+        const res = await AnnouncementService.getAll();
+        if (isMounted && res && res.data) {
+          setAnnouncements(Array.isArray(res.data) ? res.data : []);
+        }
+      } catch (err: unknown) {
+        console.error("Failed to load announcements:", err);
+        notify.error("Unable to load announcements catalog.");
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadAnnouncements();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [refreshKey]);
 
   const handleGenerateRef = () => {
     const randomSuffix = Math.floor(100 + Math.random() * 900);
@@ -110,6 +128,10 @@ export const AnnouncementsPage: React.FC = () => {
 
   const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isStaff) {
+      notify.error("Only TMU Staff members are authorized to publish announcements.");
+      return;
+    }
     if (!formTitle.trim() || !formSummary.trim()) {
       notify.error("Please provide both a Title and Executive Summary.");
       return;
@@ -142,16 +164,21 @@ export const AnnouncementsPage: React.FC = () => {
       setFormSummary("");
       handleGenerateRef();
       setActiveTab("catalog");
-      await fetchAnnouncements();
-    } catch (err: any) {
+      setRefreshKey((k) => k + 1);
+    } catch (err: unknown) {
       console.error("Failed to publish:", err);
-      notify.error(err.message || "Failed to publish announcement.");
+      const message = err instanceof Error ? err.message : "Failed to publish announcement.";
+      notify.error(message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string | number) => {
+    if (!isStaff) {
+      notify.error("Only TMU Staff members are authorized to delete announcements.");
+      return;
+    }
     if (!window.confirm("Are you sure you want to remove this announcement from the public feed?")) {
       return;
     }
@@ -162,8 +189,9 @@ export const AnnouncementsPage: React.FC = () => {
       if (selectedAnnouncement && String(selectedAnnouncement.id) === String(id)) {
         setSelectedAnnouncement(null);
       }
-    } catch (err: any) {
-      notify.error(err.message || "Failed to remove announcement.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to remove announcement.";
+      notify.error(message);
     }
   };
 
@@ -208,11 +236,15 @@ export const AnnouncementsPage: React.FC = () => {
                 Public Announcements & Directives
               </h1>
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                LIVE DISPATCH
+                {isStaff ? "STAFF AUTHORING DESK" : isOperator ? "OPERATOR DIRECTIVES BULLETIN" : "PUBLIC ADVISORIES FEED"}
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
-              Official transportation memoranda, fare matrices, rerouting circulars, and emergency alerts synchronized directly with the citizen mobile app.
+              {isStaff
+                ? "Author, broadcast, and manage official transportation memoranda, fare matrices, and advisories to synchronize across Operator terminals and Citizen mobile apps."
+                : isOperator
+                ? "Official transportation circulars, fare matrix regulations, and traffic rerouting directives issued by TMU Staff for operational enforcement and commuter guidance."
+                : "Official transportation circulars, approved fare matrices, rerouting advisories, and emergency alerts synchronized directly from Roxas City TMU."}
             </p>
           </div>
         </div>
@@ -231,17 +263,19 @@ export const AnnouncementsPage: React.FC = () => {
             Directory ({announcements.length})
           </button>
 
-          <button
-            onClick={() => setActiveTab("create")}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
-              activeTab === "create"
-                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-            }`}
-          >
-            <Icon iconName="FaPlus" size={13} />
-            Create Announcement
-          </button>
+          {isStaff && (
+            <button
+              onClick={() => setActiveTab("create")}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                activeTab === "create"
+                  ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              <Icon iconName="FaPlus" size={13} />
+              Create Announcement
+            </button>
+          )}
         </div>
       </div>
 
@@ -318,27 +352,27 @@ export const AnnouncementsPage: React.FC = () => {
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
-                className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-black/25 border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 focus:outline-none"
+                className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer transition-colors"
               >
-                <option value="all">All Classifications</option>
-                <option value="memorandum">Memorandum</option>
-                <option value="announcement">Public Advisory</option>
-                <option value="directive">Regulatory Directive</option>
+                <option value="all" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All Classifications</option>
+                <option value="memorandum" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Memorandum</option>
+                <option value="announcement" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Public Advisory</option>
+                <option value="directive" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Regulatory Directive</option>
               </select>
 
               <select
                 value={filterUrgency}
                 onChange={(e) => setFilterUrgency(e.target.value)}
-                className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-black/25 border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 focus:outline-none"
+                className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer transition-colors"
               >
-                <option value="all">All Urgency Levels</option>
-                <option value="routine">Routine</option>
-                <option value="priority">Priority</option>
-                <option value="urgent">Urgent</option>
+                <option value="all" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All Urgency Levels</option>
+                <option value="routine" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Routine</option>
+                <option value="priority" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Priority</option>
+                <option value="urgent" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Urgent</option>
               </select>
 
               <button
-                onClick={fetchAnnouncements}
+                onClick={handleRefresh}
                 className="p-2.5 rounded-xl border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-600 dark:text-slate-300 shrink-0 transition-colors"
                 title="Refresh from server"
               >
@@ -472,13 +506,15 @@ export const AnnouncementsPage: React.FC = () => {
                           Read Document →
                         </button>
 
-                        <button
-                          onClick={() => handleDelete(item.id)}
-                          className="p-2 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
-                          title="Archive / Remove circular"
-                        >
-                          <Icon iconName="FaTrashCan" size={12} />
-                        </button>
+                        {isStaff && (
+                          <button
+                            onClick={() => handleDelete(item.id)}
+                            className="p-2 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                            title="Archive / Remove circular"
+                          >
+                            <Icon iconName="FaTrashCan" size={12} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -490,7 +526,7 @@ export const AnnouncementsPage: React.FC = () => {
       )}
 
       {/* TAB 2: DEDICATED WORKBENCH & POSTING STUDIO */}
-      {activeTab === "create" && (
+      {activeTab === "create" && isStaff && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Form (7 Columns) */}
           <div className="lg:col-span-7 bg-white dark:bg-bg-light rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-white/10 shadow-sm space-y-6">
@@ -522,16 +558,16 @@ export const AnnouncementsPage: React.FC = () => {
                   <select
                     value={formType}
                     onChange={(e) => {
-                      const newType = e.target.value as any;
+                      const newType = e.target.value as "memorandum" | "announcement" | "directive";
                       setFormType(newType);
                       const prefix = newType === "memorandum" ? "TMU-MC" : newType === "announcement" ? "PA-TMU" : "JRD-TRB";
                       setFormRefNumber(`${prefix}-2026-10-${Math.floor(100 + Math.random() * 900)}`);
                     }}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-black/25 border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer transition-colors"
                   >
-                    <option value="memorandum">Official Memorandum</option>
-                    <option value="announcement">Public Advisory (Rerouting / Alerts)</option>
-                    <option value="directive">Regulatory Directive (TRB / Compliance)</option>
+                    <option value="memorandum" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Official Memorandum</option>
+                    <option value="announcement" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Public Advisory (Rerouting / Alerts)</option>
+                    <option value="directive" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Regulatory Directive (TRB / Compliance)</option>
                   </select>
                 </div>
 
@@ -541,12 +577,12 @@ export const AnnouncementsPage: React.FC = () => {
                   </label>
                   <select
                     value={formUrgency}
-                    onChange={(e) => setFormUrgency(e.target.value as any)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-black/25 border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => setFormUrgency(e.target.value as "routine" | "priority" | "urgent")}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer transition-colors"
                   >
-                    <option value="routine">Routine</option>
-                    <option value="priority">Priority</option>
-                    <option value="urgent">Urgent</option>
+                    <option value="routine" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Routine</option>
+                    <option value="priority" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Priority</option>
+                    <option value="urgent" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Urgent</option>
                   </select>
                 </div>
               </div>

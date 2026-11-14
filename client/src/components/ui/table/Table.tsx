@@ -209,7 +209,7 @@ export const TablePagination: FC<TablePaginationProps> = ({
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-white hover:border-emerald-300 dark:hover:border-white/20 disabled:opacity-25 disabled:pointer-events-none transition-all shadow-xs"
+          className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white hover:border-blue-300 dark:hover:border-white/20 disabled:opacity-25 disabled:pointer-events-none transition-all shadow-xs"
         >
           <Icon iconName="FaChevronLeft" size={10} />
         </button>
@@ -223,7 +223,7 @@ export const TablePagination: FC<TablePaginationProps> = ({
               className={`
                 w-8 h-8 rounded-lg text-[10px] font-mono transition-all duration-300
                 ${currentPage === page
-                  ? "bg-slate-900 text-white dark:bg-emerald-500 dark:text-slate-950 font-extrabold shadow-sm"
+                  ? "bg-blue-600 text-white dark:bg-blue-600 dark:text-white font-extrabold shadow-sm"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-white/10"
                 }
               `}>
@@ -236,7 +236,7 @@ export const TablePagination: FC<TablePaginationProps> = ({
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-white hover:border-emerald-300 dark:hover:border-white/20 disabled:opacity-25 disabled:pointer-events-none transition-all shadow-xs"
+          className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white hover:border-blue-300 dark:hover:border-white/20 disabled:opacity-25 disabled:pointer-events-none transition-all shadow-xs"
         >
           <Icon iconName="FaChevronRight" size={10} />
         </button>
