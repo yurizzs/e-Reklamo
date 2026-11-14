@@ -826,72 +826,72 @@ export const AnnouncementsPage: React.FC = () => {
 
           {/* Right Column: Live Mobile Preview Studio (5 Columns) */}
           <div className="lg:col-span-5 sticky top-6">
-            <div className="bg-slate-900 rounded-[40px] p-6 border-4 border-slate-800 shadow-2xl text-slate-100">
+            <div className="bg-slate-200/90 dark:bg-slate-900 rounded-[40px] p-6 border-4 border-slate-300 dark:border-slate-800 shadow-2xl text-slate-800 dark:text-slate-100 transition-colors">
               {/* Phone Speaker Notch */}
-              <div className="w-28 h-4 bg-slate-800 rounded-full mx-auto mb-6 flex items-center justify-center">
-                <div className="w-3 h-3 rounded-full bg-slate-900" />
+              <div className="w-28 h-4 bg-slate-300 dark:bg-slate-800 rounded-full mx-auto mb-6 flex items-center justify-center">
+                <div className="w-3 h-3 rounded-full bg-slate-400 dark:bg-slate-900" />
               </div>
 
               {/* Simulated App Header */}
-              <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-800">
+              <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-300 dark:border-slate-800">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-lg bg-blue-600 flex items-center justify-center text-white text-[10px]">
                     <Icon iconName="FaShieldHalved" size={11} />
                   </div>
-                  <span className="text-xs font-extrabold tracking-tight">TMU App • Roxas</span>
+                  <span className="text-xs font-extrabold tracking-tight text-slate-900 dark:text-white">TMU App • Roxas</span>
                 </div>
-                <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400">
+                <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">
                   LIVE PREVIEW
                 </span>
               </div>
 
               {/* Simulated Mobile Card */}
-              <div className="bg-white rounded-2xl p-5 text-slate-900 shadow-lg space-y-3 border-l-4 border-blue-600">
+              <div className="bg-white dark:bg-bg-light rounded-2xl p-5 text-slate-900 dark:text-slate-100 shadow-md space-y-3 border-l-4 border-blue-600 border border-slate-200/80 dark:border-white/5 transition-colors">
                 <div className="flex items-center justify-between">
-                  <span className="px-2 py-0.5 rounded text-[8.5px] font-black uppercase tracking-wider bg-blue-100 text-blue-800">
+                  <span className="px-2 py-0.5 rounded text-[8.5px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300">
                     {formType.toUpperCase()}
                   </span>
-                  <span className="text-[10px] font-mono text-slate-400 font-bold">
+                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-bold">
                     {formRefNumber}
                   </span>
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-black text-slate-900 leading-snug">
+                  <h4 className="text-sm font-black text-slate-900 dark:text-white leading-snug">
                     {formTitle || "Untitled Announcement"}
                   </h4>
-                  <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                  <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
                     {formSummary || "The executive summary and directive overview will appear here as you type in the workbench..."}
                   </p>
                 </div>
 
                 {/* Directives Preview */}
                 <div className="pt-2">
-                  <span className="text-[9.5px] font-black uppercase text-slate-400 block mb-1">
+                  <span className="text-[9.5px] font-black uppercase text-slate-500 dark:text-slate-400 block mb-1">
                     Key Directives Preview ({formDirectives.length})
                   </span>
                   <div className="space-y-1">
                     {formDirectives.slice(0, 2).map((d, i) => (
-                      <div key={i} className="flex items-start gap-1.5 text-[10px] text-slate-700">
-                        <span className="text-blue-600 font-bold">•</span>
+                      <div key={i} className="flex items-start gap-1.5 text-[10px] text-slate-700 dark:text-slate-300">
+                        <span className="text-blue-600 dark:text-blue-400 font-bold">•</span>
                         <span className="line-clamp-1">{d}</span>
                       </div>
                     ))}
                     {formDirectives.length > 2 && (
-                      <span className="text-[9px] font-bold text-blue-600 block">
+                      <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 block">
                         +{formDirectives.length - 2} more provisions
                       </span>
                     )}
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500">
+                <div className="pt-3 border-t border-slate-200 dark:border-white/10 flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
                   <span className="truncate max-w-[140px] font-bold">{formIssuingOffice}</span>
-                  <span className="text-blue-600 font-black">View Memo →</span>
+                  <span className="text-blue-600 dark:text-blue-400 font-black">View Memo →</span>
                 </div>
               </div>
 
-              <div className="text-center text-[10px] text-slate-500 mt-6 font-semibold">
+              <div className="text-center text-[10px] text-slate-500 dark:text-slate-400 mt-6 font-semibold">
                 This simulated preview matches the exact rendering inside the citizen mobile app feed.
               </div>
             </div>
@@ -901,10 +901,10 @@ export const AnnouncementsPage: React.FC = () => {
 
       {/* INSPECT DOCUMENT MODAL */}
       {selectedAnnouncement && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#080B14]/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 dark:bg-[#080B14]/80 backdrop-blur-sm">
           <div className="bg-white dark:bg-bg-light border border-slate-200 dark:border-white/10 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col text-slate-800 dark:text-slate-200">
             {/* Modal Top */}
-            <div className="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-50 dark:bg-black/25">
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-100/70 dark:bg-black/25">
               <span className="text-xs font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
                 Official Document Preview
               </span>
@@ -919,7 +919,7 @@ export const AnnouncementsPage: React.FC = () => {
             {/* Letterhead and Details */}
             <div className="p-6 overflow-y-auto space-y-5 custom-scrollbar">
               <div className="text-center pb-4 border-b border-slate-200 dark:border-white/10">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 block">
                   Republic of the Philippines • City of Roxas
                 </span>
                 <h2 className="text-base font-black text-slate-900 dark:text-white mt-0.5">
@@ -945,7 +945,7 @@ export const AnnouncementsPage: React.FC = () => {
               </div>
 
               {(selectedAnnouncement.legalBasis || selectedAnnouncement.legal_basis) && (
-                <div className="p-3.5 rounded-2xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-xs">
+                <div className="p-3.5 rounded-2xl bg-blue-50/80 dark:bg-blue-500/10 border border-blue-200/80 dark:border-blue-500/20 text-xs">
                   <span className="font-bold text-blue-900 dark:text-blue-300 block mb-0.5">Statutory Basis</span>
                   <span className="text-blue-800 dark:text-blue-200">
                     {selectedAnnouncement.legalBasis || selectedAnnouncement.legal_basis}
@@ -955,12 +955,12 @@ export const AnnouncementsPage: React.FC = () => {
 
               {/* Key Directives */}
               <div>
-                <span className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-2">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-2">
                   Mandatory Provisions & Directives
                 </span>
                 <div className="space-y-2">
                   {(selectedAnnouncement.keyDirectives || selectedAnnouncement.key_directives || []).map((d, i) => (
-                    <div key={i} className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
+                    <div key={i} className="flex items-start gap-2.5 text-xs text-slate-800 dark:text-slate-200">
                       <span className="w-4 h-4 rounded-full bg-blue-500 text-white font-bold text-[9px] flex items-center justify-center shrink-0 mt-0.5">
                         {i + 1}
                       </span>
@@ -971,7 +971,7 @@ export const AnnouncementsPage: React.FC = () => {
               </div>
 
               {/* Signatories */}
-              <div className="pt-4 border-t border-slate-200 dark:border-white/10 flex items-center justify-between text-xs text-slate-500">
+              <div className="pt-4 border-t border-slate-200 dark:border-white/10 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
                 <span>Authority: {selectedAnnouncement.issuingOffice || selectedAnnouncement.issuing_office}</span>
                 <button
                   onClick={() => {
@@ -979,7 +979,7 @@ export const AnnouncementsPage: React.FC = () => {
                     navigator.clipboard.writeText(ref);
                     notify.success(`Reference ${ref} copied.`);
                   }}
-                  className="text-blue-600 font-bold hover:underline"
+                  className="text-blue-600 dark:text-blue-400 font-bold hover:underline"
                 >
                   Copy Reference Code
                 </button>
@@ -987,7 +987,7 @@ export const AnnouncementsPage: React.FC = () => {
             </div>
 
             {/* Modal Bottom */}
-            <div className="p-4 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-black/25 flex items-center justify-between">
+            <div className="p-4 border-t border-slate-200 dark:border-white/5 bg-slate-100/70 dark:bg-black/25 flex items-center justify-between">
               {isStaff ? (
                 <div className="flex items-center gap-2">
                   <Button

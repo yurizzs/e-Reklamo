@@ -3,6 +3,10 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+  --color-white: var(--color-white, #ffffff);
+  --color-slate-50: var(--color-slate-50, #f8fafc);
+  --color-slate-100: var(--color-slate-100, #f1f5f9);
+
   /* Background color */
   --color-bg-dark: oklch(var(--bg-dark));
   --color-bg-main: oklch(var(--bg-main));
@@ -57,6 +61,10 @@
 }
 
 :root {
+  --color-white: #ffffff;
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+
   /* Background color - Deep Space Navy/Black */
   --bg-dark: 0.102 0.0251 272.1;  /* #080B14 */
   --bg-main: 0.1203 0.0256 263.06; /* #0A0D18 */
@@ -87,17 +95,43 @@
   --shadow: 0px 4px 30px oklch(0 0 0 / 0.8);
 }
 
-/* Optional Light theme override if needed later */
+/* Eye-Comfort Muted Light Mode Palette (Soft Gray/Slate - "Not so white", no glare) */
 .light-mode {
-  --bg-dark: 0.9205 0.0264 264.44;
-  --bg-main: 0.9582 0.02 257.47;
-  --bg-light: 0.9933 0.0095 197;
+  /* Cards & primary surfaces - noticeably softer and darker than bright white */
+  --color-white: #e9eef4;
+  --color-slate-50: #dfe6ee;
+  --color-slate-100: #d6e0ec;
 
-  --text: 0.1486 0.0487 265.13;
-  --text-muted: 0.3989 0.0505 264.99;
+  /* Canvas Background - Muted soft Slate-200 (#dce4ec) */
+  --bg-dark: 0.9550 0.0070 250.00;  /* #dce4ec - Soft, glare-free canvas */
+  --bg-main: 0.9700 0.0050 250.00;  /* #e4ecf4 - Subtle surface */
+  --bg-light: 0.9800 0.0035 250.00; /* #e9eef4 - Card surface */
 
-  --primary: 0.45 0.18 250;
-  --secondary: 0.35 0.14 250;
+  --gradient: linear-gradient(0deg, oklch(var(--bg-main)) 97%, oklch(var(--bg-light)));
+  --gradient-hover: linear-gradient(0deg, oklch(var(--bg-main)), oklch(var(--bg-light)));
+
+  /* Text - Deep charcoal slate (#0f172a / #475569) */
+  --text: 0.208 0.042 265.76;       /* Slate 900 #0f172a */
+  --text-muted: 0.480 0.040 257.42; /* Slate 600 #475569 */
+
+  --highlight: 0.55 0.18 250;
+
+  /* Borders - Soft Slate-300 / Slate-200 for clean definition on darker light mode */
+  --border: 0.9397 0.0094 252.03;   /* Slate 300 #cbd5e1 */
+  --border-muted: 0.9679 0.0058 255.03; /* Slate 200 #e2e8f0 */
+
+  /* Brand - Balanced Royal Blue */
+  --primary: 0.55 0.20 250;
+  --secondary: 0.45 0.15 250;
+
+  /* Status Colors */
+  --danger: 0.62 0.22 28.5;
+  --warning: 0.72 0.16 85.0;
+  --success: 0.60 0.18 145.0;
+  --info: 0.58 0.18 245.0;
+
+  /* Ambient soft shadow */
+  --shadow: 0 4px 20px -2px oklch(0.2 0.02 250 / 0.08), 0 2px 6px -1px oklch(0.2 0.02 250 / 0.05);
 }
 
 @layer base {
