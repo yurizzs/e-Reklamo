@@ -12,6 +12,7 @@ export interface NewAnnouncementData {
   summary: string;
   issuingOffice: string;
   date: string;
+  effectiveDate?: string;
   urgency: "routine" | "priority" | "urgent";
   legalBasis: string;
   keyDirectives: string[];

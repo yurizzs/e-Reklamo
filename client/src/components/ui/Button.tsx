@@ -3,7 +3,7 @@ import * as FaIcons from 'react-icons/fa6';
 import { Icon, LoadingSpinner } from "./index";
 
 export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'outline' | 'ghost';
-type ButtonSize = 'sm' | 'md' | 'lg';
+export type ButtonSize = 'sm' | 'md' | 'lg';
 type IconPosition = 'left' | 'right';
 type TooltipPosition = 'top' | 'bottom' | 'left' | 'right';
 
@@ -38,10 +38,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const baseStyles = `group relative inline-flex items-center justify-center font-bold uppercase cursor-pointer
     tracking-tighter transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:active:scale-100 
-    disabled:cursor-not-allowed rounded-2xl gap-2 overflow-visible`;
+    disabled:cursor-not-allowed rounded-2xl gap-2 overflow-visible whitespace-nowrap`;
 
     const hasCustomBg = /(?:^|\s)(?:bg-|hover:bg-|dark:bg-)/.test(className);
-    const hasCustomText = /(?:^|\s)(?:text-|hover:text-|dark:text-)/.test(className);
+    const hasCustomText = /(?:^|\s)(?:(?:hover:|dark:)*text-(?!(?:xs|sm|base|lg|[0-9]xl|left|center|right|justify|wrap|nowrap)\b))/.test(className);
     const hasCustomBorder = /(?:^|\s)(?:border-|border\b|dark:border-)/.test(className);
 
     const variantStyles: Record<ButtonVariant, { bg: string; text: string; border: string; extra: string }> = {

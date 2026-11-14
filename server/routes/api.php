@@ -62,6 +62,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Staff & Admin Only (Staff is the only one who can create/manage announcements)
     Route::middleware('role:staff,admin')->group(function () {
         Route::post('announcements', [AnnouncementController::class, 'store']);
+        Route::put('announcements/{id}', [AnnouncementController::class, 'update'])->where('id', '[0-9]+');
+        Route::patch('announcements/{id}', [AnnouncementController::class, 'update'])->where('id', '[0-9]+');
         Route::delete('announcements/{id}', [AnnouncementController::class, 'destroy'])->where('id', '[0-9]+');
     });
 

@@ -4,4 +4,5 @@ export { default as PrintReportModal } from './PrintReportModal';
 export { default as AnalyticsReport } from './AnalyticsReport';
 export { default as ComplaintsList } from './ComplaintsList';
 export { CreateAnnouncementModal } from './CreateAnnouncementModal';
+export { EditAnnouncementModal } from './EditAnnouncementModal';
 export { default as AnnouncementsPage } from './AnnouncementsPage';

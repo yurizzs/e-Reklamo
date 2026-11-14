@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import * as FaIcons from 'react-icons/fa6';
-import { Button, type ButtonVariant } from "./index";
+import { Button, type ButtonVariant, type ButtonSize } from "./index";
 import { useOnClickOutside } from "../../hooks/useOnClickOutside";
 
 interface ModalAction {
@@ -10,6 +10,8 @@ interface ModalAction {
     loadingText?: string;
     variant?: ButtonVariant;
     iconName?: keyof typeof FaIcons;
+    size?: ButtonSize;
+    className?: string;
 }
 
 interface ModalProps {
@@ -20,6 +22,7 @@ interface ModalProps {
     primaryAction?: ModalAction;
     secondaryAction?: ModalAction;
     footer?: React.ReactNode;
+    centerFooter?: boolean;
     size?: "sm" | "md" | "lg" | "xl" | "custom";
     customSize?: string;
     hideHeader?: boolean;
@@ -33,6 +36,7 @@ export const Modal: React.FC<ModalProps> = ({
     primaryAction,
     secondaryAction,
     footer,
+    centerFooter = false,
     size = "md",
     customSize,
     hideHeader = false,
@@ -110,7 +114,7 @@ export const Modal: React.FC<ModalProps> = ({
 
                 {/* Footer */}
                 {(footer || primaryAction || secondaryAction) && (
-                    <div className="relative z-10 px-8 py-6 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-black/40 flex justify-end items-center gap-4 transition-colors duration-300">
+                    <div className={`relative z-10 px-8 py-5 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-black/40 flex items-center gap-3 transition-colors duration-300 ${centerFooter ? 'justify-center' : 'justify-end'}`}>
                         {footer ? (
                             footer
                         ) : (
@@ -119,8 +123,9 @@ export const Modal: React.FC<ModalProps> = ({
                                     <Button
                                         variant={secondaryAction.variant || "secondary"}
                                         onClick={secondaryAction.onClick}
-                                        size="md"
+                                        size={secondaryAction.size || "md"}
                                         disabled={primaryAction?.isLoading}
+                                        className={secondaryAction.className}
                                     >
                                         {secondaryAction.label}
                                     </Button>
@@ -133,7 +138,8 @@ export const Modal: React.FC<ModalProps> = ({
                                         isLoading={primaryAction.isLoading}
                                         loadingText={primaryAction.loadingText}
                                         iconName={primaryAction.iconName}
-                                        size="md"
+                                        size={primaryAction.size || "md"}
+                                        className={primaryAction.className}
                                     >
                                         {primaryAction.label}
                                     </Button>

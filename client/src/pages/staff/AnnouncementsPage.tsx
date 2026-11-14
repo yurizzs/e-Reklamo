@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { MainLayout } from "../../components/layouts";
-import { Icon, Button, LoadingSpinner } from "../../components/ui";
+import { Icon, Button, LoadingSpinner, Modal } from "../../components/ui";
 import { useAuth } from "../../contexts/AuthContext";
 import { notify } from "../../util/notify";
 import AnnouncementService from "../../services/AnnouncementService";
 import type { NewAnnouncementData } from "./CreateAnnouncementModal";
+import EditAnnouncementModal from "./EditAnnouncementModal";
 
 export interface AnnouncementRecord {
   id: string | number;
@@ -46,6 +47,9 @@ export const AnnouncementsPage: React.FC = () => {
   const [filterType, setFilterType] = useState<string>("all");
   const [filterUrgency, setFilterUrgency] = useState<string>("all");
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<AnnouncementRecord | null>(null);
+  const [editingAnnouncement, setEditingAnnouncement] = useState<AnnouncementRecord | null>(null);
+  const [announcementToDelete, setAnnouncementToDelete] = useState<AnnouncementRecord | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Form states for creation
   const defaultStaffName = user?.first_name
@@ -174,24 +178,32 @@ export const AnnouncementsPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string | number) => {
+  const confirmDelete = async () => {
+    if (!announcementToDelete) return;
     if (!isStaff) {
       notify.error("Only TMU Staff members are authorized to delete announcements.");
       return;
     }
-    if (!window.confirm("Are you sure you want to remove this announcement from the public feed?")) {
-      return;
-    }
+    setIsDeleting(true);
     try {
-      await AnnouncementService.delete(id);
-      notify.success("Announcement archived successfully.");
-      setAnnouncements((prev) => prev.filter((a) => String(a.id) !== String(id)));
-      if (selectedAnnouncement && String(selectedAnnouncement.id) === String(id)) {
+      await AnnouncementService.delete(announcementToDelete.id);
+      const typeLabel =
+        announcementToDelete.type === "memorandum"
+          ? "Memorandum"
+          : announcementToDelete.type === "directive"
+            ? "Directive"
+            : "Announcement";
+      notify.success(`${typeLabel} archived successfully.`);
+      setAnnouncements((prev) => prev.filter((a) => String(a.id) !== String(announcementToDelete.id)));
+      if (selectedAnnouncement && String(selectedAnnouncement.id) === String(announcementToDelete.id)) {
         setSelectedAnnouncement(null);
       }
+      setAnnouncementToDelete(null);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to remove announcement.";
       notify.error(message);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -243,8 +255,8 @@ export const AnnouncementsPage: React.FC = () => {
               {isStaff
                 ? "Author, broadcast, and manage official transportation memoranda, fare matrices, and advisories to synchronize across Operator terminals and Citizen mobile apps."
                 : isOperator
-                ? "Official transportation circulars, fare matrix regulations, and traffic rerouting directives issued by TMU Staff for operational enforcement and commuter guidance."
-                : "Official transportation circulars, approved fare matrices, rerouting advisories, and emergency alerts synchronized directly from Roxas City TMU."}
+                  ? "Official transportation circulars, fare matrix regulations, and traffic rerouting directives issued by TMU Staff for operational enforcement and commuter guidance."
+                  : "Official transportation circulars, approved fare matrices, rerouting advisories, and emergency alerts synchronized directly from Roxas City TMU."}
             </p>
           </div>
         </div>
@@ -253,11 +265,10 @@ export const AnnouncementsPage: React.FC = () => {
         <div className="flex items-center gap-2 bg-slate-100 dark:bg-black/30 p-1.5 rounded-2xl border border-slate-200 dark:border-white/5 shrink-0">
           <button
             onClick={() => setActiveTab("catalog")}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
-              activeTab === "catalog"
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${activeTab === "catalog"
                 ? "bg-white dark:bg-bg-light text-slate-900 dark:text-white shadow-md shadow-black/5"
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-            }`}
+              }`}
           >
             <Icon iconName="FaListUl" size={13} />
             Directory ({announcements.length})
@@ -266,11 +277,10 @@ export const AnnouncementsPage: React.FC = () => {
           {isStaff && (
             <button
               onClick={() => setActiveTab("create")}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
-                activeTab === "create"
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${activeTab === "create"
                   ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
                   : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-              }`}
+                }`}
             >
               <Icon iconName="FaPlus" size={13} />
               Create Announcement
@@ -421,14 +431,14 @@ export const AnnouncementsPage: React.FC = () => {
                 const categoryBg = isMemo
                   ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/20"
                   : isDirective
-                  ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-500/10 dark:text-purple-300 dark:border-purple-500/20"
-                  : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20";
+                    ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-500/10 dark:text-purple-300 dark:border-purple-500/20"
+                    : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20";
 
                 const urgencyBg = isUrgent
                   ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-300 dark:border-red-500/20"
                   : isPriority
-                  ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/20"
-                  : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-white/5 dark:text-slate-400 dark:border-white/10";
+                    ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/20"
+                    : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-white/5 dark:text-slate-400 dark:border-white/10";
 
                 const directives = item.keyDirectives || item.key_directives || [];
                 const refCode = item.refNumber || item.ref_number || "";
@@ -507,13 +517,22 @@ export const AnnouncementsPage: React.FC = () => {
                         </button>
 
                         {isStaff && (
-                          <button
-                            onClick={() => handleDelete(item.id)}
-                            className="p-2 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
-                            title="Archive / Remove circular"
-                          >
-                            <Icon iconName="FaTrashCan" size={12} />
-                          </button>
+                          <>
+                            <button
+                              onClick={() => setEditingAnnouncement(item)}
+                              className="p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"
+                              title="Edit Announcement"
+                            >
+                              <Icon iconName="FaPencil" size={12} />
+                            </button>
+                            <button
+                              onClick={() => setAnnouncementToDelete(item)}
+                              className="p-2 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                              title={`Archive / Remove ${item.type === "memorandum" ? "memorandum" : item.type === "directive" ? "directive" : "announcement"}`}
+                            >
+                              <Icon iconName="FaTrashCan" size={12} />
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -882,7 +901,7 @@ export const AnnouncementsPage: React.FC = () => {
 
       {/* INSPECT DOCUMENT MODAL */}
       {selectedAnnouncement && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-[#080B14]/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#080B14]/80 backdrop-blur-sm">
           <div className="bg-white dark:bg-bg-light border border-slate-200 dark:border-white/10 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col text-slate-800 dark:text-slate-200">
             {/* Modal Top */}
             <div className="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-50 dark:bg-black/25">
@@ -968,7 +987,37 @@ export const AnnouncementsPage: React.FC = () => {
             </div>
 
             {/* Modal Bottom */}
-            <div className="p-4 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-black/25 flex justify-end">
+            <div className="p-4 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-black/25 flex items-center justify-between">
+              {isStaff ? (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const toEdit = selectedAnnouncement;
+                      setSelectedAnnouncement(null);
+                      setEditingAnnouncement(toEdit);
+                    }}
+                    className="flex items-center gap-2 text-xs"
+                  >
+                    <Icon iconName="FaPencil" size={12} />
+                    Edit Document
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      const toDelete = selectedAnnouncement;
+                      setSelectedAnnouncement(null);
+                      setAnnouncementToDelete(toDelete);
+                    }}
+                    className="flex items-center gap-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-500/10"
+                  >
+                    <Icon iconName="FaTrashCan" size={12} />
+                    Delete
+                  </Button>
+                </div>
+              ) : (
+                <div />
+              )}
               <Button onClick={() => setSelectedAnnouncement(null)}>
                 Close Preview
               </Button>
@@ -976,6 +1025,77 @@ export const AnnouncementsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* EDIT ANNOUNCEMENT MODAL */}
+      {editingAnnouncement && (
+        <EditAnnouncementModal
+          key={editingAnnouncement.id}
+          announcement={editingAnnouncement}
+          isOpen={!!editingAnnouncement}
+          onClose={() => setEditingAnnouncement(null)}
+          onUpdated={(updated) => {
+            setAnnouncements((prev) =>
+              prev.map((a) => (String(a.id) === String(updated.id) ? updated : a))
+            );
+            if (selectedAnnouncement && String(selectedAnnouncement.id) === String(updated.id)) {
+              setSelectedAnnouncement(updated);
+            }
+          }}
+        />
+      )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {announcementToDelete && (() => {
+        const typeLabel =
+          announcementToDelete.type === "memorandum"
+            ? "memorandum"
+            : announcementToDelete.type === "directive"
+              ? "directive"
+              : "announcement";
+        const typeCapitalized = typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1);
+
+        return (
+          <Modal
+            isOpen={!!announcementToDelete}
+            onClose={() => {
+              if (!isDeleting) setAnnouncementToDelete(null);
+            }}
+            title={
+              <span className="text-base font-medium normal-case tracking-normal">
+                Confirm Remove {typeCapitalized}
+              </span>
+            }
+            centerFooter
+            primaryAction={{
+              label: `Yes, Remove ${typeCapitalized}`,
+              onClick: confirmDelete,
+              isLoading: isDeleting,
+              loadingText: "Archiving...",
+              variant: "danger",
+              iconName: "FaTrashCan",
+              size: "sm",
+              className: "px-5 py-2 text-xs font-semibold normal-case tracking-normal rounded-xl whitespace-nowrap",
+            }}
+            secondaryAction={{
+              label: "Cancel",
+              onClick: () => setAnnouncementToDelete(null),
+              variant: "outline",
+              size: "sm",
+              className: "px-5 py-2 text-xs font-semibold normal-case tracking-normal rounded-xl",
+            }}
+            size="sm"
+          >
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                Are you sure you want to remove this {typeLabel}?
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                This will unpublish <strong className="text-slate-900 dark:text-white">{announcementToDelete.title}</strong> (Ref: {announcementToDelete.refNumber || announcementToDelete.ref_number}) from the public directory and mobile notifications.
+              </p>
+            </div>
+          </Modal>
+        );
+      })()}
     </div>
   );
 

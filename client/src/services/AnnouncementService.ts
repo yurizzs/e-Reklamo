@@ -23,6 +23,12 @@ const AnnouncementService = {
       "Failed to publish announcement",
     ),
 
+  update: (id: number | string, data: Partial<NewAnnouncementData>) =>
+    handleRequest(
+      AxiosInstance.put(`${BASE_PREFIX}/${id}`, data),
+      "Failed to update announcement",
+    ),
+
   delete: (id: number | string) =>
     handleRequest(
       AxiosInstance.delete(`${BASE_PREFIX}/${id}`),
