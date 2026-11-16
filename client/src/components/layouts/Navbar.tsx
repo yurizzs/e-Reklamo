@@ -125,7 +125,7 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
 
                 {/* ─── DROPDOWN MENU ─── */}
                 {isDropdownOpen && (
-                  <div className="absolute right-0 top-[120%] w-64 bg-white dark:bg-[#080B14] border border-slate-200 dark:border-white/10 rounded-2xl shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-50">
+                  <div className="absolute right-0 top-[120%] w-64 bg-white dark:bg-bg-light border border-slate-200 dark:border-white/10 rounded-2xl shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-50">
                     {/* User Info Header */}
                     <div className="px-5 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/2">
                       <div className="flex items-center gap-3">

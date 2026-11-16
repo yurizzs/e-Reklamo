@@ -74,13 +74,13 @@ export const Modal: React.FC<ModalProps> = ({
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
 
             {/* Overlay */}
-            <div className="fixed inset-0 bg-[#080B14]/80 dark:bg-[#080B14]/90 backdrop-blur-sm" />
+            <div className="fixed inset-0 bg-slate-950/70 dark:bg-slate-950/80 backdrop-blur-sm" />
 
             {/* Modal */}
             <div
                 ref={modalRef}
                 className={`relative w-full ${size !== "custom" ? sizeClasses[size] : ""} 
-                bg-white dark:bg-[#0B0F1A] border border-slate-200 dark:border-white/10 shadow-2xl rounded-[2.5rem] flex flex-col overflow-hidden transition-colors duration-300`}
+                bg-white dark:bg-bg-light border border-slate-200 dark:border-white/10 shadow-2xl rounded-[2.5rem] flex flex-col overflow-hidden transition-colors duration-300`}
                 style={size === "custom" && customSize ? { maxWidth: customSize } : undefined}>
                 
                 {/* Tech Glows */}

@@ -24,7 +24,8 @@ interface PrintReportData {
 interface PrintReportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  reportData?: PrintReportData;
+  onBack?: () => void;
+  reportData?: PrintReportData | null;
 }
 
 const formatCurrency = (amount: number) => {
@@ -37,6 +38,7 @@ const formatCurrency = (amount: number) => {
 export const PrintReportModal: React.FC<PrintReportModalProps> = ({
   isOpen,
   onClose,
+  onBack,
   reportData,
 }) => {
   const { user } = useAuth();
@@ -115,7 +117,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto">
       {/* Background Overlay */}
       <div
-        className="fixed inset-0 bg-[#080B14]/85 backdrop-blur-md transition-opacity"
+        className="fixed inset-0 bg-slate-950/70 backdrop-blur-md transition-opacity"
         onClick={onClose}
       />
 
@@ -143,22 +145,13 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={handlePrint}
-              iconName="FaPrint"
-              className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-lg shadow-blue-600/30 flex items-center gap-2"
-            >
-              Print Document
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              iconName="FaXmark"
-              onClick={onClose}
-              className="text-slate-400 hover:text-white hover:bg-slate-800 p-2 rounded-xl"
-            />
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            iconName="FaXmark"
+            onClick={onClose}
+            className="text-slate-400 hover:text-white hover:bg-slate-800 p-2 rounded-xl"
+          />
         </div>
 
         {/* Scrollable Printable Document View */}
@@ -399,16 +392,16 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
 
           <div className="flex items-center gap-3">
             <Button
-              variant="ghost"
-              onClick={onClose}
-              className="text-slate-300 hover:text-white hover:bg-slate-800 text-xs px-4 py-2 rounded-xl"
+              onClick={onBack || onClose}
+              iconName="FaArrowLeft"
+              className="bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 hover:border-slate-400 font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl shadow-md flex items-center gap-2 transition-all"
             >
-              Close
+              Back
             </Button>
             <Button
               onClick={handlePrint}
               iconName="FaPrint"
-              className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-blue-600/30 flex items-center gap-2"
+              className="bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs sm:text-sm px-6 py-2.5 rounded-xl shadow-lg shadow-blue-600/40 hover:shadow-blue-600/60 flex items-center gap-2.5 transition-all"
             >
               Print Document (PDF / Paper)
             </Button>

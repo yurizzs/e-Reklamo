@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class Announcement extends Model
 {
@@ -18,6 +19,7 @@ class Announcement extends Model
         'ref_number',
         'title',
         'summary',
+        'image',
         'issuing_office',
         'date',
         'effective_date',
@@ -51,6 +53,9 @@ class Announcement extends Model
             'ref_number' => $this->ref_number,
             'title' => $this->title,
             'summary' => $this->summary,
+            'image' => $this->image,
+            'imageUrl' => $this->image ? Storage::disk('public')->url($this->image) : null,
+            'image_url' => $this->image ? Storage::disk('public')->url($this->image) : null,
             'issuingOffice' => $this->issuing_office,
             'issuing_office' => $this->issuing_office,
             'date' => $this->date,

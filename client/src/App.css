@@ -65,22 +65,23 @@
   --color-slate-50: #f8fafc;
   --color-slate-100: #f1f5f9;
 
-  /* Background color - Deep Space Navy/Black */
-  --bg-dark: 0.102 0.0251 272.1;  /* #080B14 */
-  --bg-main: 0.1203 0.0256 263.06; /* #0A0D18 */
-  --bg-light: 0.1503 0.0259 263.72; /* #0B0F1A */
+  /* Background color - Eye-Comfort Slate/Charcoal Navy (Soft & not too dark) */
+  --bg-dark: 0.195 0.022 260.0;   /* #0f172a / Slate 900 - Soft canvas */
+  --bg-main: 0.225 0.024 260.0;   /* #172033 / Slate 850 - Container base */
+  --bg-light: 0.260 0.026 260.0;  /* #1e293b / Slate 800 - Cards & navigation */
 
-  --gradient: linear-gradient(0deg, var(--bg-main) 97%, var(--bg-light));
-  --gradient-hover: linear-gradient(0deg, var(--bg-main), var(--bg-light));
+  --gradient: linear-gradient(0deg, oklch(var(--bg-main)) 97%, oklch(var(--bg-light)));
+  --gradient-hover: linear-gradient(0deg, oklch(var(--bg-main)), oklch(var(--bg-light)));
 
   /* Text - Crisp Silver/Slate */
-  --text: 0.98 0.01 236.82;
-  --text-muted: 0.7 0.02 263.07;
+  --text: 0.96 0.01 250.0;        /* Soft crisp Slate 50 */
+  --text-muted: 0.73 0.025 255.0; /* Readable Slate 350 / Slate 400 */
 
   --highlight: 0.65 0.18 250;
 
-  --border: 0.25 0.02 263.37;
-  --border-muted: 0.2 0.02 263.37;
+  /* Borders - Soft Slate-700 tones for smooth distinction */
+  --border: 0.33 0.022 260.0;
+  --border-muted: 0.28 0.018 260.0;
 
   /* Brand - Royal Blue */
   --primary: 0.65 0.18 250; /* Vibrant Royal Blue */
@@ -92,7 +93,7 @@
   --success: 0.65 0.18 250;
   --info: 0.7011 0.051 259.08;
 
-  --shadow: 0px 4px 30px oklch(0 0 0 / 0.8);
+  --shadow: 0px 4px 30px oklch(0.1 0.01 260 / 0.5);
 }
 
 /* Eye-Comfort Muted Light Mode Palette (Soft Gray/Slate - "Not so white", no glare) */

@@ -8,6 +8,7 @@ use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class AnnouncementController extends Controller
 {
@@ -60,12 +61,30 @@ class AnnouncementController extends Controller
             return $this->error('Only TMU Staff members are authorized to publish announcements.', 403);
         }
 
+        // Support FormData JSON encoded fields
+        $keyDirectives = $request->input('key_directives') ?? $request->input('keyDirectives');
+        if (is_string($keyDirectives)) {
+            $decoded = json_decode($keyDirectives, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $request->merge(['key_directives' => $decoded, 'keyDirectives' => $decoded]);
+            }
+        }
+
+        $signatories = $request->input('signatories');
+        if (is_string($signatories)) {
+            $decoded = json_decode($signatories, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $request->merge(['signatories' => $decoded]);
+            }
+        }
+
         $validated = $request->validate([
             'type' => ['required', 'string', 'in:memorandum,announcement,directive'],
             'refNumber' => ['nullable', 'string', 'max:100'],
             'ref_number' => ['nullable', 'string', 'max:100'],
             'title' => ['required', 'string', 'max:500'],
             'summary' => ['required', 'string'],
+            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp,gif', 'max:10240'],
             'issuingOffice' => ['nullable', 'string', 'max:255'],
             'issuing_office' => ['nullable', 'string', 'max:255'],
             'date' => ['nullable', 'string', 'max:100'],
@@ -77,10 +96,10 @@ class AnnouncementController extends Controller
             'keyDirectives' => ['nullable', 'array'],
             'key_directives' => ['nullable', 'array'],
             'signatories' => ['nullable', 'array'],
-            'publishToMobile' => ['nullable', 'boolean'],
-            'publish_to_mobile' => ['nullable', 'boolean'],
-            'sendPushAlert' => ['nullable', 'boolean'],
-            'send_push_alert' => ['nullable', 'boolean'],
+            'publishToMobile' => ['nullable'],
+            'publish_to_mobile' => ['nullable'],
+            'sendPushAlert' => ['nullable'],
+            'send_push_alert' => ['nullable'],
         ]);
 
         $type = $validated['type'];
@@ -100,6 +119,27 @@ class AnnouncementController extends Controller
             $refNumber = $prefix . '-' . date('Y-m') . '-' . rand(100, 999);
         }
 
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imageFile = $request->file('image');
+            $filename = time() . '_' . uniqid() . '.' . $imageFile->getClientOriginalExtension();
+            $imagePath = $imageFile->storeAs('announcements', $filename, 'public');
+        }
+
+        $publishToMobile = true;
+        if ($request->has('publish_to_mobile')) {
+            $publishToMobile = filter_var($request->input('publish_to_mobile'), FILTER_VALIDATE_BOOLEAN);
+        } elseif ($request->has('publishToMobile')) {
+            $publishToMobile = filter_var($request->input('publishToMobile'), FILTER_VALIDATE_BOOLEAN);
+        }
+
+        $sendPushAlert = false;
+        if ($request->has('send_push_alert')) {
+            $sendPushAlert = filter_var($request->input('send_push_alert'), FILTER_VALIDATE_BOOLEAN);
+        } elseif ($request->has('sendPushAlert')) {
+            $sendPushAlert = filter_var($request->input('sendPushAlert'), FILTER_VALIDATE_BOOLEAN);
+        }
+
         $userId = Auth::id();
 
         $announcement = Announcement::create([
@@ -108,6 +148,7 @@ class AnnouncementController extends Controller
             'ref_number' => $refNumber,
             'title' => $validated['title'],
             'summary' => $validated['summary'],
+            'image' => $imagePath,
             'issuing_office' => $validated['issuing_office'] ?? $validated['issuingOffice'] ?? 'Traffic Management Unit (TMU)',
             'date' => $validated['date'] ?? date('F d, Y'),
             'effective_date' => $validated['effective_date'] ?? $validated['effectiveDate'] ?? null,
@@ -115,8 +156,8 @@ class AnnouncementController extends Controller
             'legal_basis' => $validated['legal_basis'] ?? $validated['legalBasis'] ?? null,
             'key_directives' => $validated['key_directives'] ?? $validated['keyDirectives'] ?? [],
             'signatories' => $validated['signatories'] ?? [],
-            'publish_to_mobile' => $validated['publish_to_mobile'] ?? $validated['publishToMobile'] ?? true,
-            'send_push_alert' => $validated['send_push_alert'] ?? $validated['sendPushAlert'] ?? false,
+            'publish_to_mobile' => $publishToMobile,
+            'send_push_alert' => $sendPushAlert,
             'created_by' => $userId,
         ]);
 
@@ -157,6 +198,23 @@ class AnnouncementController extends Controller
             return $this->error('Announcement not found.', 404);
         }
 
+        // Support FormData JSON encoded fields
+        $keyDirectives = $request->input('key_directives') ?? $request->input('keyDirectives');
+        if (is_string($keyDirectives)) {
+            $decoded = json_decode($keyDirectives, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $request->merge(['key_directives' => $decoded, 'keyDirectives' => $decoded]);
+            }
+        }
+
+        $signatories = $request->input('signatories');
+        if (is_string($signatories)) {
+            $decoded = json_decode($signatories, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $request->merge(['signatories' => $decoded]);
+            }
+        }
+
         $validated = $request->validate([
             'type' => ['nullable', 'string', 'in:memorandum,announcement,directive'],
             'badge_label' => ['nullable', 'string', 'max:255'],
@@ -165,6 +223,9 @@ class AnnouncementController extends Controller
             'ref_number' => ['nullable', 'string', 'max:100'],
             'title' => ['sometimes', 'required', 'string', 'max:500'],
             'summary' => ['sometimes', 'required', 'string'],
+            'image' => ['nullable'],
+            'remove_image' => ['nullable'],
+            'removeImage' => ['nullable'],
             'issuingOffice' => ['nullable', 'string', 'max:255'],
             'issuing_office' => ['nullable', 'string', 'max:255'],
             'date' => ['nullable', 'string', 'max:100'],
@@ -176,10 +237,10 @@ class AnnouncementController extends Controller
             'keyDirectives' => ['nullable', 'array'],
             'key_directives' => ['nullable', 'array'],
             'signatories' => ['nullable', 'array'],
-            'publishToMobile' => ['nullable', 'boolean'],
-            'publish_to_mobile' => ['nullable', 'boolean'],
-            'sendPushAlert' => ['nullable', 'boolean'],
-            'send_push_alert' => ['nullable', 'boolean'],
+            'publishToMobile' => ['nullable'],
+            'publish_to_mobile' => ['nullable'],
+            'sendPushAlert' => ['nullable'],
+            'send_push_alert' => ['nullable'],
         ]);
 
         $updateData = [];
@@ -237,12 +298,28 @@ class AnnouncementController extends Controller
             $updateData['signatories'] = $validated['signatories'];
         }
 
-        if (isset($validated['publish_to_mobile']) || isset($validated['publishToMobile'])) {
-            $updateData['publish_to_mobile'] = $validated['publish_to_mobile'] ?? $validated['publishToMobile'];
+        if (array_key_exists('publish_to_mobile', $validated) || array_key_exists('publishToMobile', $validated)) {
+            $val = $validated['publish_to_mobile'] ?? $validated['publishToMobile'];
+            $updateData['publish_to_mobile'] = filter_var($val, FILTER_VALIDATE_BOOLEAN);
         }
 
-        if (isset($validated['send_push_alert']) || isset($validated['sendPushAlert'])) {
-            $updateData['send_push_alert'] = $validated['send_push_alert'] ?? $validated['sendPushAlert'];
+        if (array_key_exists('send_push_alert', $validated) || array_key_exists('sendPushAlert', $validated)) {
+            $val = $validated['send_push_alert'] ?? $validated['sendPushAlert'];
+            $updateData['send_push_alert'] = filter_var($val, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        if ($request->hasFile('image')) {
+            if ($announcement->image && Storage::disk('public')->exists($announcement->image)) {
+                Storage::disk('public')->delete($announcement->image);
+            }
+            $imageFile = $request->file('image');
+            $filename = time() . '_' . uniqid() . '.' . $imageFile->getClientOriginalExtension();
+            $updateData['image'] = $imageFile->storeAs('announcements', $filename, 'public');
+        } elseif ($request->boolean('remove_image') || $request->boolean('removeImage') || $request->input('image') === 'null') {
+            if ($announcement->image && Storage::disk('public')->exists($announcement->image)) {
+                Storage::disk('public')->delete($announcement->image);
+            }
+            $updateData['image'] = null;
         }
 
         $announcement->update($updateData);

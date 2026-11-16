@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "../../components/ui/table/Table";
 import ComplaintService from "../../services/ComplaintService";
-import MayorReportModal from "./MayorReportModal";
+import MayorReportModal, { type MayorReportFormData } from "./MayorReportModal";
 import PrintReportModal from "./PrintReportModal";
 
 interface ChartItem {
@@ -66,7 +66,7 @@ const AnalyticsReport = () => {
   // Mayor and Print modal states (WIP)
   const [isMayorModalOpen, setIsMayorModalOpen] = useState<boolean>(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState<boolean>(false);
-  const [printCustomData, setPrintCustomData] = useState<any>(null);
+  const [printCustomData, setPrintCustomData] = useState<MayorReportFormData | null>(null);
 
   useEffect(() => {
     const fetchAnalytics = async () => {
@@ -75,7 +75,10 @@ const AnalyticsReport = () => {
         const response = (await ComplaintService.getAnalytics({
           year: selectedYear,
           month: selectedMonth,
-        })) as any;
+        })) as unknown as {
+          data?: AnalyticsData & { data?: AnalyticsData };
+          violation_chart_data?: AnalyticsData["violation_chart_data"];
+        } & AnalyticsData;
 
         const extracted = response?.violation_chart_data
           ? response
@@ -105,14 +108,14 @@ const AnalyticsReport = () => {
       });
     }
     return baseOptions;
-  }, [data?.available_years]);
+  }, [data]);
 
   // Find the maximum complaints count to scale the bar chart values relatively
   const maxComplaintsCount = useMemo(() => {
     if (!data?.violation_chart_data || data.violation_chart_data.length === 0) return 1;
     const counts = data.violation_chart_data.map((item) => item.complaints_count);
     return Math.max(...counts, 1);
-  }, [data?.violation_chart_data]);
+  }, [data]);
 
   // Calculate table aggregates
   const tableTotals = useMemo(() => {
@@ -128,7 +131,7 @@ const AnalyticsReport = () => {
       },
       { totalPenaltyFee: 0, totalViolators: 0, grandTotalAmount: 0 }
     );
-  }, [data?.violation_table_data]);
+  }, [data]);
 
   const content = (
     <div className="space-y-8 pb-12">
@@ -150,35 +153,13 @@ const AnalyticsReport = () => {
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Print to Document button */}
-          <Button
-            onClick={() => {
-              const monthLabel =
-                selectedMonth !== "all"
-                  ? months.find((m) => m.value === selectedMonth)?.label
-                  : "All Months";
-              const yearLabel = selectedYear !== "all" ? selectedYear : "All Years";
-              setPrintCustomData({
-                period: `${monthLabel} ${yearLabel} (Municipal Cycle)`,
-                totalComplaints: data?.total_complaints ?? 0,
-                totalFeeCollected: data?.total_fee_collected ?? 0,
-                violationTableData: data?.violation_table_data ?? [],
-              });
-              setIsPrintModalOpen(true);
-            }}
-            iconName="FaPrint"
-            className="bg-white dark:bg-bg-light hover:bg-slate-100 dark:hover:bg-white/10 text-slate-800 dark:text-white font-bold text-xs px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm flex items-center gap-2 transition-all"
-          >
-            Print to Document
-          </Button>
-
           {/* Report for Mayor button */}
           <Button
             onClick={() => setIsMayorModalOpen(true)}
             iconName="FaLandmark"
             className="bg-amber-600 hover:bg-amber-500 text-white font-black text-xs uppercase tracking-wider px-4 py-2.5 rounded-2xl shadow-lg shadow-amber-600/20 flex items-center gap-2 transition-all"
           >
-            Report for Mayor (WIP)
+            PRINT MONTHLY REPORT
           </Button>
 
           <div className="flex items-center gap-2 px-3.5 py-2 bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/20 dark:border-blue-500/30 rounded-2xl">
@@ -214,63 +195,6 @@ const AnalyticsReport = () => {
             className="bg-slate-50 dark:bg-black/20 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white focus:border-slate-400 dark:focus:border-white/20"
             fullWidth
           />
-        </div>
-      </div>
-
-      {/* Executive Mayoral Reporting Card (WIP) */}
-      <div className="relative z-10 overflow-hidden rounded-3xl border border-amber-500/25 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-5 sm:p-6 shadow-sm transition-all">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-              <Icon iconName="FaLandmark" size={22} />
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-600 dark:text-amber-400">
-                  MAYORAL BRIEFING PIPELINE
-                </span>
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-                  WIP UI
-                </span>
-              </div>
-              <h2 className="text-base font-black uppercase tracking-tight text-slate-900 dark:text-white">
-                Executive Dossier & Transmittal for Office of the City Mayor
-              </h2>
-              <p className="text-xs text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
-                Compile active violation breakdowns, municipal penalty revenues, and operational recommendations into an official executive transmittal memorandum.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-            <Button
-              onClick={() => {
-                const monthLabel =
-                  selectedMonth !== "all"
-                    ? months.find((m) => m.value === selectedMonth)?.label
-                    : "All Months";
-                const yearLabel = selectedYear !== "all" ? selectedYear : "All Years";
-                setPrintCustomData({
-                  period: `${monthLabel} ${yearLabel} (Municipal Cycle)`,
-                  totalComplaints: data?.total_complaints ?? 0,
-                  totalFeeCollected: data?.total_fee_collected ?? 0,
-                  violationTableData: data?.violation_table_data ?? [],
-                });
-                setIsPrintModalOpen(true);
-              }}
-              iconName="FaPrint"
-              className="bg-white dark:bg-bg-light hover:bg-slate-50 dark:hover:bg-white/10 text-slate-800 dark:text-white font-bold text-xs px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm flex items-center gap-2 transition-all"
-            >
-              Print Document
-            </Button>
-            <Button
-              onClick={() => setIsMayorModalOpen(true)}
-              iconName="FaPaperPlane"
-              className="bg-amber-600 hover:bg-amber-500 text-white font-black text-xs uppercase tracking-wider px-4 py-2.5 rounded-xl shadow-md shadow-amber-600/20 flex items-center gap-2 transition-all"
-            >
-              Generate & Transmit
-            </Button>
-          </div>
         </div>
       </div>
 
@@ -447,6 +371,7 @@ const AnalyticsReport = () => {
         isOpen={isMayorModalOpen}
         onClose={() => setIsMayorModalOpen(false)}
         analyticsData={data}
+        savedData={printCustomData}
         onOpenPrint={(customData) => {
           setPrintCustomData(customData);
           setIsMayorModalOpen(false);
@@ -458,6 +383,10 @@ const AnalyticsReport = () => {
       <PrintReportModal
         isOpen={isPrintModalOpen}
         onClose={() => setIsPrintModalOpen(false)}
+        onBack={() => {
+          setIsPrintModalOpen(false);
+          setIsMayorModalOpen(true);
+        }}
         reportData={printCustomData}
       />
     </div>

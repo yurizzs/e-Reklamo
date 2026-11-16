@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { MainLayout } from "../../components/layouts";
 import { Icon, Button, LoadingSpinner, Modal } from "../../components/ui";
 import { useAuth } from "../../contexts/AuthContext";
@@ -16,6 +16,9 @@ export interface AnnouncementRecord {
   ref_number?: string;
   title: string;
   summary: string;
+  image?: string | null;
+  imageUrl?: string | null;
+  image_url?: string | null;
   issuingOffice: string;
   issuing_office?: string;
   date: string;
@@ -33,6 +36,20 @@ export interface AnnouncementRecord {
   send_push_alert?: boolean;
   createdAt?: string;
 }
+
+export const getAnnouncementImageUrl = (item: AnnouncementRecord | null | undefined): string | null => {
+  if (!item) return null;
+  if (item.imageUrl) return item.imageUrl;
+  if (item.image_url) return item.image_url;
+  if (item.image) {
+    if (item.image.startsWith("http://") || item.image.startsWith("https://") || item.image.startsWith("data:")) {
+      return item.image;
+    }
+    const base = import.meta.env.VITE_STORAGE_URL || "http://localhost:8000/storage";
+    return `${base}/${item.image}`;
+  }
+  return null;
+};
 
 export const AnnouncementsPage: React.FC = () => {
   const { user } = useAuth();
@@ -79,6 +96,38 @@ export const AnnouncementsPage: React.FC = () => {
   const [publishToMobile, setPublishToMobile] = useState(true);
   const [sendPushAlert, setSendPushAlert] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Optional Announcement Image State
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      notify.error("Please upload an image file (PNG, JPG, WebP).");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      notify.error("Image file size should not exceed 10MB.");
+      return;
+    }
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -146,6 +195,7 @@ export const AnnouncementsPage: React.FC = () => {
       refNumber: formRefNumber,
       title: formTitle.trim(),
       summary: formSummary.trim(),
+      image: imageFile,
       issuingOffice: formIssuingOffice.trim(),
       date: todayStr,
       urgency: formUrgency,
@@ -166,6 +216,11 @@ export const AnnouncementsPage: React.FC = () => {
       // Reset form
       setFormTitle("");
       setFormSummary("");
+      setImageFile(null);
+      setImagePreview(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
       handleGenerateRef();
       setActiveTab("catalog");
       setRefreshKey((k) => k + 1);
@@ -442,6 +497,7 @@ export const AnnouncementsPage: React.FC = () => {
 
                 const directives = item.keyDirectives || item.key_directives || [];
                 const refCode = item.refNumber || item.ref_number || "";
+                const photoUrl = getAnnouncementImageUrl(item);
 
                 return (
                   <div
@@ -461,6 +517,18 @@ export const AnnouncementsPage: React.FC = () => {
                         </div>
                         <span className="text-[11px] font-semibold text-slate-400">{item.date}</span>
                       </div>
+
+                      {/* Attached Announcement Image Banner */}
+                      {photoUrl && (
+                        <div className="w-full h-44 rounded-2xl overflow-hidden bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-white/10 shrink-0">
+                          <img
+                            src={photoUrl}
+                            alt={item.title}
+                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                            loading="lazy"
+                          />
+                        </div>
+                      )}
 
                       {/* Ref code */}
                       <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-slate-500 dark:text-slate-400">
@@ -548,20 +616,20 @@ export const AnnouncementsPage: React.FC = () => {
       {activeTab === "create" && isStaff && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Form (7 Columns) */}
-          <div className="lg:col-span-7 bg-white dark:bg-bg-light rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-white/10 shadow-sm space-y-6">
+          <div className="lg:col-span-7 bg-white dark:bg-bg-light rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-white/10 shadow-sm space-y-7">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-4">
               <div>
-                <h2 className="text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                <h2 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">
                   Announcement Drafting Workbench
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
                   Complete the fields below to dispatch an official ordinance notice directly to the mobile app.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setActiveTab("catalog")}
-                className="text-xs font-bold text-slate-400 hover:text-slate-600"
+                className="text-xs sm:text-sm font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
               >
                 Back to Directory
               </button>
@@ -582,7 +650,7 @@ export const AnnouncementsPage: React.FC = () => {
                       const prefix = newType === "memorandum" ? "TMU-MC" : newType === "announcement" ? "PA-TMU" : "JRD-TRB";
                       setFormRefNumber(`${prefix}-2026-10-${Math.floor(100 + Math.random() * 900)}`);
                     }}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer transition-colors"
+                    className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer transition-colors"
                   >
                     <option value="memorandum" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Official Memorandum</option>
                     <option value="announcement" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Public Advisory (Rerouting / Alerts)</option>
@@ -597,7 +665,7 @@ export const AnnouncementsPage: React.FC = () => {
                   <select
                     value={formUrgency}
                     onChange={(e) => setFormUrgency(e.target.value as "routine" | "priority" | "urgent")}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer transition-colors"
+                    className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer transition-colors"
                   >
                     <option value="routine" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Routine</option>
                     <option value="priority" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Priority</option>
@@ -616,7 +684,7 @@ export const AnnouncementsPage: React.FC = () => {
                     type="text"
                     value={formRefNumber}
                     onChange={(e) => setFormRefNumber(e.target.value)}
-                    className="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-black/25 border border-slate-200 dark:border-white/10 text-xs font-mono font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-4 py-3 rounded-2xl bg-slate-50 dark:bg-black/25 border border-slate-200 dark:border-white/10 text-sm font-mono font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="e.g. TMU-MC-2026-10-098"
                   />
                   <Button
@@ -625,7 +693,7 @@ export const AnnouncementsPage: React.FC = () => {
                     size="sm"
                     onClick={handleGenerateRef}
                     iconName="FaRotate"
-                    className="shrink-0"
+                    className="shrink-0 px-4 font-bold text-xs sm:text-sm rounded-2xl"
                   >
                     Generate
                   </Button>
@@ -642,7 +710,7 @@ export const AnnouncementsPage: React.FC = () => {
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
                   placeholder="e.g. Mandatory Tricycle Fare Matrix Display & Student Discount Compliance"
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-black/25 border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-black/25 border border-slate-200 dark:border-white/10 text-sm font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
@@ -655,11 +723,95 @@ export const AnnouncementsPage: React.FC = () => {
                 <textarea
                   value={formSummary}
                   onChange={(e) => setFormSummary(e.target.value)}
-                  rows={3}
+                  rows={4}
                   placeholder="Briefly state the mandate, background context, and who must comply..."
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-black/25 border border-slate-200 dark:border-white/10 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 leading-relaxed"
+                  className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-black/25 border border-slate-200 dark:border-white/10 text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 leading-relaxed"
                   required
                 />
+              </div>
+
+              {/* Optional Photo / Flyer Banner Attachment */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                    Announcement Photo / Flyer Banner (Optional)
+                  </label>
+                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300">
+                    Optional
+                  </span>
+                </div>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  onChange={handleImageChange}
+                  className="hidden"
+                  id="announcements-page-image-input"
+                />
+
+                {imagePreview ? (
+                  <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10">
+                    <div className="relative w-full sm:w-44 h-32 rounded-xl overflow-hidden bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-white/10 shrink-0">
+                      <img
+                        src={imagePreview}
+                        alt="Announcement flyer preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 w-full space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Icon iconName="FaImage" size={16} className="text-teal-500" />
+                        <span className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                          {imageFile?.name || "Attached Image"}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {imageFile ? `${(imageFile.size / 1024 / 1024).toFixed(2)} MB • ${imageFile.type}` : "Ready for broadcast"}
+                      </p>
+                      <div className="flex items-center gap-3 pt-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="text-xs font-bold"
+                        >
+                          Change Photo
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleRemoveImage}
+                          className="text-xs font-bold text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-500/10"
+                        >
+                          Remove Photo
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 rounded-2xl p-6 sm:p-7 flex flex-col items-center justify-center gap-2.5 cursor-pointer bg-slate-50/50 dark:bg-black/10 hover:bg-blue-50/20 dark:hover:bg-blue-500/5 transition-all text-center group"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Icon iconName="FaImage" size={20} />
+                    </div>
+                    <div>
+                      <span className="text-sm font-bold text-slate-800 dark:text-slate-200 block">
+                        Click to attach an announcement photo or flyer banner
+                      </span>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm">
+                        Attach an official circular advisory poster, route detour map, or ordinance graphic (PNG, JPG, WebP up to 10MB).
+                      </p>
+                    </div>
+                    <span className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-white/10 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/5">
+                      Browse File
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Statutory Basis & Issuing Authority */}
@@ -673,7 +825,7 @@ export const AnnouncementsPage: React.FC = () => {
                     value={formLegalBasis}
                     onChange={(e) => setFormLegalBasis(e.target.value)}
                     placeholder="e.g. Roxas City Ordinance No. 024-2024"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-black/25 border border-slate-200 dark:border-white/10 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-black/25 border border-slate-200 dark:border-white/10 text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
@@ -686,7 +838,7 @@ export const AnnouncementsPage: React.FC = () => {
                     value={formIssuingOffice}
                     onChange={(e) => setFormIssuingOffice(e.target.value)}
                     placeholder="e.g. TMU Operations Directorate"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-black/25 border border-slate-200 dark:border-white/10 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-black/25 border border-slate-200 dark:border-white/10 text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -701,18 +853,18 @@ export const AnnouncementsPage: React.FC = () => {
                   {formDirectives.map((dir, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-black/25 border border-slate-200 dark:border-white/10"
+                      className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-black/25 border border-slate-200 dark:border-white/10"
                     >
                       <span className="w-5 h-5 rounded-full bg-blue-500 text-white font-bold text-[10px] flex items-center justify-center shrink-0">
                         {idx + 1}
                       </span>
-                      <span className="flex-1 text-xs text-slate-700 dark:text-slate-200 font-medium">
+                      <span className="flex-1 text-sm text-slate-700 dark:text-slate-200 font-medium">
                         {dir}
                       </span>
                       <button
                         type="button"
                         onClick={() => handleRemoveDirective(idx)}
-                        className="text-slate-400 hover:text-red-500 text-xs font-bold"
+                        className="text-slate-400 hover:text-red-500 text-xs font-bold px-1"
                       >
                         ✕
                       </button>
@@ -726,7 +878,7 @@ export const AnnouncementsPage: React.FC = () => {
                     value={newDirectiveInput}
                     onChange={(e) => setNewDirectiveInput(e.target.value)}
                     placeholder="Type a new directive bullet and click Add..."
-                    className="flex-1 px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-black/25 border border-slate-200 dark:border-white/10 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-slate-200"
+                    className="flex-1 px-4 py-2.5 rounded-2xl bg-slate-50 dark:bg-black/25 border border-slate-200 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-slate-200"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -740,6 +892,7 @@ export const AnnouncementsPage: React.FC = () => {
                     size="sm"
                     onClick={handleAddDirective}
                     iconName="FaPlus"
+                    className="rounded-2xl px-4 font-bold text-xs sm:text-sm"
                   >
                     Add Directive
                   </Button>
@@ -756,7 +909,7 @@ export const AnnouncementsPage: React.FC = () => {
                     type="text"
                     value={formPrimarySig}
                     onChange={(e) => setFormPrimarySig(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-black/25 border border-slate-200 dark:border-white/10 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-black/25 border border-slate-200 dark:border-white/10 text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
@@ -768,35 +921,35 @@ export const AnnouncementsPage: React.FC = () => {
                     type="text"
                     value={formSecondarySig}
                     onChange={(e) => setFormSecondarySig(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-black/25 border border-slate-200 dark:border-white/10 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-black/25 border border-slate-200 dark:border-white/10 text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
 
               {/* Broadcast Options */}
-              <div className="p-4 rounded-2xl bg-blue-50/50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/10 space-y-2">
-                <span className="text-[11px] font-black uppercase tracking-wider text-blue-700 dark:text-blue-300 block mb-1">
+              <div className="p-5 rounded-2xl bg-blue-50/50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/10 space-y-2.5">
+                <span className="text-xs font-black uppercase tracking-wider text-blue-700 dark:text-blue-300 block mb-1">
                   Broadcast Distribution
                 </span>
-                <label className="flex items-center gap-2.5 cursor-pointer">
+                <label className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={publishToMobile}
                     onChange={(e) => setPublishToMobile(e.target.checked)}
-                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                    className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  <span className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300">
                     Publish live to citizen mobile app announcement feed
                   </span>
                 </label>
-                <label className="flex items-center gap-2.5 cursor-pointer">
+                <label className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={sendPushAlert}
                     onChange={(e) => setSendPushAlert(e.target.checked)}
-                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                    className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                  <span className="text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-400">
                     Broadcast notification ping to connected devices
                   </span>
                 </label>
@@ -808,6 +961,7 @@ export const AnnouncementsPage: React.FC = () => {
                   type="button"
                   variant="ghost"
                   onClick={() => setActiveTab("catalog")}
+                  className="text-xs sm:text-sm font-bold px-5 py-2.5 rounded-xl"
                 >
                   Cancel
                 </Button>
@@ -816,7 +970,7 @@ export const AnnouncementsPage: React.FC = () => {
                   type="submit"
                   disabled={isSubmitting}
                   iconName="FaPaperPlane"
-                  className="bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase tracking-wider px-6 py-3 rounded-2xl shadow-lg shadow-blue-600/30 flex items-center gap-2"
+                  className="bg-blue-600 hover:bg-blue-500 text-white font-black text-xs sm:text-sm uppercase tracking-wider px-7 py-3 rounded-2xl shadow-lg shadow-blue-600/30 flex items-center gap-2.5"
                 >
                   {isSubmitting ? "Publishing to Network..." : "Publish & Broadcast Live"}
                 </Button>
@@ -826,7 +980,7 @@ export const AnnouncementsPage: React.FC = () => {
 
           {/* Right Column: Live Mobile Preview Studio (5 Columns) */}
           <div className="lg:col-span-5 sticky top-6">
-            <div className="bg-slate-200/90 dark:bg-slate-900 rounded-[40px] p-6 border-4 border-slate-300 dark:border-slate-800 shadow-2xl text-slate-800 dark:text-slate-100 transition-colors">
+            <div className="bg-slate-200/90 dark:bg-slate-900 rounded-[44px] p-6 sm:p-7 border-4 border-slate-300 dark:border-slate-800 shadow-2xl text-slate-800 dark:text-slate-100 transition-colors">
               {/* Phone Speaker Notch */}
               <div className="w-28 h-4 bg-slate-300 dark:bg-slate-800 rounded-full mx-auto mb-6 flex items-center justify-center">
                 <div className="w-3 h-3 rounded-full bg-slate-400 dark:bg-slate-900" />
@@ -846,7 +1000,17 @@ export const AnnouncementsPage: React.FC = () => {
               </div>
 
               {/* Simulated Mobile Card */}
-              <div className="bg-white dark:bg-bg-light rounded-2xl p-5 text-slate-900 dark:text-slate-100 shadow-md space-y-3 border-l-4 border-blue-600 border border-slate-200/80 dark:border-white/5 transition-colors">
+              <div className="bg-white dark:bg-bg-light rounded-2xl p-5 text-slate-900 dark:text-slate-100 shadow-md space-y-3 border-l-4 border-blue-600 border border-slate-200/80 dark:border-white/5 transition-colors overflow-hidden">
+                {imagePreview && (
+                  <div className="-mx-5 -mt-5 mb-3 h-44 overflow-hidden bg-slate-100">
+                    <img
+                      src={imagePreview}
+                      alt="Simulated mobile attachment"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between">
                   <span className="px-2 py-0.5 rounded text-[8.5px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300">
                     {formType.toUpperCase()}
@@ -901,8 +1065,8 @@ export const AnnouncementsPage: React.FC = () => {
 
       {/* INSPECT DOCUMENT MODAL */}
       {selectedAnnouncement && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 dark:bg-[#080B14]/80 backdrop-blur-sm">
-          <div className="bg-white dark:bg-bg-light border border-slate-200 dark:border-white/10 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col text-slate-800 dark:text-slate-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
+          <div className="bg-white dark:bg-bg-light border border-slate-200 dark:border-white/10 rounded-3xl max-w-4xl w-full max-h-[92vh] overflow-hidden shadow-2xl flex flex-col text-slate-800 dark:text-slate-200">
             {/* Modal Top */}
             <div className="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-100/70 dark:bg-black/25">
               <span className="text-xs font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
@@ -917,29 +1081,40 @@ export const AnnouncementsPage: React.FC = () => {
             </div>
 
             {/* Letterhead and Details */}
-            <div className="p-6 overflow-y-auto space-y-5 custom-scrollbar">
+            <div className="p-6 sm:p-8 overflow-y-auto space-y-6 custom-scrollbar">
               <div className="text-center pb-4 border-b border-slate-200 dark:border-white/10">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 block">
+                <span className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 block">
                   Republic of the Philippines • City of Roxas
                 </span>
-                <h2 className="text-base font-black text-slate-900 dark:text-white mt-0.5">
+                <h2 className="text-lg font-black text-slate-900 dark:text-white mt-1">
                   TRAFFIC MANAGEMENT UNIT (TMU)
                 </h2>
-                <div className="flex items-center justify-center gap-3 text-xs font-mono font-bold text-blue-600 dark:text-blue-400 mt-2">
+                <div className="flex items-center justify-center gap-3 text-xs sm:text-sm font-mono font-bold text-blue-600 dark:text-blue-400 mt-2">
                   <span>{selectedAnnouncement.refNumber || selectedAnnouncement.ref_number}</span>
                   <span>•</span>
                   <span>{selectedAnnouncement.date}</span>
                 </div>
               </div>
 
+              {/* Photo Display if Present */}
+              {getAnnouncementImageUrl(selectedAnnouncement) && (
+                <div className="w-full max-h-96 rounded-2xl overflow-hidden bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-white/10 flex items-center justify-center">
+                  <img
+                    src={getAnnouncementImageUrl(selectedAnnouncement)!}
+                    alt={selectedAnnouncement.title}
+                    className="w-full max-h-96 object-contain"
+                  />
+                </div>
+              )}
+
               <div>
                 <span className="px-2.5 py-0.5 rounded text-[9.5px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300">
                   {selectedAnnouncement.type.toUpperCase()}
                 </span>
-                <h3 className="text-lg font-black text-slate-900 dark:text-white mt-2 leading-snug">
+                <h3 className="text-xl font-black text-slate-900 dark:text-white mt-2 leading-snug">
                   {selectedAnnouncement.title}
                 </h3>
-                <p className="text-xs text-slate-600 dark:text-slate-300 mt-2 leading-relaxed">
+                <p className="text-sm text-slate-600 dark:text-slate-300 mt-2.5 leading-relaxed">
                   {selectedAnnouncement.summary}
                 </p>
               </div>
