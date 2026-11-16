@@ -618,7 +618,7 @@ export const AnnouncementsPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Form (7 Columns) */}
           <div className="lg:col-span-7 bg-white dark:bg-bg-light rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-white/10 shadow-sm space-y-7">
-            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-4">
+            <div className="flex items-center justify-between border-b border-slate-300 dark:border-white/5 pb-4">
               <div>
                 <h2 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">
                   Announcement Drafting Workbench
@@ -1069,7 +1069,7 @@ export const AnnouncementsPage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white dark:bg-bg-light border border-slate-200 dark:border-white/10 rounded-3xl max-w-4xl w-full max-h-[92vh] overflow-hidden shadow-2xl flex flex-col text-slate-800 dark:text-slate-200">
             {/* Modal Top */}
-            <div className="px-6 py-4 border-b border-slate-200 dark:border-white/10 flex items-center justify-between bg-slate-100/90 dark:bg-slate-900/95">
+            <div className="px-6 py-4 border-b border-slate-300 dark:border-white/10 flex items-center justify-between bg-slate-100/90 dark:bg-slate-900/95">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
                   <Icon iconName="FaFileLines" size={15} />

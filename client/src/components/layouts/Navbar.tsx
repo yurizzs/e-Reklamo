@@ -38,7 +38,7 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
   };
 
   return (
-    <nav className="fixed top-0 z-50 w-full bg-white dark:bg-bg-light border-b border-slate-200 dark:border-white/5 transition-colors duration-300">
+    <nav className="fixed top-0 z-50 w-full bg-white dark:bg-bg-light border-b border-slate-300 dark:border-white/5 shadow-2xs dark:shadow-none transition-colors duration-300">
       {/* Animated accent line under the nav */}
       <div className="absolute bottom-0 left-0 h-px w-full bg-linear-to-r from-transparent via-primary/40 to-transparent shadow-[0_0_10px_oklch(var(--primary)/0.4)] opacity-0 dark:opacity-100 transition-opacity duration-300" />
 
