@@ -579,28 +579,29 @@ export const AnnouncementsPage: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setSelectedAnnouncement(item)}
-                          className="px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-bold transition-colors"
+                          className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black shadow-md shadow-blue-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
                         >
-                          Read Document →
+                          <span>Read Document</span>
+                          <Icon iconName="FaArrowRight" size={10} />
                         </button>
 
                         {isStaff && (
-                          <>
+                          <div className="flex items-center gap-1">
                             <button
                               onClick={() => setEditingAnnouncement(item)}
-                              className="p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"
+                              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
                               title="Edit Announcement"
                             >
                               <Icon iconName="FaPencil" size={12} />
                             </button>
                             <button
                               onClick={() => setAnnouncementToDelete(item)}
-                              className="p-2 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                              className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 transition-colors cursor-pointer"
                               title={`Archive / Remove ${item.type === "memorandum" ? "memorandum" : item.type === "directive" ? "directive" : "announcement"}`}
                             >
                               <Icon iconName="FaTrashCan" size={12} />
                             </button>
-                          </>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -1068,16 +1069,22 @@ export const AnnouncementsPage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
           <div className="bg-white dark:bg-bg-light border border-slate-200 dark:border-white/10 rounded-3xl max-w-4xl w-full max-h-[92vh] overflow-hidden shadow-2xl flex flex-col text-slate-800 dark:text-slate-200">
             {/* Modal Top */}
-            <div className="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-100/70 dark:bg-black/25">
-              <span className="text-xs font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
-                Official Document Preview
-              </span>
-              <button
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-white/10 flex items-center justify-between bg-slate-100/90 dark:bg-slate-900/95">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                  <Icon iconName="FaFileLines" size={15} />
+                </div>
+                <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                  Official Document Preview
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                iconName="FaXmark"
                 onClick={() => setSelectedAnnouncement(null)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
-              >
-                ✕
-              </button>
+                className="text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 p-2 rounded-xl transition-colors cursor-pointer"
+              />
             </div>
 
             {/* Letterhead and Details */}
@@ -1154,48 +1161,57 @@ export const AnnouncementsPage: React.FC = () => {
                     navigator.clipboard.writeText(ref);
                     notify.success(`Reference ${ref} copied.`);
                   }}
-                  className="text-blue-600 dark:text-blue-400 font-bold hover:underline"
+                  className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 dark:hover:bg-blue-500/25 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30 font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
-                  Copy Reference Code
+                  <Icon iconName="FaCopy" size={11} />
+                  <span>Copy Reference Code</span>
                 </button>
               </div>
             </div>
 
-            {/* Modal Bottom */}
-            <div className="p-4 border-t border-slate-200 dark:border-white/5 bg-slate-100/70 dark:bg-black/25 flex items-center justify-between">
+            {/* Modal Bottom (High-Visibility Controls) */}
+            <div className="px-5 py-3 border-t border-slate-200 dark:border-white/10 bg-slate-100/90 dark:bg-slate-900/95 backdrop-blur-sm flex flex-wrap items-center justify-between gap-2.5">
               {isStaff ? (
                 <div className="flex items-center gap-2">
                   <Button
-                    variant="outline"
+                    size="sm"
                     onClick={() => {
                       const toEdit = selectedAnnouncement;
                       setSelectedAnnouncement(null);
                       setEditingAnnouncement(toEdit);
                     }}
-                    className="flex items-center gap-2 text-xs"
+                    iconName="FaPencil"
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-3.5 py-1.5 min-h-[34px] rounded-xl shadow-sm shadow-blue-600/30 flex items-center gap-1.5 transition-all cursor-pointer"
                   >
-                    <Icon iconName="FaPencil" size={12} />
                     Edit Document
                   </Button>
                   <Button
-                    variant="ghost"
+                    size="sm"
                     onClick={() => {
                       const toDelete = selectedAnnouncement;
                       setSelectedAnnouncement(null);
                       setAnnouncementToDelete(toDelete);
                     }}
-                    className="flex items-center gap-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-500/10"
+                    iconName="FaTrashCan"
+                    className="bg-rose-500/10 hover:bg-rose-600 text-rose-600 dark:text-rose-400 hover:text-white border border-rose-500/30 font-bold text-xs px-3 py-1.5 min-h-[34px] rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
                   >
-                    <Icon iconName="FaTrashCan" size={12} />
                     Delete
                   </Button>
                 </div>
               ) : (
                 <div />
               )}
-              <Button onClick={() => setSelectedAnnouncement(null)}>
-                Close Preview
-              </Button>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => window.print()}
+                  iconName="FaPrint"
+                  className="bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 hover:border-slate-500 font-bold text-xs px-3.5 py-1.5 min-h-[34px] rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  Print Notice
+                </Button>
+              </div>
             </div>
           </div>
         </div>
