@@ -63,10 +63,11 @@ const AnalyticsReport = () => {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Mayor and Print modal states (WIP)
+  // Mayor and Print modal states
   const [isMayorModalOpen, setIsMayorModalOpen] = useState<boolean>(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState<boolean>(false);
   const [printCustomData, setPrintCustomData] = useState<MayorReportFormData | null>(null);
+  const [autoPrintPdf, setAutoPrintPdf] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchAnalytics = async () => {
@@ -161,13 +162,6 @@ const AnalyticsReport = () => {
           >
             PRINT MONTHLY REPORT
           </Button>
-
-          <div className="flex items-center gap-2 px-3.5 py-2 bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/20 dark:border-blue-500/30 rounded-2xl">
-            <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-blue-650 dark:text-blue-400">
-              System Live Feed
-            </span>
-          </div>
         </div>
       </div>
 
@@ -372,8 +366,11 @@ const AnalyticsReport = () => {
         onClose={() => setIsMayorModalOpen(false)}
         analyticsData={data}
         savedData={printCustomData}
-        onOpenPrint={(customData) => {
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
+        onOpenPrint={(customData, autoPrint) => {
           setPrintCustomData(customData);
+          setAutoPrintPdf(Boolean(autoPrint));
           setIsMayorModalOpen(false);
           setIsPrintModalOpen(true);
         }}
@@ -382,12 +379,17 @@ const AnalyticsReport = () => {
       {/* Official Print to Document Modal */}
       <PrintReportModal
         isOpen={isPrintModalOpen}
-        onClose={() => setIsPrintModalOpen(false)}
+        onClose={() => {
+          setIsPrintModalOpen(false);
+          setAutoPrintPdf(false);
+        }}
         onBack={() => {
           setIsPrintModalOpen(false);
+          setAutoPrintPdf(false);
           setIsMayorModalOpen(true);
         }}
         reportData={printCustomData}
+        autoPrint={autoPrintPdf}
       />
     </div>
   );

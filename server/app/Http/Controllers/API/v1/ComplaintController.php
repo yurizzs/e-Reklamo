@@ -72,7 +72,15 @@ class ComplaintController extends Controller
         // 1. Total Complaints Count
         $totalComplaints = $query->count();
 
-        // 2. Total Fee Collected (Sum of penalty_amount for all complaints matching the filter across violation categories)
+        // 2. Settled & Under Review Counts
+        $settledCount = $query->clone()
+            ->whereIn('status', ['settled', 'resolved'])
+            ->count();
+        $underReviewCount = $query->clone()
+            ->whereIn('status', ['unsettled', 'pending', 'new', 'under_review'])
+            ->count();
+
+        // 3. Total Fee Collected (Sum of penalty_amount for all complaints matching the filter across violation categories)
         $totalFeeCollected = (double) $query->clone()
             ->join('violation_categories', 'complaints.category_id', '=', 'violation_categories.id')
             ->sum(\Illuminate\Support\Facades\DB::raw('CAST(violation_categories.penalty_amount AS DECIMAL(10,2))'));
@@ -149,6 +157,8 @@ class ComplaintController extends Controller
             'Analytics report retrieved successfully',
             [
                 'total_complaints' => $totalComplaints,
+                'settled_complaints' => $settledCount,
+                'under_review_complaints' => $underReviewCount,
                 'total_fee_collected' => $totalFeeCollected,
                 'violation_chart_data' => $chartData,
                 'violation_table_data' => $tableData,

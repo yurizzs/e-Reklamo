@@ -175,7 +175,7 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
 
       {/* Modal Dialog (Enlarged max-w-5xl for superior viewing comfort) */}
       <div className="relative z-10 w-full max-w-5xl bg-white dark:bg-bg-light border border-slate-200 dark:border-white/10 shadow-2xl rounded-3xl flex flex-col max-h-[94vh] overflow-hidden text-slate-800 dark:text-slate-200 transition-colors">
-        
+
         {/* Header */}
         <div className="relative z-10 px-6 sm:px-8 py-5 flex items-center justify-between border-b border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-black/25">
           <div className="flex items-center gap-4">
@@ -208,7 +208,7 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
 
         {/* Scrollable Form Body */}
         <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-7 custom-scrollbar">
-          
+
           {wipNotice && (
             <div className="flex items-start gap-3 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs sm:text-sm text-emerald-800 dark:text-emerald-300 animate-fadeIn">
               <Icon iconName="FaCircleCheck" size={18} className="text-emerald-500 mt-0.5 shrink-0" />
@@ -232,22 +232,20 @@ export const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = (
               <button
                 type="button"
                 onClick={() => setPreviewMode(false)}
-                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition-all ${
-                  !previewMode
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                }`}
+                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition-all ${!previewMode
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  }`}
               >
                 Editor Form
               </button>
               <button
                 type="button"
                 onClick={() => setPreviewMode(true)}
-                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 ${
-                  previewMode
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                }`}
+                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 ${previewMode
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  }`}
               >
                 <Icon iconName="FaMobileScreen" size={14} />
                 <span>Mobile Preview</span>

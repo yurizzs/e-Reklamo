@@ -201,11 +201,7 @@ const DriverRecords = () => {
           <p className="text-sm text-blue-600 dark:text-blue-450 font-mono uppercase tracking-[0.3em]">
             TMU Operational Database
           </p>
-        </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-2xl transition-colors duration-300">
-          <span className="w-2 h-2 bg-blue-500 rounded-full animate-ping" />
-          <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">Database Active</span>
-        </div>
+        </div>  
       </div>
 
       {/* KPI Cards */}

@@ -302,9 +302,6 @@ export const AnnouncementsPage: React.FC = () => {
               <h1 className="text-xl md:text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">
                 Public Announcements & Directives
               </h1>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                {isStaff ? "STAFF AUTHORING DESK" : isOperator ? "OPERATOR DIRECTIVES BULLETIN" : "PUBLIC ADVISORIES FEED"}
-              </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
               {isStaff

@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Icon, Button } from "../../components/ui";
 import { InputField, TextArea, Select } from "../../components/ui/forms";
 import { useAuth } from "../../contexts/AuthContext";
+import ComplaintService from "../../services/ComplaintService";
 
 interface TableItem {
   category_id: number;
@@ -13,6 +14,8 @@ interface TableItem {
 
 interface AnalyticsData {
   total_complaints: number;
+  settled_complaints?: number;
+  under_review_complaints?: number;
   total_fee_collected: number;
   violation_chart_data?: { category_name: string; complaints_count: number }[];
   violation_table_data?: TableItem[];
@@ -24,6 +27,8 @@ export interface MayorReportFormData {
   executiveSummary?: string;
   recommendations?: string;
   totalComplaints?: number;
+  settledComplaints?: number;
+  underReviewComplaints?: number;
   totalFeeCollected?: number;
   violationTableData?: TableItem[];
   officerName?: string;
@@ -39,7 +44,9 @@ interface MayorReportModalProps {
   onClose: () => void;
   analyticsData?: AnalyticsData | null;
   savedData?: MayorReportFormData | null;
-  onOpenPrint?: (data: MayorReportFormData) => void;
+  onOpenPrint?: (data: MayorReportFormData, autoPrint?: boolean) => void;
+  selectedMonth?: string;
+  selectedYear?: string;
 }
 
 const formatCurrency = (amount: number) => {
@@ -49,12 +56,67 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
+const MONTH_LIST = [
+  { value: "1", label: "January" },
+  { value: "2", label: "February" },
+  { value: "3", label: "March" },
+  { value: "4", label: "April" },
+  { value: "5", label: "May" },
+  { value: "6", label: "June" },
+  { value: "7", label: "July" },
+  { value: "8", label: "August" },
+  { value: "9", label: "September" },
+  { value: "10", label: "October" },
+  { value: "11", label: "November" },
+  { value: "12", label: "December" },
+];
+
+const parseCycleToParams = (cycle: string, fallbackYear: string) => {
+  const MONTH_MAP: Record<string, string> = {
+    january: "1",
+    february: "2",
+    march: "3",
+    april: "4",
+    may: "5",
+    june: "6",
+    july: "7",
+    august: "8",
+    september: "9",
+    october: "10",
+    november: "11",
+    december: "12",
+  };
+
+  const lower = cycle.toLowerCase();
+  const yearMatch = cycle.match(/\b(20\d\d)\b/);
+  const year = yearMatch ? yearMatch[1] : fallbackYear;
+
+  if (lower.includes("full year") || lower.includes("annual")) {
+    return { year, month: "all" };
+  }
+
+  for (const [mName, mNum] of Object.entries(MONTH_MAP)) {
+    if (lower.includes(mName)) {
+      return { year, month: mNum };
+    }
+  }
+
+  if (lower.includes("q1")) return { year, month: "1" };
+  if (lower.includes("q2")) return { year, month: "4" };
+  if (lower.includes("q3")) return { year, month: "7" };
+  if (lower.includes("q4")) return { year, month: "10" };
+
+  return { year, month: "all" };
+};
+
 export const MayorReportModal: React.FC<MayorReportModalProps> = ({
   isOpen,
   onClose,
   analyticsData,
   savedData,
   onOpenPrint,
+  selectedMonth,
+  selectedYear,
 }) => {
   const { user } = useAuth();
 
@@ -62,11 +124,95 @@ export const MayorReportModal: React.FC<MayorReportModalProps> = ({
     ? `${user.first_name} ${user.last_name}`
     : "TMU Staff Officer";
 
+  const activeYear =
+    selectedYear && selectedYear !== "all"
+      ? selectedYear
+      : new Date().getFullYear().toString();
+
+  const matchedMonth =
+    MONTH_LIST.find((m) => m.value === selectedMonth)?.label || "October";
+  const defaultPeriod = `${matchedMonth} ${activeYear} (Monthly Operations Cycle)`;
+
   // Form states
   const [officerName, setOfficerName] = useState(savedData?.officerName || defaultStaffName);
   const [reportingCycle, setReportingCycle] = useState(
-    savedData?.period || "October 2026 (Monthly Operations Cycle)"
+    savedData?.period || defaultPeriod
   );
+
+  const cycleOptions = [
+    ...MONTH_LIST.map((m) => ({
+      value: `${m.label} ${activeYear} (Monthly Operations Cycle)`,
+      label: `${m.label} ${activeYear} (Monthly Cycle)`,
+    })),
+    { value: `Q3 ${activeYear} (Quarterly Consolidated)`, label: `Q3 ${activeYear} (Quarterly Consolidated)` },
+    { value: `Full Year ${activeYear} (Annual Review)`, label: `Full Year ${activeYear} (Annual Review)` },
+    { value: "Custom Special Operations Window", label: "Custom Special Operations Window" },
+  ];
+
+  const [cycleAnalytics, setCycleAnalytics] = useState<AnalyticsData | null>(analyticsData || null);
+  const [isCycleLoading, setIsCycleLoading] = useState<boolean>(false);
+
+  // Sync cycle data when reportingCycle changes
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let isCurrent = true;
+    const fetchCycleData = async () => {
+      const { year, month } = parseCycleToParams(reportingCycle, activeYear);
+      setIsCycleLoading(true);
+      try {
+        const response = (await ComplaintService.getAnalytics({
+          year,
+          month,
+        })) as unknown as {
+          data?: AnalyticsData & { data?: AnalyticsData };
+          violation_chart_data?: AnalyticsData["violation_chart_data"];
+        } & AnalyticsData;
+
+        const extracted = response?.violation_chart_data
+          ? response
+          : response?.data?.violation_chart_data
+          ? response.data
+          : response?.data?.data?.violation_chart_data
+          ? response.data.data
+          : response?.data ?? response;
+
+        if (isCurrent && extracted) {
+          setCycleAnalytics(extracted);
+        }
+      } catch (err) {
+        console.error("Failed to load analytics for cycle", err);
+      } finally {
+        if (isCurrent) {
+          setIsCycleLoading(false);
+        }
+      }
+    };
+
+    fetchCycleData();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [isOpen, reportingCycle, activeYear]);
+
+  const totalComplaints = cycleAnalytics?.total_complaints ?? 0;
+  const settledComplaints =
+    cycleAnalytics?.settled_complaints !== undefined
+      ? cycleAnalytics.settled_complaints
+      : Math.round(totalComplaints * 0.64);
+  const underReviewComplaints =
+    cycleAnalytics?.under_review_complaints !== undefined
+      ? cycleAnalytics.under_review_complaints
+      : Math.max(0, totalComplaints - settledComplaints);
+  const totalFees = cycleAnalytics?.total_fee_collected ?? 0;
+  const tableData = cycleAnalytics?.violation_table_data ?? [];
+
+  const resolutionRate =
+    totalComplaints > 0
+      ? Math.round((settledComplaints / totalComplaints) * 100)
+      : 0;
+
   const [urgencyLevel, setUrgencyLevel] = useState(savedData?.urgencyLevel || "routine");
   const [memoSubject, setMemoSubject] = useState(
     savedData?.memoSubject ||
@@ -74,8 +220,17 @@ export const MayorReportModal: React.FC<MayorReportModalProps> = ({
   );
   const [executiveSummary, setExecutiveSummary] = useState(
     savedData?.executiveSummary ||
-    "Respectfully submitted to the Office of the City Mayor is the consolidated operations briefing from the Traffic Management Unit (TMU). During this reporting period, active field monitoring and digital complaint intake mechanisms recorded 14 resolved/settled cases and 8 pending administrative inquiries, yielding PHP 18,500.00 in municipal penalty fines. Priority cases handled centered on passenger fare overcharging and illegal terminal staging."
+    `Respectfully submitted to the Office of the City Mayor is the consolidated operations briefing from the Traffic Management Unit (TMU). During this reporting period, active field monitoring and digital complaint intake mechanisms recorded ${settledComplaints} resolved/settled cases and ${underReviewComplaints} pending administrative inquiries, yielding ${formatCurrency(totalFees)} in municipal penalty fines. Priority cases handled centered on passenger fare overcharging and illegal terminal staging.`
   );
+
+  // Dynamically update executive summary narrative when indicators update if not manually overridden
+  useEffect(() => {
+    if (cycleAnalytics && !savedData?.executiveSummary) {
+      const narrative = `Respectfully submitted to the Office of the City Mayor is the consolidated operations briefing from the Traffic Management Unit (TMU). During this reporting period (${reportingCycle}), active field monitoring and digital complaint intake mechanisms recorded ${settledComplaints} resolved/settled cases and ${underReviewComplaints} pending administrative inquiries, yielding ${formatCurrency(totalFees)} in municipal penalty fines. Priority cases handled centered on passenger fare overcharging and illegal terminal staging.`;
+      setExecutiveSummary(narrative);
+    }
+  }, [cycleAnalytics, reportingCycle, settledComplaints, underReviewComplaints, totalFees, savedData]);
+
   const [recommendations, setRecommendations] = useState(
     savedData?.recommendations ||
     "1. Intensify field patrol deployments during peak morning and evening rush along Sector 2 and Sector 4.\n2. Coordinate joint inspections with the Tricycle Regulatory Board for franchise validation.\n3. Expand citizen digital grievance tracking terminals at key barangay hubs."
@@ -95,19 +250,28 @@ export const MayorReportModal: React.FC<MayorReportModalProps> = ({
     savedData?.flagUrgent !== undefined ? savedData.flagUrgent : false
   );
 
-  // WIP alert status
-  const [wipNotice, setWipNotice] = useState<string | null>(null);
-
   if (!isOpen) return null;
 
-  const totalComplaints = analyticsData?.total_complaints ?? 22;
-  const totalFees = analyticsData?.total_fee_collected ?? 18500;
-  const tableData = analyticsData?.violation_table_data ?? [];
-
-  const handleTransmitClick = () => {
-    setWipNotice(
-      "Direct Mayoral Telematics transmission is currently in WIP mode. The secure API dispatch channel to the Mayor's Executive Portal is scheduled for integration in the next release. Please use 'Print to Document' to generate official hardcopy or PDF executive records."
-    );
+  const handleExportPdf = () => {
+    if (onOpenPrint) {
+      onOpenPrint({
+        period: reportingCycle,
+        memoSubject,
+        executiveSummary,
+        recommendations,
+        totalComplaints,
+        settledComplaints,
+        underReviewComplaints,
+        totalFeeCollected: totalFees,
+        violationTableData: tableData,
+        officerName,
+        urgencyLevel,
+        includeBreakdown,
+        includeFinancials,
+        includeRoster,
+        flagUrgent,
+      }, true);
+    }
   };
 
   const handleOpenPrintPreview = () => {
@@ -118,6 +282,8 @@ export const MayorReportModal: React.FC<MayorReportModalProps> = ({
         executiveSummary,
         recommendations,
         totalComplaints,
+        settledComplaints,
+        underReviewComplaints,
         totalFeeCollected: totalFees,
         violationTableData: tableData,
         officerName,
@@ -126,7 +292,7 @@ export const MayorReportModal: React.FC<MayorReportModalProps> = ({
         includeFinancials,
         includeRoster,
         flagUrgent,
-      });
+      }, false);
     }
   };
 
@@ -150,10 +316,10 @@ export const MayorReportModal: React.FC<MayorReportModalProps> = ({
             <div>
               <div className="flex items-center gap-2.5">
                 <h2 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">
-                  Executive Mayoral Report Transmittal
+                  Executive Mayoral Report
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400">
-                  WIP UI
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-500/15 border border-blue-500/30 text-blue-600 dark:text-blue-400">
+                  OFFICIAL REPORT
                 </span>
               </div>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -167,27 +333,12 @@ export const MayorReportModal: React.FC<MayorReportModalProps> = ({
             size="sm"
             iconName="FaXmark"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 p-2 rounded-xl transition-colors"
+            className="text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 p-2 rounded-xl transition-colors cursor-pointer"
           />
         </div>
 
         {/* Scrollable Form Body */}
         <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6 custom-scrollbar">
-          {wipNotice && (
-            <div className="flex items-start gap-3 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-sm text-amber-700 dark:text-amber-300 animate-fadeIn">
-              <Icon iconName="FaTriangleExclamation" size={18} className="text-amber-500 mt-0.5 shrink-0" />
-              <div className="flex-1">
-                <span className="font-bold uppercase tracking-wide text-xs block mb-0.5">Notice</span>
-                <p className="text-xs leading-relaxed">{wipNotice}</p>
-              </div>
-              <button
-                onClick={() => setWipNotice(null)}
-                className="text-amber-500 hover:text-amber-700 dark:hover:text-white text-sm font-bold"
-              >
-                ✕
-              </button>
-            </div>
-          )}
 
           {/* Section 1: Official Routing Details */}
           <div className="space-y-4">
@@ -230,12 +381,7 @@ export const MayorReportModal: React.FC<MayorReportModalProps> = ({
                   Reporting Period / Cycle
                 </label>
                 <Select
-                  options={[
-                    { value: "October 2026 (Monthly Operations Cycle)", label: "October 2026 (Monthly Cycle)" },
-                    { value: "Q3 2026 (Quarterly Consolidated)", label: "Q3 2026 (Quarterly Consolidated)" },
-                    { value: "Full Year 2026 (Annual Review)", label: "Full Year 2026 (Annual Review)" },
-                    { value: "Custom Special Operations Window", label: "Custom Special Operations Window" },
-                  ]}
+                  options={cycleOptions}
                   value={reportingCycle}
                   onChange={(e) => setReportingCycle(e.target.value)}
                   fullWidth
@@ -271,7 +417,9 @@ export const MayorReportModal: React.FC<MayorReportModalProps> = ({
                   2. Executive Indicators Snapshot
                 </h3>
               </div>
-              <span className="text-xs text-slate-400 font-mono">Live Data Sync</span>
+              <span className="text-xs text-slate-400 font-mono">
+                {isCycleLoading ? "Syncing data..." : "Live Data Sync"}
+              </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
@@ -281,10 +429,10 @@ export const MayorReportModal: React.FC<MayorReportModalProps> = ({
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                       Total Grievances
                     </span>
-                    <span className="w-2 h-2 rounded-full bg-slate-400" />
+                    <span className={`w-2 h-2 rounded-full ${isCycleLoading ? "bg-amber-400 animate-ping" : "bg-slate-400"}`} />
                   </div>
                   <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono mt-1.5">
-                    {totalComplaints}
+                    {isCycleLoading ? "..." : totalComplaints}
                   </div>
                 </div>
                 <div className="text-xs text-slate-400 mt-2">Recorded cases</div>
@@ -296,14 +444,14 @@ export const MayorReportModal: React.FC<MayorReportModalProps> = ({
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                       Settled Cases
                     </span>
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className={`w-2 h-2 rounded-full ${isCycleLoading ? "bg-amber-400 animate-ping" : "bg-emerald-500"}`} />
                   </div>
                   <div className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono mt-1.5">
-                    14
+                    {isCycleLoading ? "..." : settledComplaints}
                   </div>
                 </div>
                 <div className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-2">
-                  64% Resolution Rate
+                  {resolutionRate}% Resolution Rate
                 </div>
               </div>
 
@@ -313,10 +461,10 @@ export const MayorReportModal: React.FC<MayorReportModalProps> = ({
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                       Penalties Collected
                     </span>
-                    <span className="w-2 h-2 rounded-full bg-blue-500" />
+                    <span className={`w-2 h-2 rounded-full ${isCycleLoading ? "bg-amber-400 animate-ping" : "bg-blue-500"}`} />
                   </div>
                   <div className="text-xl sm:text-2xl font-black text-blue-600 dark:text-blue-400 font-mono mt-1.5 truncate">
-                    {formatCurrency(totalFees)}
+                    {isCycleLoading ? "..." : formatCurrency(totalFees)}
                   </div>
                 </div>
                 <div className="text-xs text-slate-400 mt-2">Total remitted</div>
@@ -446,18 +594,18 @@ export const MayorReportModal: React.FC<MayorReportModalProps> = ({
         <div className="px-6 sm:px-8 py-4 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-black/25 flex flex-col sm:flex-row items-center justify-between gap-3">
           <Button
             onClick={handleOpenPrintPreview}
-            iconName="FaPrint"
-            className="bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm px-5 py-2.5 rounded-xl flex items-center gap-2 border border-slate-700 shadow-sm"
+            iconName="FaEye"
+            className="bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm px-5 py-2.5 rounded-xl flex items-center gap-2 border border-slate-700 shadow-sm cursor-pointer transition-all"
           >
-            Print to Document
+            Preview Document
           </Button>
 
           <Button
-            onClick={handleTransmitClick}
-            iconName="FaPaperPlane"
-            className="bg-amber-600 hover:bg-amber-500 text-white font-black text-sm uppercase tracking-wider px-6 py-2.5 rounded-xl shadow-lg shadow-amber-600/20 flex items-center gap-2"
+            onClick={handleExportPdf}
+            iconName="FaFilePdf"
+            className="bg-blue-600 hover:bg-blue-500 text-white font-black text-sm uppercase tracking-wider px-6 py-2.5 rounded-xl shadow-lg shadow-blue-600/30 flex items-center gap-2 cursor-pointer transition-all active:scale-95"
           >
-            Transmit to Mayor
+            Export to PDF
           </Button>
         </div>
       </div>
