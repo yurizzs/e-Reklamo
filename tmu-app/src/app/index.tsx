@@ -1,6 +1,9 @@
 import { Redirect } from 'expo-router';
+import { authStore } from '@/services/auth-store';
 
 export default function Index() {
-  // Automatically redirect entry point to Login screen
+  if (authStore.isAuthenticated()) {
+    return <Redirect href="/(tabs)" />;
+  }
   return <Redirect href="/login" />;
 }

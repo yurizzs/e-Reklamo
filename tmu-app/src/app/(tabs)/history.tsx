@@ -13,11 +13,13 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { apiService } from '@/services/api';
 import { authStore } from '@/services/auth-store';
 
 export default function HistoryScreen() {
+  const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<'all' | 'pending' | 'resolved'>('all');
   const [reports, setReports] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -261,6 +263,24 @@ export default function HistoryScreen() {
           <View style={{ paddingVertical: 40, alignItems: 'center' }}>
             <ActivityIndicator size="large" color="#2563eb" />
             <Text style={{ marginTop: 10, color: '#64748b', fontSize: 14 }}>Loading complaints...</Text>
+          </View>
+        ) : !token ? (
+          <View style={{ paddingVertical: 40, alignItems: 'center', backgroundColor: '#ffffff', borderRadius: 16, padding: 24, gap: 8, borderWidth: 1, borderColor: '#e2e8f0', borderStyle: 'dashed' }}>
+            <SymbolView
+              name={{ ios: 'lock.fill', android: 'lock', web: 'lock' }}
+              tintColor="#2563eb"
+              size={36}
+            />
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#1e293b' }}>Sign In Required</Text>
+            <Text style={{ fontSize: 13, color: '#64748b', textAlign: 'center', lineHeight: 18 }}>
+              Please sign in to your TMU account to view your past submitted reports.
+            </Text>
+            <Pressable
+              onPress={() => router.push('/login')}
+              style={{ marginTop: 12, backgroundColor: '#2563eb', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 }}
+            >
+              <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '700' }}>Sign In Now</Text>
+            </Pressable>
           </View>
         ) : filteredReports.length === 0 ? (
           <View style={{ paddingVertical: 40, alignItems: 'center', backgroundColor: '#ffffff', borderRadius: 12, padding: 20 }}>

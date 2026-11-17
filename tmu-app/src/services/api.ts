@@ -3,12 +3,23 @@ import { Platform } from 'react-native';
 // Local network candidate URLs for high resilience across Web, Emulator, and Physical Devices
 const DEV_LAN_IP = '192.168.254.106';
 
-const CANDIDATE_BASE_URLS = [
-  `http://${DEV_LAN_IP}:8000/api`,
-  'http://10.0.2.2:8000/api',
-  'http://localhost:8000/api',
-  'http://127.0.0.1:8000/api',
-];
+const CANDIDATE_BASE_URLS = Platform.select({
+  web: [
+    'http://localhost:8000/api',
+    'http://127.0.0.1:8000/api',
+    `http://${DEV_LAN_IP}:8000/api`,
+  ],
+  android: [
+    'http://10.0.2.2:8000/api',
+    `http://${DEV_LAN_IP}:8000/api`,
+    'http://localhost:8000/api',
+  ],
+  default: [
+    'http://localhost:8000/api',
+    `http://${DEV_LAN_IP}:8000/api`,
+    'http://127.0.0.1:8000/api',
+  ],
+})!;
 
 const DEFAULT_API_BASE_URL = Platform.select({
   android: `http://10.0.2.2:8000/api`,
@@ -206,19 +217,16 @@ class ApiService {
   }
 
   public async fetchComplaints(token?: string, status?: string): Promise<{ success: boolean; data?: any[]; message?: string }> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
     try {
       const headers: Record<string, string> = { 'Accept': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      let url = `${this.baseUrl}/complaints`;
+      let path = '/complaints';
       if (status && status !== 'all') {
-        url += `?status=${encodeURIComponent(status)}`;
+        path += `?status=${encodeURIComponent(status)}`;
       }
 
-      const res = await fetch(url, { headers, signal: controller.signal });
-      clearTimeout(timeoutId);
+      const res = await this.fetchWithDiscovery(path, { headers }, 6000);
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to fetch complaints.');
       return {
@@ -227,7 +235,6 @@ class ApiService {
         message: data.message,
       };
     } catch (error: any) {
-      clearTimeout(timeoutId);
       if (this.isNetworkException(error)) {
         return { success: false, data: [], message: 'Server connection failed.' };
       }
@@ -236,18 +243,14 @@ class ApiService {
   }
 
   public async fetchOptions(token?: string): Promise<{ success: boolean; data?: any; message?: string }> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
     try {
       const headers: Record<string, string> = { 'Accept': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch(`${this.baseUrl}/complaints/options`, { headers, signal: controller.signal });
-      clearTimeout(timeoutId);
+      const res = await this.fetchWithDiscovery('/complaints/options', { headers }, 5000);
       const data = await res.json();
       return { success: res.ok, data: data?.data, message: data?.message };
     } catch {
-      clearTimeout(timeoutId);
       return { success: false };
     }
   }
@@ -298,41 +301,33 @@ class ApiService {
   }
 
   public async fetchConversations(token?: string, senderName?: string): Promise<{ success: boolean; data?: any }> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
     try {
       const headers: Record<string, string> = { 'Accept': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
       if (senderName) headers['X-Sender-Name'] = senderName;
 
-      let url = `${this.baseUrl}/chat/conversations`;
+      let path = '/chat/conversations';
       if (senderName) {
-        url += `?sender_name=${encodeURIComponent(senderName)}`;
+        path += `?sender_name=${encodeURIComponent(senderName)}`;
       }
 
-      const res = await fetch(url, { headers, signal: controller.signal });
-      clearTimeout(timeoutId);
+      const res = await this.fetchWithDiscovery(path, { headers }, 4000);
       const data = await res.json();
       return { success: res.ok, data: data?.data?.conversations || [] };
     } catch {
-      clearTimeout(timeoutId);
       return { success: false, data: [] };
     }
   }
 
   public async fetchMessages(conversationId: number, token?: string): Promise<{ success: boolean; data?: any }> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
     try {
       const headers: Record<string, string> = { 'Accept': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch(`${this.baseUrl}/chat/conversations/${conversationId}/messages`, { headers, signal: controller.signal });
-      clearTimeout(timeoutId);
+      const res = await this.fetchWithDiscovery(`/chat/conversations/${conversationId}/messages`, { headers }, 4000);
       const data = await res.json();
       return { success: res.ok, data: data?.data?.messages || [] };
     } catch {
-      clearTimeout(timeoutId);
       return { success: false, data: [] };
     }
   }
@@ -344,8 +339,6 @@ class ApiService {
     senderName?: string,
     senderRole?: string
   ): Promise<{ success: boolean; data?: any }> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
     try {
       const headers: Record<string, string> = {
         'Accept': 'application/json',
@@ -353,22 +346,19 @@ class ApiService {
       };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch(`${this.baseUrl}/chat/messages`, {
+      const res = await this.fetchWithDiscovery('/chat/messages', {
         method: 'POST',
         headers,
-        signal: controller.signal,
         body: JSON.stringify({
           conversation_id: conversationId,
           message_text: messageText,
           sender_name: senderName,
           sender_role: senderRole,
         }),
-      });
-      clearTimeout(timeoutId);
+      }, 5000);
       const data = await res.json();
       return { success: res.ok, data: data?.data?.message };
     } catch {
-      clearTimeout(timeoutId);
       return { success: false };
     }
   }

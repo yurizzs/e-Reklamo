@@ -16,9 +16,24 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::factory(10)->create();
+        // Ensure a stable citizen account exists for mobile app testing
+        $citizenUser = User::updateOrCreate(
+            ['username' => 'citizen'],
+            [
+                'slug' => \Illuminate\Support\Str::slug('Juan Citizen'),
+                'first_name' => 'Juan',
+                'last_name' => 'Citizen',
+                'email' => 'citizen@example.com',
+                'username' => 'citizen',
+                'phone' => '+639123456789',
+                'role' => \App\Enums\UserRole::CITIZEN,
+                'password' => \Illuminate\Support\Facades\Hash::make('password'),
+            ]
+        );
 
-        $citizenUser = User::first();
+        if (User::count() <= 1) {
+            User::factory(10)->create();
+        }
 
         // Ensure a stable admin account exists for local access
         $adminUser = \App\Models\Employee::updateOrCreate(

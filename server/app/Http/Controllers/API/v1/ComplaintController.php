@@ -181,7 +181,15 @@ class ComplaintController extends Controller
                 'statusHistories',
             ]);
 
-        if ($authUser && get_class($authUser) === \App\Models\User::class && ($authUser->role ?? 'citizen') === 'citizen') {
+        $isCitizen = false;
+        if ($authUser && $authUser instanceof \App\Models\User) {
+            $userRole = is_object($authUser->role) && isset($authUser->role->value)
+                ? $authUser->role->value
+                : (string) ($authUser->role ?? 'citizen');
+            $isCitizen = ($userRole === 'citizen');
+        }
+
+        if ($isCitizen) {
             $query->where('user_id', $authUser->id);
         }
 
@@ -208,7 +216,14 @@ class ComplaintController extends Controller
         }
 
         if ($request->filled('status') && $request->input('status') !== 'all') {
-            $query->where('status', (string) $request->input('status'));
+            $statusInput = strtolower((string) $request->input('status'));
+            if ($statusInput === 'pending' || $statusInput === 'unsettled') {
+                $query->whereIn('status', ['unsettled', 'pending', 'new', 'under_review']);
+            } elseif ($statusInput === 'resolved' || $statusInput === 'settled') {
+                $query->whereIn('status', ['settled', 'resolved', 'closed']);
+            } else {
+                $query->where('status', $statusInput);
+            }
         }
 
         $sortBy = (string) $request->input('sort_by', 'incident_date_time');

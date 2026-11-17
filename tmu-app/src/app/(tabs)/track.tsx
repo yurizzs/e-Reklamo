@@ -4,6 +4,7 @@ import {
   Alert,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,11 +13,13 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { apiService } from '@/services/api';
 import { authStore } from '@/services/auth-store';
 
 export default function TrackScreen() {
+  const router = useRouter();
   const currentUser = authStore.getUser();
   const token = authStore.getToken() || undefined;
 
@@ -27,6 +30,61 @@ export default function TrackScreen() {
   const [chatInputText, setChatInputText] = useState('');
   const [isSendingChat, setIsSendingChat] = useState(false);
   const chatScrollRef = useRef<ScrollView>(null);
+
+  // Live reports from API
+  const [reports, setReports] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  const loadReports = async () => {
+    try {
+      const res = await apiService.fetchComplaints(token);
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const mapped = res.data.map((item: any) => {
+          const rawStatus = (item.status || 'unsettled').toLowerCase();
+          const isSettled = rawStatus === 'settled' || rawStatus === 'resolved' || rawStatus === 'closed';
+          const rawDate = item.incident_date_time || item.created_at || '';
+          let formattedDate = 'Recently';
+          if (rawDate) {
+            try {
+              const d = new Date(rawDate);
+              formattedDate = d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+            } catch {}
+          }
+
+          return {
+            id: item.id,
+            ticketNo: `#TMU-${String(item.id).padStart(5, '0')}`,
+            title: item.title || 'Traffic Complaint',
+            category: item.category?.category_name || item.category_name || 'Traffic Violation',
+            location: item.incident_location || 'Not Specified',
+            status: isSettled ? 'SETTLED' : 'UNSETTLED',
+            statusColor: isSettled ? '#10b981' : '#f59e0b',
+            date: formattedDate,
+            description: item.description,
+          };
+        });
+        setReports(mapped);
+      } else {
+        setReports([]);
+      }
+    } catch (err) {
+      console.warn('Failed to load reports in track:', err);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadReports();
+  }, [token]);
+
+  const onRefresh = () => {
+    setIsRefreshing(true);
+    loadReports();
+  };
 
   const activeReports = [
     {
@@ -145,11 +203,36 @@ export default function TrackScreen() {
     }
   };
 
+  const displayReports = reports;
+
+  const filteredReports = displayReports.filter((report) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    return (
+      (report.ticketNo && report.ticketNo.toLowerCase().includes(q)) ||
+      (report.title && report.title.toLowerCase().includes(q)) ||
+      (report.category && report.category.toLowerCase().includes(q)) ||
+      (report.location && report.location.toLowerCase().includes(q)) ||
+      (report.status && report.status.toLowerCase().includes(q))
+    );
+  });
+
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* Top Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
+          <Pressable
+            onPress={() => router.canGoBack() ? router.back() : router.push('/(tabs)')}
+            style={styles.backBtn}
+            hitSlop={8}
+          >
+            <SymbolView
+              name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }}
+              tintColor="#0f172a"
+              size={20}
+            />
+          </Pressable>
           <View style={styles.logoBadge}>
             <SymbolView
               name={{ ios: 'shield.fill', android: 'shield', web: 'shield' }}
@@ -165,51 +248,128 @@ export default function TrackScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.listContainer}>
-          <Text style={styles.sectionHeader}>Submitted Reports Status</Text>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={['#2563eb']} />
+        }
+      >
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <SymbolView
+            name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }}
+            tintColor="#94a3b8"
+            size={18}
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search ticket # or keyword..."
+            placeholderTextColor="#94a3b8"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
+              <SymbolView
+                name={{ ios: 'xmark.circle.fill', android: 'cancel', web: 'cancel' }}
+                tintColor="#94a3b8"
+                size={18}
+              />
+            </Pressable>
+          )}
+        </View>
 
-          {activeReports.map((report) => (
-            <View key={report.ticketNo} style={styles.card}>
-              <View style={styles.cardHeaderRow}>
-                <Text style={styles.ticketNo}>{report.ticketNo}</Text>
-                <View
-                  style={[
-                    styles.statusBadge,
-                    (report.status === 'SETTLED' || report.status === 'RESOLVED') && styles.statusResolved,
-                    (report.status === 'UNSETTLED' || report.status === 'PENDING') && styles.statusPending,
-                    report.status === 'NEW' && styles.statusNew,
-                  ]}
-                >
-                  <Text
+        <View style={styles.listContainer}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionHeader}>Submitted Reports Status</Text>
+            {reports.length > 0 && (
+              <View style={styles.countBadge}>
+                <Text style={styles.countBadgeText}>
+                  {filteredReports.length} {filteredReports.length === 1 ? 'Report' : 'Reports'}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#2563eb" />
+              <Text style={styles.loadingText}>Fetching submitted reports...</Text>
+            </View>
+          ) : !token ? (
+            <View style={styles.emptyContainer}>
+              <SymbolView
+                name={{ ios: 'lock.fill', android: 'lock', web: 'lock' }}
+                tintColor="#2563eb"
+                size={36}
+              />
+              <Text style={styles.emptyTitle}>Sign In Required</Text>
+              <Text style={styles.emptySubtitle}>
+                Please sign in to view and track your submitted complaint tickets in real time.
+              </Text>
+              <Pressable
+                onPress={() => router.push('/login')}
+                style={styles.signInBtn}
+              >
+                <Text style={styles.signInBtnText}>Sign In Now</Text>
+              </Pressable>
+            </View>
+          ) : filteredReports.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <SymbolView
+                name={{ ios: 'tray', android: 'inbox', web: 'inbox' }}
+                tintColor="#94a3b8"
+                size={36}
+              />
+              <Text style={styles.emptyTitle}>No matching reports found</Text>
+              <Text style={styles.emptySubtitle}>
+                {searchQuery ? 'Try a different ticket number or keyword.' : 'Reports you submit will appear here with live tracking updates.'}
+              </Text>
+            </View>
+          ) : (
+            filteredReports.map((report) => (
+              <View key={report.ticketNo || report.id} style={styles.card}>
+                <View style={styles.cardHeaderRow}>
+                  <Text style={styles.ticketNo}>{report.ticketNo}</Text>
+                  <View
                     style={[
-                      styles.statusText,
-                      (report.status === 'SETTLED' || report.status === 'RESOLVED') && styles.statusTextResolved,
-                      (report.status === 'UNSETTLED' || report.status === 'PENDING') && styles.statusTextPending,
-                      report.status === 'NEW' && styles.statusTextNew,
+                      styles.statusBadge,
+                      (report.status === 'SETTLED' || report.status === 'RESOLVED') && styles.statusResolved,
+                      (report.status === 'UNSETTLED' || report.status === 'PENDING') && styles.statusPending,
+                      report.status === 'NEW' && styles.statusNew,
                     ]}
                   >
-                    {report.status}
-                  </Text>
+                    <Text
+                      style={[
+                        styles.statusText,
+                        (report.status === 'SETTLED' || report.status === 'RESOLVED') && styles.statusTextResolved,
+                        (report.status === 'UNSETTLED' || report.status === 'PENDING') && styles.statusTextPending,
+                        report.status === 'NEW' && styles.statusTextNew,
+                      ]}
+                    >
+                      {report.status}
+                    </Text>
+                  </View>
+                </View>
+
+                <Text style={styles.cardTitle}>{report.title}</Text>
+
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>Category</Text>
+                  <Text style={styles.metaValue}>{report.category}</Text>
+                </View>
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>Location</Text>
+                  <Text style={styles.metaValue}>{report.location}</Text>
+                </View>
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>Filed Date</Text>
+                  <Text style={styles.metaValue}>{report.date}</Text>
                 </View>
               </View>
-
-              <Text style={styles.cardTitle}>{report.title}</Text>
-
-              <View style={styles.metaRow}>
-                <Text style={styles.metaLabel}>Category</Text>
-                <Text style={styles.metaValue}>{report.category}</Text>
-              </View>
-              <View style={styles.metaRow}>
-                <Text style={styles.metaLabel}>Location</Text>
-                <Text style={styles.metaValue}>{report.location}</Text>
-              </View>
-              <View style={styles.metaRow}>
-                <Text style={styles.metaLabel}>Filed Date</Text>
-                <Text style={styles.metaValue}>{report.date}</Text>
-              </View>
-            </View>
-          ))}
+            ))
+          )}
         </View>
       </ScrollView>
 
@@ -368,6 +528,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  backBtn: {
+    padding: 6,
+    borderRadius: 10,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 2,
+  },
+  signInBtn: {
+    marginTop: 12,
+    backgroundColor: '#2563eb',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  signInBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
   logoBadge: {
     width: 32,
     height: 32,
@@ -397,14 +577,83 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 100,
-    gap: 20,
+    gap: 16,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    height: 44,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#0f172a',
+    fontWeight: '500',
+    outlineStyle: 'none' as any,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
   sectionHeader: {
     fontSize: 16,
     fontWeight: '800',
     color: '#0f172a',
     letterSpacing: -0.5,
-    marginBottom: 4,
+  },
+  countBadge: {
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  countBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#2563eb',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 32,
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 13,
+    color: '#64748b',
+    fontWeight: '500',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+    gap: 6,
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderStyle: 'dashed',
+  },
+  emptyTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#334155',
+    marginTop: 6,
+  },
+  emptySubtitle: {
+    fontSize: 12,
+    color: '#94a3b8',
+    textAlign: 'center',
+    lineHeight: 18,
   },
   listContainer: {
     gap: 12,

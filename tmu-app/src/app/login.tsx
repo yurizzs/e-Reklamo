@@ -217,6 +217,27 @@ export default function LoginScreen() {
                   </Text>
                 )}
               </Pressable>
+
+              {/* Quick Fill Demo Button */}
+              <Pressable
+                onPress={() => {
+                  setUsername('citizen');
+                  setPassword('password');
+                  handleLogin('citizen', 'password');
+                }}
+                disabled={isLoading}
+                style={({ pressed }) => [
+                  styles.demoBtn,
+                  pressed && { opacity: 0.8 },
+                ]}
+              >
+                <SymbolView
+                  name={{ ios: 'person.badge.key.fill', android: 'key', web: 'key' }}
+                  tintColor="#2563eb"
+                  size={16}
+                />
+                <Text style={styles.demoBtnText}>Quick Fill: Citizen Test Account</Text>
+              </Pressable>
             </View>
 
             {/* Sign Up Link */}
@@ -434,6 +455,23 @@ const styles = StyleSheet.create({
   },
   submitBtnDisabled: {
     opacity: 0.5,
+  },
+  demoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    marginTop: 10,
+  },
+  demoBtnText: {
+    color: '#2563eb',
+    fontSize: 13,
+    fontWeight: '700',
   },
   submitBtnText: {
     color: '#ffffff',

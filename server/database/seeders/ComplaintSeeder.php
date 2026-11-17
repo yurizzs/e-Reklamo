@@ -137,7 +137,7 @@ class ComplaintSeeder extends Seeder
         );
 
         // Fetch users & staff for assignment
-        $registeredUser = User::first();
+        $registeredUser = User::where('username', 'citizen')->first() ?? User::first();
         $staffUser = Employee::where('username', 'staff')->first() ?? Employee::first();
 
         // 4. Sample Complaints Dataset

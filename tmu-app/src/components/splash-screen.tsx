@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Animated,
   Dimensions,
+  Platform,
   StyleSheet,
   Text,
   View,
@@ -28,46 +29,53 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   const [loadingStep, setLoadingStep] = useState('Loading TMU System...');
 
   useEffect(() => {
+    const isWeb = Platform.OS === 'web';
+    const useNative = !isWeb;
+
     // Fade in & Scale in
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
+        duration: isWeb ? 200 : 500,
+        useNativeDriver: useNative,
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
         friction: 6,
         tension: 40,
-        useNativeDriver: true,
+        useNativeDriver: useNative,
       }),
       Animated.timing(logoRotateAnim, {
         toValue: 1,
-        duration: duration,
-        useNativeDriver: true,
+        duration: isWeb ? 600 : duration,
+        useNativeDriver: useNative,
       }),
       Animated.timing(progressAnim, {
         toValue: 1,
-        duration: duration - 300,
+        duration: isWeb ? 500 : duration - 300,
         useNativeDriver: false,
       }),
     ]).start();
 
     // Step-by-step loading messages
-    const step1 = setTimeout(() => setLoadingStep('Connecting to Secure Servers...'), 600);
-    const step2 = setTimeout(() => setLoadingStep('Initializing System Modules...'), 1200);
-    const step3 = setTimeout(() => setLoadingStep('System Ready!'), 1800);
+    const step1 = setTimeout(() => setLoadingStep('Connecting to Secure Servers...'), isWeb ? 200 : 600);
+    const step2 = setTimeout(() => setLoadingStep('Initializing System Modules...'), isWeb ? 400 : 1200);
+    const step3 = setTimeout(() => setLoadingStep('System Ready!'), isWeb ? 600 : 1800);
+
+    const finishDuration = isWeb ? 700 : duration;
 
     // Trigger onFinish when timer completes
     const timer = setTimeout(() => {
       Animated.timing(fadeAnim, {
         toValue: 0,
-        duration: 400,
-        useNativeDriver: true,
-      }).start(() => {
+        duration: isWeb ? 150 : 300,
+        useNativeDriver: useNative,
+      }).start();
+
+      setTimeout(() => {
         if (onFinish) onFinish();
-      });
-    }, duration);
+      }, isWeb ? 200 : 350);
+    }, finishDuration);
 
     return () => {
       clearTimeout(step1);
